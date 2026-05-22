@@ -79,7 +79,7 @@ const ProductionPrecioMontajePicker: React.FC<ProductionPrecioMontajePickerProps
             <input
               id="pm-montaje-nombre-display"
               type="text"
-              className="production-form-input production-form-input--readonly"
+              className="production-form-input production-form-input--readonly production-pm-picker__nombre-input"
               value={selected.name}
               readOnly
               tabIndex={-1}

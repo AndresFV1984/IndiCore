@@ -45,13 +45,21 @@ const DISENO_MODO_OPTIONS: DisenoModoOption[] = [
 interface DisenoModoSelectorProps {
   value: YesNoChoice
   onChange: (value: YesNoChoice) => void
+  /** Oculta el texto introductorio cuando el contenedor padre ya lo muestra */
+  hideLead?: boolean
 }
 
-const DisenoModoSelector: React.FC<DisenoModoSelectorProps> = ({ value, onChange }) => (
+const DisenoModoSelector: React.FC<DisenoModoSelectorProps> = ({
+  value,
+  onChange,
+  hideLead = false,
+}) => (
   <div className="production-diseno-modo" role="radiogroup" aria-label="Tipo de diseño">
-    <p className="production-diseno-modo__lead">
-      Elija si esta orden requiere crear arte nuevo o reutilizar un diseño ya registrado.
-    </p>
+    {!hideLead && (
+      <p className="production-diseno-modo__lead">
+        Elija si esta orden requiere crear arte nuevo o reutilizar un diseño ya registrado.
+      </p>
+    )}
     <div className="production-diseno-modo__grid">
       {DISENO_MODO_OPTIONS.map(opt => {
         const selected = value === opt.value

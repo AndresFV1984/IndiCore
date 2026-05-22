@@ -18,6 +18,9 @@ describe('buildPreprensaFromHistorial', () => {
           planchaId: 'tp1',
           planchaNombreMedida: 'Plancha — 70x100',
           planchaValor: 185000,
+          cantidad: 0,
+          numeroPlanchas: 0,
+          valorTotal: 0,
           numeroCavidades: 2,
           detalle: 'Cyan',
           observacion: '',
@@ -26,6 +29,7 @@ describe('buildPreprensaFromHistorial', () => {
     }
     const result = buildPreprensaFromHistorial(raw as PreprensaDisenoSpecs, 'ord-1', 'work')
     expect(result.coloresPlanchas?.[0]?.planchaValor).toBe(0)
+    expect(result.coloresPlanchas?.[0]?.reposicionPlancha).toBe(false)
     expect(result.planchaValor).toBe(0)
   })
 
@@ -38,6 +42,9 @@ describe('buildPreprensaFromHistorial', () => {
           planchaId: 'tp1',
           planchaNombreMedida: 'Plancha — 70x100',
           planchaValor: 185000,
+          cantidad: 0,
+          numeroPlanchas: 0,
+          valorTotal: 0,
           numeroCavidades: 2,
           detalle: 'Cyan',
           observacion: '',

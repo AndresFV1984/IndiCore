@@ -2,6 +2,7 @@ export type YesNoChoice = 'si' | 'no'
 
 export type PlanchaClienteTipo = 'cliente-suministra' | 'plancha-existente' | 'plancha-nueva'
 
+/** Cantidad de colores en preprensa (especificaciones técnicas) */
 export type DisenoColoresOption =
   | '1-color'
   | '2-colores'
@@ -11,17 +12,31 @@ export type DisenoColoresOption =
   | '6-colores'
   | '7-colores-o-mas'
 
-/** Registro: color + tipo de plancha + cavidades (par color/plancha único en la lista). */
+/** Registro: color + plancha + cantidades (orden nueva) o cavidades (historial). */
 export interface DisenoColorPlanchaItem {
   id: string
   colores: DisenoColoresOption
   planchaId: string
   planchaNombreMedida: string
+  /** Precio unitario de la plancha (catálogo) */
   planchaValor: number
+  /** Orden nueva: cantidad de trabajo */
+  cantidad: number
+  /** Orden nueva: número de planchas */
+  numeroPlanchas: number
+  /** Orden nueva: precio plancha × número planchas */
+  valorTotal: number
+  /** Historial / legacy */
   numeroCavidades: number
   detalle: string
   /** Observación al modificar un registro cargado desde historial */
   observacion: string
+  /** Diseño existente: activa reposición y recálculo de precio plancha */
+  reposicionPlancha?: boolean
+  /** Diseño existente con reposición: planchas a cobrar (× precio plancha) */
+  cantidadReposicion?: number
+  /** Registro agregado manualmente en esta orden (no importado del historial) */
+  registroManual?: boolean
 }
 
 export interface PreprensaDisenoSpecs {
@@ -35,6 +50,8 @@ export interface PreprensaDisenoSpecs {
   colores: DisenoColoresOption | ''
   /** Tipos de plancha por cada color de la selección */
   coloresPlanchas: DisenoColorPlanchaItem[]
+  /** Suma de valorTotal de todos los registros en coloresPlanchas */
+  valorTotalPlanchas: number
   planchaId: string
   /** Snapshot: nombre y medida del tipo de plancha del catálogo */
   planchaNombreMedida: string
@@ -65,6 +82,7 @@ export const emptyPreprensaDiseno = (): PreprensaDisenoSpecs => ({
   numeroCavidades: 0,
   colores: '',
   coloresPlanchas: [],
+  valorTotalPlanchas: 0,
   planchaId: '',
   planchaNombreMedida: '',
   planchaValor: 0,

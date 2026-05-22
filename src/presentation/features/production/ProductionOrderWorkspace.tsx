@@ -31,6 +31,9 @@ import { buildPreprensaFromHistorial, clearPreprensaHistorialSelection, normaliz
 import { applyColoresPlanchasForHistorialReuse, buildColoresPlanchasPatch } from './utils/coloresPlanchasUtils'
 import { ClienteDisenoOption } from './utils/buildClienteDisenos'
 import ProductionPreprensaDiseno from './ProductionPreprensaDiseno'
+import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
+import { patchPreprensaDesignNuevo } from './utils/preprensaDesignNuevoChange'
+import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 
 const parseQuantityDigits = (value: string): number => {
@@ -182,7 +185,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   const applyHistorialTrabajo = (option: ClienteDisenoOption) => {
     const sourceOrder = orders.find(o => o.id === option.sourceOrderId)
     const raw = sourceOrder?.specs.preprensaDiseno ?? option.preprensaSnapshot
-    const coloresPlanchas = applyColoresPlanchasForHistorialReuse(raw)
+    const coloresPlanchas = applyColoresPlanchasForHistorialReuse(raw, specs.quantity, planchas)
     const preprensaDiseno: PreprensaDisenoSpecs = {
       ...emptyPreprensaDiseno(),
       ...buildPreprensaFromHistorial(raw, option.sourceOrderId, option.workName),
@@ -275,7 +278,9 @@ const ProductionOrderWorkspace: React.FC = () => {
   const breadcrumbSuffix = isNew ? 'Nueva' : orderCode
 
   return (
-    <div className="remissions-container production-workspace">
+    <div
+      className={`remissions-container production-workspace${isNew ? ' production-workspace--new-order' : ''}`}
+    >
       {!isNew && (
       <div className="remissions-header">
         <div className="remissions-header-left">
@@ -322,12 +327,6 @@ const ProductionOrderWorkspace: React.FC = () => {
           {activeTab === 'especificaciones' && (
             <>
               <h2 className="production-workspace-panel-title production-specs-title">Especificaciones</h2>
-              {isNew && (
-                <p className="production-workspace-colores-hint" role="status">
-                  Después del cliente y el trabajo, abra la pestaña <strong>Preprensa</strong> para
-                  elegir la cantidad de colores (1, 2 o 3).
-                </p>
-              )}
 
               <div className="production-specs-layout">
                 <ProductionSpecsSubNav active={specsSubTab} onChange={setSpecsSubTab} />
@@ -335,73 +334,92 @@ const ProductionOrderWorkspace: React.FC = () => {
                 <div className="production-specs-content">
               {specsSubTab === 'cliente' && (
                 <div
-                  className="production-specs-panel"
+                  className="production-specs-panel production-specs-panel--sections"
                   role="tabpanel"
                   id="production-specs-panel-cliente"
                   aria-labelledby="production-specs-subtab-cliente"
                 >
-                  <ProductionClientPicker
-                    clients={clients}
-                    selectedId={clientId}
-                    onSelect={client => {
-                      setClientId(client?.id ?? '')
-                      updatePreprensaDiseno(clearPreprensaHistorialSelection())
-                    }}
-                  />
+                  <ProductionWorkspaceSection
+                    tag="Cliente"
+                    title="Datos del cliente"
+                    subtitle="Seleccione quién encarga esta orden"
+                    tone={0}
+                  >
+                    <ProductionClientPicker
+                      clients={clients}
+                      selectedId={clientId}
+                      onSelect={client => {
+                        setClientId(client?.id ?? '')
+                        updatePreprensaDiseno(clearPreprensaHistorialSelection())
+                      }}
+                    />
+                  </ProductionWorkspaceSection>
                 </div>
               )}
 
               {specsSubTab === 'detalle-op' && (
                 <div
-                  className="production-specs-panel"
+                  className="production-specs-panel production-specs-panel--sections"
                   role="tabpanel"
                   id="production-specs-panel-detalle-op"
                   aria-labelledby="production-specs-subtab-detalle-op"
                 >
-                  <div className="production-form-grid production-form-grid--detalle-op">
-                    <div className="production-form-field production-form-field--full">
-                      <label className="production-form-label" htmlFor="prod-work">
-                        Nombre del trabajo
-                      </label>
-                      <input
-                        id="prod-work"
-                        className="production-form-input"
-                        value={workName}
-                        onChange={e => setWorkName(e.target.value)}
-                        placeholder="Ej. Catálogo corporativo 2026"
-                      />
-                    </div>
-                    <div className="production-form-field">
-                      <label className="production-form-label" htmlFor="prod-qty">
-                        Cantidad
-                      </label>
-                      <input
-                        id="prod-qty"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="production-form-input"
-                        value={specs.quantity > 0 ? String(specs.quantity) : ''}
-                        onChange={e =>
-                          updateSpecs('quantity', parseQuantityDigits(e.target.value))
-                        }
-                        onKeyDown={blockNonDigitKey}
-                        onPaste={e => {
-                          e.preventDefault()
-                          const pasted = e.clipboardData.getData('text')
-                          updateSpecs('quantity', parseQuantityDigits(pasted))
-                        }}
-                        placeholder="Ej. 5000"
-                        aria-label="Cantidad numérica"
-                      />
-                    </div>
-                    <div className="production-form-field production-form-field--full">
+                  <div className="production-ws-sections-stack">
+                    <ProductionWorkspaceSection
+                      tag="Trabajo"
+                      title="Identificación del pedido"
+                      tone={0}
+                    >
+                      <div className="production-form-grid production-form-grid--detalle-op">
+                        <div className="production-form-field production-form-field--full">
+                          <label className="production-form-label" htmlFor="prod-work">
+                            Nombre del trabajo
+                          </label>
+                          <input
+                            id="prod-work"
+                            className="production-form-input"
+                            value={workName}
+                            onChange={e => setWorkName(e.target.value)}
+                            placeholder="Ej. Catálogo corporativo 2026"
+                          />
+                        </div>
+                        <div className="production-form-field">
+                          <label className="production-form-label" htmlFor="prod-qty">
+                            Cantidad
+                          </label>
+                          <input
+                            id="prod-qty"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="production-form-input"
+                            value={specs.quantity > 0 ? String(specs.quantity) : ''}
+                            onChange={e =>
+                              updateSpecs('quantity', parseQuantityDigits(e.target.value))
+                            }
+                            onKeyDown={blockNonDigitKey}
+                            onPaste={e => {
+                              e.preventDefault()
+                              const pasted = e.clipboardData.getData('text')
+                              updateSpecs('quantity', parseQuantityDigits(pasted))
+                            }}
+                            placeholder="Ej. 5000"
+                            aria-label="Cantidad numérica"
+                          />
+                        </div>
+                      </div>
+                    </ProductionWorkspaceSection>
+                    <ProductionWorkspaceSection
+                      tag="Comercial"
+                      title="Vendedor asignado"
+                      tone={1}
+                    >
                       <ProductionVendedorPicker
                         vendedores={vendedores}
                         selectedId={vendedorId}
                         onSelect={v => setVendedorId(v?.id ?? '')}
                       />
-                    </div>
+                    </ProductionWorkspaceSection>
                   </div>
                 </div>
               )}
@@ -420,20 +438,25 @@ const ProductionOrderWorkspace: React.FC = () => {
                 <div className="production-specs-content">
                   {preprensaSubTab === 'diseno' && (
                     <div
-                      className="production-specs-panel"
+                      className="production-preprensa-diseno-detail"
                       role="tabpanel"
                       id="production-preprensa-panel-diseno"
                       aria-labelledby="production-preprensa-subtab-diseno"
                     >
-                      {isNew && (
-                        <p className="production-workspace-colores-hint" role="status">
-                          Defina aquí la cantidad de colores (1, 2 o 3) con las tarjetas de tonos
-                          suaves en «Especificaciones técnicas».
-                        </p>
-                      )}
+                      <PreprensaDisenoModoShell
+                        value={specs.preprensaDiseno.designNuevo}
+                        onChange={value =>
+                          updatePreprensaDiseno(patchPreprensaDesignNuevo(value))
+                        }
+                      />
+                      <p className="production-workspace-panel-desc production-preprensa-diseno-desc">
+                        Registre el tipo de diseño, complete los datos del arte (nombre, PDF, colores
+                        y planchas) y seleccione los acabados que aplican a esta orden.
+                      </p>
                       <ProductionPreprensaDiseno
                         diseno={specs.preprensaDiseno}
                         isNewOrder={isNew}
+                        orderQuantity={specs.quantity}
                         clientId={clientId}
                         clientName={clientName}
                         clients={clients}
@@ -451,17 +474,27 @@ const ProductionOrderWorkspace: React.FC = () => {
                           goToTab('especificaciones')
                           setSpecsSubTab('cliente')
                         }}
+                        onGoToDetalleOpTab={() => {
+                          goToTab('especificaciones')
+                          setSpecsSubTab('detalle-op')
+                        }}
                       />
                     </div>
                   )}
 
                   {preprensaSubTab === 'detalle' && (
                     <div
-                      className="production-specs-panel"
+                      className="production-specs-panel production-specs-panel--sections"
                       role="tabpanel"
                       id="production-preprensa-panel-detalle"
                       aria-labelledby="production-preprensa-subtab-detalle"
                     >
+                      <div className="production-ws-sections-stack">
+                        <ProductionWorkspaceSection
+                          tag="Planchas"
+                          title="Planchas y montaje"
+                          tone={0}
+                        >
                       <div className="production-form-grid production-form-grid--3">
                         <div className="production-form-field">
                           <label className="production-form-label" htmlFor="prod-plates">
@@ -519,6 +552,8 @@ const ProductionOrderWorkspace: React.FC = () => {
                   </div>
                 )}
                       </div>
+                        </ProductionWorkspaceSection>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -532,62 +567,78 @@ const ProductionOrderWorkspace: React.FC = () => {
               <p className="production-workspace-panel-desc">
                 Tipo, tamaño y corte de papel; pliegos y sobrante.
               </p>
-              <div className="production-form-grid production-form-grid--3">
-                {specs.paperRows.map((row, index) => (
-                  <React.Fragment key={index}>
+              <div className="production-ws-sections-stack">
+                <ProductionWorkspaceSection
+                  tag="Papel"
+                  title="Tipo y dimensiones"
+                  tone={0}
+                >
+                  <div className="production-form-grid production-form-grid--3">
+                    {specs.paperRows.map((row, index) => (
+                      <React.Fragment key={index}>
+                        <div className="production-form-field">
+                          <label className="production-form-label">Tipo de papel</label>
+                          <input
+                            className="production-form-input"
+                            value={row.type}
+                            onChange={e => updatePaperRow(index, 'type', e.target.value)}
+                          />
+                        </div>
+                        <div className="production-form-field">
+                          <label className="production-form-label">Tamaño</label>
+                          <input
+                            className="production-form-input"
+                            value={row.size}
+                            onChange={e => updatePaperRow(index, 'size', e.target.value)}
+                            placeholder="90×64"
+                          />
+                        </div>
+                        <div className="production-form-field">
+                          <label className="production-form-label">Corte</label>
+                          <input
+                            className="production-form-input"
+                            value={row.cut}
+                            onChange={e => updatePaperRow(index, 'cut', e.target.value)}
+                          />
+                        </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </ProductionWorkspaceSection>
+                <ProductionWorkspaceSection
+                  tag="Pliegos"
+                  title="Cantidades de corte"
+                  tone={1}
+                >
+                  <div className="production-form-grid production-form-grid--2">
                     <div className="production-form-field">
-                      <label className="production-form-label">Tipo de papel</label>
+                      <label className="production-form-label" htmlFor="prod-sheets">
+                        Pliegos
+                      </label>
                       <input
+                        id="prod-sheets"
+                        type="number"
+                        min={0}
                         className="production-form-input"
-                        value={row.type}
-                        onChange={e => updatePaperRow(index, 'type', e.target.value)}
+                        value={specs.sheets || ''}
+                        onChange={e => updateSpecs('sheets', Number(e.target.value) || 0)}
                       />
                     </div>
                     <div className="production-form-field">
-                      <label className="production-form-label">Tamaño</label>
+                      <label className="production-form-label" htmlFor="prod-leftover">
+                        Sobrante
+                      </label>
                       <input
+                        id="prod-leftover"
+                        type="number"
+                        min={0}
                         className="production-form-input"
-                        value={row.size}
-                        onChange={e => updatePaperRow(index, 'size', e.target.value)}
-                        placeholder="90×64"
+                        value={specs.leftover || ''}
+                        onChange={e => updateSpecs('leftover', Number(e.target.value) || 0)}
                       />
                     </div>
-                    <div className="production-form-field">
-                      <label className="production-form-label">Corte</label>
-                      <input
-                        className="production-form-input"
-                        value={row.cut}
-                        onChange={e => updatePaperRow(index, 'cut', e.target.value)}
-                      />
-                    </div>
-                  </React.Fragment>
-                ))}
-                <div className="production-form-field">
-                  <label className="production-form-label" htmlFor="prod-sheets">
-                    Pliegos
-                  </label>
-                  <input
-                    id="prod-sheets"
-                    type="number"
-                    min={0}
-                    className="production-form-input"
-                    value={specs.sheets || ''}
-                    onChange={e => updateSpecs('sheets', Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="production-form-field">
-                  <label className="production-form-label" htmlFor="prod-leftover">
-                    Sobrante
-                  </label>
-                  <input
-                    id="prod-leftover"
-                    type="number"
-                    min={0}
-                    className="production-form-input"
-                    value={specs.leftover || ''}
-                    onChange={e => updateSpecs('leftover', Number(e.target.value) || 0)}
-                  />
-                </div>
+                  </div>
+                </ProductionWorkspaceSection>
               </div>
             </>
           )}
@@ -598,32 +649,40 @@ const ProductionOrderWorkspace: React.FC = () => {
               <p className="production-workspace-panel-desc">
                 Parámetros de máquina, salida y acabados en línea de impresión.
               </p>
-              <div className="production-form-grid">
-                <div className="production-form-field">
-                  <label className="production-form-label" htmlFor="prod-machine">
-                    Valor salida máquina
-                  </label>
-                  <input
-                    id="prod-machine"
-                    type="number"
-                    min={0}
-                    className="production-form-input"
-                    value={specs.machineOutputValue.getValue() || ''}
-                    onChange={e =>
-                      updateSpecs('machineOutputValue', new Money(Number(e.target.value) || 0))
-                    }
-                  />
-                </div>
-                <div className="production-form-field">
-                  <label className="production-form-label">
+              <div className="production-ws-sections-stack">
+                <ProductionWorkspaceSection
+                  tag="Máquina"
+                  title="Salida de impresión"
+                  tone={2}
+                >
+                  <div className="production-form-field">
+                    <label className="production-form-label" htmlFor="prod-machine">
+                      Valor salida máquina
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={specs.chapoliado}
-                      onChange={e => updateSpecs('chapoliado', e.target.checked)}
-                    />{' '}
-                    Chapoliado
-                  </label>
-                </div>
+                      id="prod-machine"
+                      type="number"
+                      min={0}
+                      className="production-form-input"
+                      value={specs.machineOutputValue.getValue() || ''}
+                      onChange={e =>
+                        updateSpecs('machineOutputValue', new Money(Number(e.target.value) || 0))
+                      }
+                    />
+                  </div>
+                </ProductionWorkspaceSection>
+                <ProductionWorkspaceSection tag="Acabado" title="En línea" tone={0}>
+                  <div className="production-form-field">
+                    <label className="production-form-label">
+                      <input
+                        type="checkbox"
+                        checked={specs.chapoliado}
+                        onChange={e => updateSpecs('chapoliado', e.target.checked)}
+                      />{' '}
+                      Chapoliado
+                    </label>
+                  </div>
+                </ProductionWorkspaceSection>
               </div>
             </>
           )}
@@ -634,19 +693,21 @@ const ProductionOrderWorkspace: React.FC = () => {
               <p className="production-workspace-panel-desc">
                 Terminaciones del catálogo asignadas a esta orden (laminado, troquel, etc.).
               </p>
-              {specs.finishes.length > 0 ? (
-                <ul className="production-empty-hint" style={{ listStyle: 'none', margin: 0, padding: '1rem' }}>
-                  {specs.finishes.map((f, i) => (
-                    <li key={i}>
-                      {f.name} · Cant: {f.quantity} · {f.total.toString()}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="production-empty-hint">
-                  Aún no hay terminados asignados. Podrás vincularlos desde el catálogo de Terminados.
-                </p>
-              )}
+              <ProductionWorkspaceSection tag="Catálogo" title="Terminados vinculados" tone={1}>
+                {specs.finishes.length > 0 ? (
+                  <ul className="production-ws-list">
+                    {specs.finishes.map((f, i) => (
+                      <li key={i}>
+                        {f.name} · Cant: {f.quantity} · {f.total.toString()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="production-empty-hint">
+                    Aún no hay terminados asignados. Podrás vincularlos desde el catálogo de Terminados.
+                  </p>
+                )}
+              </ProductionWorkspaceSection>
             </>
           )}
 
@@ -656,19 +717,21 @@ const ProductionOrderWorkspace: React.FC = () => {
               <p className="production-workspace-panel-desc">
                 Operaciones de acabado y mano de obra asociada a la orden.
               </p>
-              {specs.operations.length > 0 ? (
-                <ul className="production-empty-hint" style={{ listStyle: 'none', margin: 0, padding: '1rem' }}>
-                  {specs.operations.map((op, i) => (
-                    <li key={i}>
-                      {op.name} · {op.value.toString()}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="production-empty-hint">
-                  Aún no hay operaciones de acabado. Podrás asignarlas desde el catálogo de Operaciones.
-                </p>
-              )}
+              <ProductionWorkspaceSection tag="Operaciones" title="Acabados vinculados" tone={2}>
+                {specs.operations.length > 0 ? (
+                  <ul className="production-ws-list">
+                    {specs.operations.map((op, i) => (
+                      <li key={i}>
+                        {op.name} · {op.value.toString()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="production-empty-hint">
+                    Aún no hay operaciones de acabado. Podrás asignarlas desde el catálogo de Operaciones.
+                  </p>
+                )}
+              </ProductionWorkspaceSection>
             </>
           )}
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, type LinkProps } from 'react-router-dom'
 import { ROUTES } from '../../../config/appRoutes'
-import { APP_LOGO_SRC, APP_NAME } from '@/config/brand'
+import { APP_LOGO_SRC, APP_NAME, APP_TAGLINE } from '@/config/brand'
 import { useUIStore } from '../../stores/uiStore'
 import { prefetchRoute } from '../../config/routePrefetch'
 
@@ -102,7 +102,7 @@ const Sidebar: React.FC = () => {
               </span>
             )}
           </NavLink>
-          {sidebarOpen && <p className="sidebar-subtitle">Litografía · SAS</p>}
+          {sidebarOpen && <p className="sidebar-subtitle">{APP_TAGLINE}</p>}
         </div>
       </div>
       <div className="sidebar-toolbar">

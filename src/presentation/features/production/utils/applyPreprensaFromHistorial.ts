@@ -72,6 +72,7 @@ export const clearPreprensaHistorialSelection = (): Partial<PreprensaDisenoSpecs
   numeroCavidades: 0,
   colores: '',
   coloresPlanchas: [],
+  valorTotalPlanchas: 0,
   planchaId: '',
   planchaNombreMedida: '',
   planchaValor: 0,

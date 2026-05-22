@@ -33,7 +33,7 @@ const Dashboard: React.FC = () => {
       <header className="dashboard-page__header">
         <h1 className="dashboard-page__title">Dashboard operativo</h1>
         <p className="dashboard-page__subtitle">
-          Resumen por módulo. Los porcentajes reflejan la distribución por estado.
+          Valor en el estado principal de cada módulo y cómo se reparte el dinero por estado.
         </p>
       </header>
 
