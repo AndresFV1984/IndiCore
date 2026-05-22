@@ -1,5 +1,5 @@
-import { OrderStatus } from '../domain/value-objects/OrderStatus';
-import { IOrderRepository } from '../domain/ports/out/IOrderRepository';
+import { OrderStatus } from '../../domain/value-objects/OrderStatus';
+import { IOrderRepository } from '../../ports/out/IOrderRepository';
 
 export class UpdateOrderStatusUseCase {
   constructor(private readonly orderRepository: IOrderRepository) {}

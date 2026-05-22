@@ -1,4 +1,4 @@
-import { Remission } from '../entities/Remission';
+import { Remission } from '../../domain/entities/Remission';
 
 export interface IRemissionRepository {
   findById(id: string): Promise<Remission | null>;

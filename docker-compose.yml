@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bayronindicore/indicore:v1.0.0
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    # Uncomment the volume below for local development to serve built files from host
+    # volumes:
+    #   - ./dist:/usr/share/nginx/html:ro

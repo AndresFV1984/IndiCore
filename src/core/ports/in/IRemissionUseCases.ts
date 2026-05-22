@@ -1,5 +1,5 @@
-import { Remission, CreateRemissionDTO } from '../entities/Remission';
-import { RemissionStatus } from '../entities/Remission';
+import { Remission, CreateRemissionDTO } from '../../domain/entities/Remission';
+import { RemissionStatus } from '../../domain/entities/Remission';
 
 export interface IRemissionUseCases {
   createRemission(dto: CreateRemissionDTO): Promise<Remission>;

@@ -1,5 +1,5 @@
-import { Order, CreateOrderDTO } from '../entities/Order';
-import { OrderStatus } from '../value-objects/OrderStatus';
+import { Order, CreateOrderDTO } from '../../domain/entities/Order';
+import { OrderStatus } from '../../domain/value-objects/OrderStatus';
 
 export interface IOrderUseCases {
   createOrder(dto: CreateOrderDTO): Promise<Order>;

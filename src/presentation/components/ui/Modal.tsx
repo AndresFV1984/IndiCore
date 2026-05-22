@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
-import clsx from 'clsx'
+
+export type ModalDirectoryTone = 'clients' | 'users' | 'vendedores'
 
 interface ModalProps {
   isOpen: boolean
@@ -7,10 +8,19 @@ interface ModalProps {
   subtitle?: string
   onClose: () => void
   maxWidth?: string
+  directoryTone?: ModalDirectoryTone
   children: React.ReactNode
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, title, subtitle, onClose, maxWidth = '500px', children }) => {
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  title,
+  subtitle,
+  onClose,
+  maxWidth = '500px',
+  directoryTone,
+  children,
+}) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -27,7 +37,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, subtitle, onClose, maxWidt
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content"
+        className={[
+          'modal-content',
+          directoryTone ? 'modal-content--record' : '',
+          directoryTone ? `modal-content--${directoryTone}` : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -35,13 +51,17 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, subtitle, onClose, maxWidt
         aria-labelledby="modal-title"
       >
         <div className="modal-header">
-          <h2 id="modal-title" className="modal-title">{title}</h2>
-          {subtitle && <p className="modal-subtitle">{subtitle}</p>}
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <div className="modal-header-text">
+            <h2 id="modal-title" className="modal-title">{title}</h2>
+            {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+          </div>
+          <button className="modal-close" onClick={onClose} aria-label="Cerrar">
             ×
           </button>
         </div>
-        <div className="modal-body">
+        <div
+          className={directoryTone ? 'modal-body modal-body--record' : 'modal-body'}
+        >
           {children}
         </div>
       </div>

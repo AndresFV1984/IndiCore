@@ -1,0 +1,251 @@
+:root {
+  --rem-ink: var(--txt);
+  --rem-txt-2: var(--txt-2);
+  --rem-accent: var(--teal);
+}
+
+.remissions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  padding: 0;
+  background: transparent;
+  min-height: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.remissions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.remissions-title {
+  font-size: 1.35rem;
+  margin: 0;
+  color: var(--rem-ink);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.remissions-breadcrumb {
+  font-size: 0.8125rem;
+  color: var(--rem-txt-2);
+  margin: 0.25rem 0 0;
+}
+
+.remissions-header-right {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.remissions-btn-new {
+  background: linear-gradient(135deg, var(--rem-accent) 0%, #12d4ad 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 2px 12px rgba(13, 168, 138, 0.25);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+.remissions-btn-new:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(13, 168, 138, 0.32);
+}
+
+/* KPI: estilos unificados en presentation/styles/dashboard-kpi.css */
+
+/* Section */
+.remissions-section {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.remissions-section > .remissions-table-wrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.remissions-section > .remissions-footer,
+.remissions-section > .list-footer {
+  flex-shrink: 0;
+  margin-top: 0;
+  border-top: 1px solid var(--border);
+}
+.remissions-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(241, 245, 249, 0.65) 0%, var(--surface) 100%);
+}
+.remissions-section-title {
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--rem-ink);
+}
+.remissions-section-actions {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+}
+
+.remissions-search-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.remissions-search-input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: var(--ring-focus);
+}
+.remissions-status-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.875rem;
+  background: var(--surface);
+}
+.remissions-btn-export {
+  background: var(--surface);
+  color: var(--rem-accent);
+  border: 1px solid var(--rem-accent);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.remissions-btn-export:hover {
+  background: var(--teal-lt);
+}
+
+/* Table */
+.remissions-table-wrapper {
+  overflow-x: auto;
+}
+.remissions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  background: var(--surface);
+}
+.remissions-table thead {
+  background: rgba(241, 245, 249, 0.9);
+  border-bottom: 1px solid var(--border);
+}
+.remissions-table th {
+  padding: 0.75rem 0.75rem;
+  text-align: left;
+  font-size: 0.65rem;
+  color: var(--rem-txt-2);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.remissions-table th:last-child {
+  border-right: none;
+}
+.remissions-table td {
+  padding: 0.75rem 0.75rem;
+  color: var(--rem-ink);
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+}
+.remissions-table tbody tr {
+  transition: background 0.12s ease;
+}
+.remissions-table tbody tr:hover {
+  background: rgba(241, 245, 249, 0.55);
+}
+
+.remissions-th-estado {
+  min-width: 100px;
+}
+
+.remissions-td-acciones {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.orders-td-acciones {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.remissions-dashboard .orders-btn-export {
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+.remissions-dashboard .orders-btn-export:hover {
+  background: var(--teal-lt);
+}
+
+.remissions-link {
+  color: var(--teal);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+.remissions-link:hover {
+  text-decoration: underline;
+}
+
+.remissions-td-empty {
+  text-align: center;
+  color: var(--rem-txt-2);
+  padding: 2.5rem;
+}
+
+.remissions-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  background: rgba(241, 245, 249, 0.45);
+}
+.remissions-count {
+  font-size: 0.75rem;
+  color: var(--rem-txt-2);
+  margin: 0;
+}
+
+/* Action icons: tamaño en table-actions.css e index.css */
+.action-icon-button.action-icon-print:hover {
+  background: rgba(13, 168, 138, 0.1);
+  color: var(--rem-accent);
+}
+.action-icon-button.action-icon-view:hover {
+  background: rgba(74, 74, 230, 0.08);
+  color: #4a4ae6;
+}
+.action-icon-button.action-icon-edit:hover {
+  background: rgba(255, 106, 61, 0.08);
+  color: #ff6a3d;
+}

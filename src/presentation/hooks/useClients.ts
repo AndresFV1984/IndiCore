@@ -1,38 +1,68 @@
 import { useEffect } from 'react'
-import { useClients } from '../context/ClientsContext'
-import { Container } from '../../di/container'
+import { useClientsStore } from '../stores/clientsStore.js'
+import { Container } from '../../di/container.js'
+import { dedupedFetch } from '../utils/dedupedFetch.js'
+import { Client, CreateClientDTO } from '../../core/domain/entities/Client.js'
 
 const container = Container.getInstance()
 
 export const useClientsHook = () => {
-  const { state, dispatch } = useClients()
+  const { clients, loading, error, setLoading, setClients, addClient, updateClient: patchClient, setError } = useClientsStore()
 
   useEffect(() => {
-    if (state.clients.length === 0) {
-      container.getClientUseCases().getClients().then(clients => {
-        dispatch({ type: 'SET_CLIENTS', payload: clients })
-      }).catch(error => {
-        dispatch({ type: 'SET_ERROR', payload: error.message })
-      })
-    }
-  }, [state.clients.length, dispatch])
+    if (useClientsStore.getState().clients.length > 0) return
 
-  const createClient = async (dto: any) => {
-    dispatch({ type: 'SET_LOADING', payload: true })
+    let cancelled = false
+    setLoading(true)
+    dedupedFetch('store:clients', () => container.getClientUseCases().getClients())
+      .then(fetched => {
+        if (!cancelled) setClients(fetched)
+      })
+      .catch(err => {
+        if (!cancelled) setError(err.message || 'Error cargando clientes')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [setLoading, setClients, setError])
+
+  const createClient = async (dto: CreateClientDTO) => {
     try {
       const client = await container.getClientUseCases().createClient(dto)
-      dispatch({ type: 'ADD_CLIENT', payload: client })
+      addClient(client)
+      return client
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message })
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false })
+      setError(error.message || 'Error creando cliente')
+      throw error
+    }
+  }
+
+  const updateClient = async (dto: CreateClientDTO) => {
+    if (!dto.id) {
+      const message = 'No se pudo identificar el cliente a actualizar'
+      setError(message)
+      throw new Error(message)
+    }
+    try {
+      const client = Client.create(dto)
+      await container.getClientUseCases().updateClient(client)
+      patchClient(client)
+      return client
+    } catch (error: any) {
+      setError(error.message || 'Error actualizando cliente')
+      throw error
     }
   }
 
   return {
-    clients: state.clients,
-    loading: state.loading,
-    error: state.error,
+    clients,
+    loading,
+    error,
     createClient,
+    updateClient,
   }
 }

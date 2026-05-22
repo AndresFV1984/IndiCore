@@ -1,0 +1,41 @@
+/* Badges de estado — compartidos entre pedidos y órdenes de producción */
+
+.orders-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.orders-status-confirmado {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.orders-status-en-curso {
+  background: #fff3cd;
+  color: #ff9800;
+}
+
+.orders-status-revision {
+  background: #e3f2fd;
+  color: #6c5ce7;
+}
+
+.orders-status-listo {
+  background: #f3e5f5;
+  color: #9c27b0;
+}
+
+.orders-status-entregado {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.orders-status-cancelado {
+  background: #ffebee;
+  color: #f44336;
+}

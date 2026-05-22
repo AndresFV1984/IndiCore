@@ -1,0 +1,130 @@
+/**
+ * KPI cards unificadas — referencia: dashboard Clientes
+ * Aplica a .orders-kpi-* y .remissions-kpi-*
+ */
+
+.orders-kpi-grid,
+.remissions-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.orders-kpi-card,
+.remissions-kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 5.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.orders-kpi-card:hover,
+.remissions-kpi-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.orders-kpi-label,
+.remissions-kpi-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+  margin: 0 0 0.25rem;
+  line-height: 1.3;
+}
+
+.orders-kpi-value,
+.remissions-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+/* Tarjeta intro (solo título + subtítulo, ej. Clientes) */
+.remissions-kpi-card--intro,
+.orders-kpi-card--intro {
+  justify-content: center;
+}
+
+.remissions-kpi-card--intro .remissions-kpi-label,
+.orders-kpi-card--intro .orders-kpi-label {
+  margin-bottom: 0.2rem;
+}
+
+.remissions-kpi-card--intro .remissions-kpi-sublabel,
+.orders-kpi-card--intro .orders-kpi-sublabel {
+  margin-top: 0;
+  min-height: 0;
+}
+
+.orders-kpi-sublabel,
+.remissions-kpi-sublabel {
+  font-size: 0.75rem;
+  color: var(--txt-2);
+  margin: 0.15rem 0 0;
+  line-height: 1.3;
+  min-height: 0.95rem;
+}
+
+.orders-kpi-sublabel-success,
+.remissions-kpi-sublabel-success {
+  font-size: 0.75rem;
+  color: var(--green);
+  margin: 0.15rem 0 0;
+  font-weight: 500;
+  line-height: 1.3;
+  min-height: 0.95rem;
+}
+
+.orders-kpi-sublabel-danger,
+.remissions-kpi-sublabel-danger {
+  font-size: 0.75rem;
+  color: #d32f2f;
+  margin: 0.15rem 0 0;
+  font-weight: 500;
+  line-height: 1.3;
+  min-height: 0.95rem;
+}
+
+.orders-kpi-card-warning,
+.remissions-kpi-card-warning {
+  border-color: rgba(255, 106, 61, 0.35);
+  background: linear-gradient(135deg, #fffdfb 0%, var(--surface) 100%);
+}
+
+@media (max-width: 900px) {
+  .orders-kpi-grid,
+  .remissions-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .orders-kpi-grid,
+  .remissions-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-kpi-card,
+  .remissions-kpi-card {
+    min-height: 5.25rem;
+    padding: 0.65rem 0.85rem;
+  }
+}

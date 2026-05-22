@@ -1,0 +1,73 @@
+@import '../../styles/directory-records.css';
+
+.clients-dashboard .remissions-th-nombre {
+  min-width: 140px;
+}
+
+.clients-dashboard .remissions-th-email {
+  min-width: 180px;
+}
+
+.clients-dashboard .remissions-th-estado {
+  min-width: 100px;
+}
+
+.client-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.client-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+
+.client-form-field--full {
+  grid-column: 1 / -1;
+}
+
+.client-form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--txt);
+  margin-bottom: 0.4rem;
+}
+
+.client-form-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--txt);
+  background: var(--surface);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.client-form-input::placeholder {
+  color: var(--txt-3, #94a3b8);
+}
+
+.client-form-input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: var(--ring-focus);
+}
+
+.client-form-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--red, #dc2626);
+}
+
+.client-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}

@@ -1,5 +1,7 @@
-import { Money } from '../value-objects/Money';
-import { OrderStatus } from '../value-objects/OrderStatus';
+import { Money } from '../value-objects/Money.js';
+import { OrderStatus } from '../value-objects/OrderStatus.js';
+import { OrderTotalCalculator } from '../value-objects/OrderTotalCalculator.js';
+import { PreprensaDisenoSpecs } from './PreprensaDiseno.js';
 
 export interface OrderSpecs {
   paperRows: PaperRow[];
@@ -9,6 +11,7 @@ export interface OrderSpecs {
   mounting: boolean;
   mountingValue?: Money;
   design: boolean;
+  preprensaDiseno: PreprensaDisenoSpecs;
   plates: number;
   platesValue: Money;
   thousands: number;
@@ -45,11 +48,12 @@ export class Order {
     public readonly date: Date,
     public readonly specs: OrderSpecs,
     public readonly status: OrderStatus,
-    public readonly total: Money
+    public readonly total: Money,
+    public readonly vendedorId: string = ''
   ) {}
 
   static create(dto: CreateOrderDTO): Order {
-    const total = Order.calculateTotal(dto.specs);
+    const total = OrderTotalCalculator.calculate(dto.specs);
     return new Order(
       dto.id || crypto.randomUUID(),
       dto.clientId,
@@ -57,32 +61,9 @@ export class Order {
       dto.date,
       dto.specs,
       'En curso',
-      total
+      total,
+      dto.vendedorId ?? ''
     );
-  }
-
-  private static calculateTotal(specs: OrderSpecs): Money {
-    let total = new Money(0);
-
-    // Add paper cut (assuming some calculation, for now placeholder)
-    // total = total.add(specs.paperCutValue);
-
-    if (specs.mounting && specs.mountingValue) {
-      total = total.add(specs.mountingValue);
-    }
-
-    total = total.add(specs.platesValue);
-    total = total.add(specs.machineOutputValue.multiply(specs.thousands));
-
-    specs.finishes.forEach(finish => {
-      total = total.add(finish.total);
-    });
-
-    specs.operations.forEach(op => {
-      total = total.add(op.value);
-    });
-
-    return total;
   }
 
   updateStatus(newStatus: OrderStatus): Order {
@@ -93,7 +74,8 @@ export class Order {
       this.date,
       this.specs,
       newStatus,
-      this.total
+      this.total,
+      this.vendedorId
     );
   }
 }
@@ -104,4 +86,5 @@ export interface CreateOrderDTO {
   workName: string;
   date: Date;
   specs: OrderSpecs;
+  vendedorId?: string;
 }

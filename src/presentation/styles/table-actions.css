@@ -1,0 +1,58 @@
+/**
+ * Columna de acciones: iconos compactos y alineados en todos los dashboards.
+ */
+
+:root {
+  --record-action-btn-size: 28px;
+  --record-action-icon-size: 14px;
+  --record-action-gap: 0.2rem;
+}
+
+.remissions-th-acciones,
+.orders-th-acciones {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.orders-td-acciones,
+.remissions-td-acciones {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.orders-td-acciones > div,
+.remissions-td-acciones > div,
+.list-record-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--record-action-gap);
+  vertical-align: middle;
+}
+
+.list-record-actions .action-icon-button,
+.orders-td-acciones .action-icon-button,
+.remissions-td-acciones .action-icon-button,
+.remissions-table .action-icon-button,
+.orders-table .action-icon-button,
+.directory-table .action-icon-button {
+  flex-shrink: 0;
+  width: var(--record-action-btn-size);
+  height: var(--record-action-btn-size);
+  min-width: var(--record-action-btn-size);
+  min-height: var(--record-action-btn-size);
+  padding: 0;
+}
+
+.list-record-actions .action-icon-button svg,
+.orders-td-acciones .action-icon-button svg,
+.remissions-td-acciones .action-icon-button svg,
+.remissions-table .action-icon-button svg,
+.orders-table .action-icon-button svg,
+.directory-table .action-icon-button svg {
+  display: block;
+  margin: auto;
+  width: var(--record-action-icon-size);
+  height: var(--record-action-icon-size);
+}

@@ -1,6 +1,8 @@
-import { Order } from '../domain/entities/Order';
-import { IOrderRepository } from '../domain/ports/out/IOrderRepository';
-import { Money } from '../domain/value-objects/Money';
+import { Order } from '../../core/domain/entities/Order.js';
+import { emptyPreprensaDiseno } from '../../core/domain/entities/PreprensaDiseno.js';
+import { IOrderRepository } from '../../core/ports/out/IOrderRepository.js';
+import { Money } from '../../core/domain/value-objects/Money.js';
+import { PURCHASE_ORDER_PREFIX } from '../../core/domain/value-objects/PurchaseOrderId.js';
 
 export class InMemoryOrderRepository implements IOrderRepository {
   private orders: Order[] = [];
@@ -38,9 +40,123 @@ export class InMemoryOrderRepository implements IOrderRepository {
     const statuses: ('En curso' | 'Revisión' | 'Listo' | 'Entregado' | 'Cancelado')[] = ['En curso', 'Revisión', 'Listo', 'Entregado', 'Cancelado'];
 
     for (let i = 1; i <= 15; i++) {
+      const clientId = [1, 2, 4, 14].includes(i)
+        ? '1'
+        : clients[Math.floor(Math.random() * clients.length)]
+
+      let preprensaDiseno = emptyPreprensaDiseno()
+      if ([1, 4, 14].includes(i)) {
+        preprensaDiseno = {
+          ...emptyPreprensaDiseno(),
+          designNuevo: 'no',
+          nombreDiseno: `Diseño empaque ${i}`,
+          disenoExistenteNombre: `Diseño empaque ${i}`,
+          aplicaCostoDiseno: true,
+          crearDisenoCost: 180000 + i * 10000,
+          designPdfFileName: `empaque-${i}.pdf`,
+          planchaClienteTipo: i === 4 ? 'plancha-existente' : 'plancha-nueva',
+          planchaNuevaCosto: i === 4 ? 0 : 250000,
+          numeroCavidades: 2,
+          colores: '4-colores',
+          coloresPlanchas: [
+            {
+              id: 'cp-seed-1',
+              colores: '1-color',
+              planchaId: 'tp1',
+              planchaNombreMedida: 'Plancha estándar — 70 × 100 cm',
+              planchaValor: 185000,
+              numeroCavidades: 2,
+              detalle: 'Cyan proceso',
+            },
+            {
+              id: 'cp-seed-2',
+              colores: '2-colores',
+              planchaId: 'tp2',
+              planchaNombreMedida: 'Plancha media — 64 × 90 cm',
+              planchaValor: 152000,
+              numeroCavidades: 1,
+              detalle: 'Magenta',
+            },
+            {
+              id: 'cp-seed-3',
+              colores: '3-colores',
+              planchaId: 'tp1',
+              planchaNombreMedida: 'Plancha estándar — 70 × 100 cm',
+              planchaValor: 185000,
+              numeroCavidades: 2,
+              detalle: 'Cyan proceso',
+            },
+            {
+              id: 'cp-seed-3b',
+              colores: '4-colores',
+              planchaId: 'tp2',
+              planchaNombreMedida: 'Plancha media — 64 × 90 cm',
+              planchaValor: 152000,
+              numeroCavidades: 1,
+              detalle: 'Magenta',
+            },
+          ],
+          planchaId: 'tp1',
+          planchaNombreMedida: 'Plancha estándar — 70 × 100 cm',
+          planchaValor: 185000,
+          lineaTroquel: true,
+          reservaUv: i === 1,
+          precioMontajeId: 'pm1',
+          precioMontajeNombre: 'Montaje estándar 4 tintas',
+          precioMontajeCosto: 85000,
+        }
+      } else if (i === 2) {
+        preprensaDiseno = {
+          ...emptyPreprensaDiseno(),
+          designNuevo: 'si',
+          nombreDiseno: 'Catálogo corporativo 2024',
+          aplicaCostoDiseno: true,
+          crearDisenoCost: 320000,
+          designPdfFileName: 'catalogo-2024.pdf',
+          numeroCavidades: 1,
+          colores: '2-colores',
+          coloresPlanchas: [
+            {
+              id: 'cp-seed-4',
+              colores: '1-color',
+              planchaId: 'tp3',
+              planchaNombreMedida: 'Plancha pequeña — 50 × 70 cm',
+              planchaValor: 98000,
+              numeroCavidades: 1,
+              detalle: 'Magenta',
+            },
+            {
+              id: 'cp-seed-5',
+              colores: '2-colores',
+              planchaId: 'tp2',
+              planchaNombreMedida: 'Plancha media — 64 × 90 cm',
+              planchaValor: 152000,
+              numeroCavidades: 2,
+              detalle: 'Cyan proceso',
+            },
+            {
+              id: 'cp-seed-5b',
+              colores: '2-colores',
+              planchaId: 'tp1',
+              planchaNombreMedida: 'Plancha estándar — 70 × 100 cm',
+              planchaValor: 185000,
+              numeroCavidades: 1,
+              detalle: 'Magenta',
+            },
+          ],
+          planchaId: 'tp2',
+          planchaNombreMedida: 'Plancha media — 64 × 90 cm',
+          planchaValor: 152000,
+          estampado: true,
+          precioMontajeId: 'pm2',
+          precioMontajeNombre: 'Montaje complejo 6 tintas',
+          precioMontajeCosto: 125000,
+        }
+      }
+
       const order = new Order(
-        `order-${i}`,
-        clients[Math.floor(Math.random() * clients.length)],
+        `${PURCHASE_ORDER_PREFIX}${String(i).padStart(3, '0')}`,
+        clientId,
         `Trabajo ${i}`,
         new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
         {
@@ -50,7 +166,8 @@ export class InMemoryOrderRepository implements IOrderRepository {
           leftover: 10,
           mounting: Math.random() > 0.5,
           mountingValue: new Money(50000),
-          design: Math.random() > 0.5,
+          design: preprensaDiseno.designNuevo === 'si',
+          preprensaDiseno,
           plates: 2,
           platesValue: new Money(100000),
           thousands: 1,
@@ -61,7 +178,8 @@ export class InMemoryOrderRepository implements IOrderRepository {
           operations: []
         },
         statuses[Math.floor(Math.random() * statuses.length)],
-        new Money(Math.floor(Math.random() * 1000000) + 100000)
+        new Money(Math.floor(Math.random() * 1000000) + 100000),
+        ''
       );
       this.orders.push(order);
     }

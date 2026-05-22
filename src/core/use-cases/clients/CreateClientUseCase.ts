@@ -1,5 +1,5 @@
-import { Client, CreateClientDTO } from '../domain/entities/Client';
-import { IClientRepository } from '../domain/ports/out/IClientRepository';
+import { Client, CreateClientDTO } from '../../domain/entities/Client';
+import { IClientRepository } from '../../ports/out/IClientRepository';
 
 export class CreateClientUseCase {
   constructor(private readonly clientRepository: IClientRepository) {}

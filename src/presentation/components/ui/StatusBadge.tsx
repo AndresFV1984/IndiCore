@@ -1,23 +1,22 @@
 import React from 'react'
-import Badge from './Badge'
-
-type OrderStatus = 'En curso' | 'Revisión' | 'Listo' | 'Entregado' | 'Cancelado'
-
-const statusConfig: Record<OrderStatus, { variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'purple', label: string }> = {
-  'En curso': { variant: 'warning', label: 'En curso' },
-  'Revisión': { variant: 'info', label: 'Revisión' },
-  'Listo': { variant: 'success', label: 'Listo' },
-  'Entregado': { variant: 'neutral', label: 'Entregado' },
-  'Cancelado': { variant: 'danger', label: 'Cancelado' },
-}
+import type { OrderStatus } from '@/core/domain/value-objects/OrderStatus'
+import {
+  ORDER_STATUS_CLASS,
+  PRODUCTION_STATUS_LABEL,
+} from '@/presentation/constants/orderStatusStyles'
+import '@/presentation/styles/order-status-badges.css'
 
 interface StatusBadgeProps {
   status: OrderStatus
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const config = statusConfig[status]
-  return <Badge variant={config.variant} label={config.label} />
+  const className = ORDER_STATUS_CLASS[status]
+  const label = PRODUCTION_STATUS_LABEL[status]
+
+  return (
+    <span className={`orders-status-badge ${className}`}>{label}</span>
+  )
 }
 
 export default StatusBadge

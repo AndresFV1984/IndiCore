@@ -1,0 +1,378 @@
+/* Responsive — reglas solo dentro de media queries (no afectan escritorio por defecto) */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Contenedores de dashboard: permitir encoger en flex/grid */
+.orders-container,
+.remissions-container {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Tablas: scroll horizontal en tablet */
+.orders-table-wrapper,
+.remissions-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* —— Tablet (≤1024px) —— */
+@media (max-width: 1024px) {
+  .orders-header,
+  .remissions-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .orders-header-right,
+  .remissions-header-right {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+  }
+
+  .search-box {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+
+  .orders-header-right .search-input,
+  .remissions-header-right .search-input {
+    width: 100%;
+  }
+
+  .orders-section-header,
+  .remissions-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .orders-section-actions,
+  .remissions-section-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-page-title {
+    font-size: 1.5rem;
+  }
+
+  .orders-section,
+  .remissions-section {
+    overflow: visible;
+  }
+
+  .orders-table th,
+  .orders-table td,
+  .remissions-table th,
+  .remissions-table td {
+    padding: 0.65rem 0.5rem;
+  }
+
+  .orders-table .orders-th-avance,
+  .orders-table .orders-td-avance {
+    min-width: 160px;
+    padding-right: 0.75rem;
+  }
+}
+
+/* —— Móvil / lista en tarjetas (≤768px) —— */
+@media (max-width: 768px) {
+  .orders-table-wrapper,
+  .remissions-table-wrapper {
+    overflow: visible;
+    padding: 0 0.75rem;
+  }
+
+  .remissions-section > .remissions-footer,
+  .remissions-section > .list-footer {
+    margin-top: 0;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    background: rgba(241, 245, 249, 0.55);
+    border-radius: 0;
+  }
+
+  .orders-table,
+  .remissions-table {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .orders-table thead,
+  .remissions-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .orders-table tbody,
+  .remissions-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .orders-table tbody tr,
+  .remissions-table tbody tr {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .orders-table tbody tr:hover,
+  .remissions-table tbody tr:hover {
+    background: var(--surface);
+  }
+
+  .orders-table td,
+  .remissions-table td {
+    display: grid;
+    grid-template-columns: minmax(88px, 36%) 1fr;
+    gap: 0.35rem 0.75rem;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+    border-right: none;
+    text-align: right;
+    white-space: normal;
+    word-break: break-word;
+    font-size: 0.8125rem;
+  }
+
+  .orders-table td::before,
+  .remissions-table td::before {
+    content: attr(data-label);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--txt-2);
+    text-align: left;
+    line-height: 1.3;
+  }
+
+  .orders-table td.orders-td-acciones,
+  .remissions-table td.orders-td-acciones {
+    display: block;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border-bottom: none;
+  }
+
+  .orders-table td.orders-td-acciones::before,
+  .remissions-table td.orders-td-acciones::before {
+    display: block;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .orders-table td.orders-td-acciones > div,
+  .remissions-table td.orders-td-acciones > div {
+    justify-content: center;
+  }
+
+  .orders-table td.orders-td-empty,
+  .remissions-table td.remissions-td-empty {
+    display: block;
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 2rem 1rem;
+    border-bottom: none;
+  }
+
+  .orders-table td.orders-td-empty::before,
+  .remissions-table td.remissions-td-empty::before {
+    content: none;
+  }
+
+  .orders-table td.orders-td-avance {
+    display: block;
+    text-align: left;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .orders-table td.orders-td-avance::before {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .orders-avance-progress {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .orders-avance-percent {
+    width: auto;
+    text-align: left;
+  }
+
+  /* Estado: badge alineado y legible en tarjeta móvil */
+  .orders-table td.orders-td-estado,
+  .orders-table td.remissions-td-estado,
+  .remissions-table td.remissions-td-estado,
+  .remissions-table td.orders-td-estado {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    text-align: left;
+  }
+
+  .orders-table td.orders-td-estado::before,
+  .orders-table td.remissions-td-estado::before,
+  .remissions-table td.remissions-td-estado::before,
+  .remissions-table td.orders-td-estado::before {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .orders-table td.orders-td-estado .status-badge-wrap,
+  .orders-table td.remissions-td-estado .status-badge-wrap,
+  .remissions-table td.remissions-td-estado .status-badge-wrap,
+  .remissions-table td.orders-td-estado .status-badge-wrap {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .orders-table td.orders-td-estado .badge,
+  .orders-table td.remissions-td-estado .badge,
+  .remissions-table td.remissions-td-estado .badge,
+  .remissions-table td.orders-td-estado .badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+  }
+}
+
+/* —— Móvil layout general (≤900px) —— */
+@media (max-width: 900px) {
+  .panel {
+    margin-left: 0 !important;
+    padding: 1rem 1rem 1.25rem !important;
+    max-width: 100%;
+  }
+
+  .sidebar:not(.sidebar-open) .sidebar-toolbar {
+    display: none;
+  }
+
+  .sidebar-mobile-toggle {
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 260;
+  }
+
+  .orders-container,
+  .remissions-container {
+    gap: 1rem;
+  }
+
+  .orders-kpi-value,
+  .remissions-kpi-value {
+    font-size: 1.35rem;
+    min-height: 1.35rem;
+  }
+
+  .catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  }
+}
+
+/* —— Teléfono (≤640px) —— */
+@media (max-width: 640px) {
+  .panel {
+    padding: 0.75rem !important;
+  }
+
+  .orders-title,
+  .remissions-title {
+    font-size: 1.2rem;
+  }
+
+  .orders-header,
+  .remissions-header {
+    padding: 1rem;
+  }
+
+  .orders-header-right,
+  .remissions-header-right {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box,
+  .orders-btn-new,
+  .remissions-btn-new {
+    width: 100%;
+  }
+
+  .orders-section-actions,
+  .remissions-section-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orders-search-input,
+  .orders-status-select,
+  .orders-btn-export,
+  .remissions-search-input,
+  .remissions-status-select,
+  .remissions-btn-export {
+    width: 100%;
+  }
+
+  .orders-kpi-grid,
+  .remissions-kpi-grid,
+  .dashboard-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .catalog-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .list-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .orders-table-wrapper,
+  .remissions-table-wrapper {
+    padding: 0 0.5rem 0.5rem;
+  }
+}

@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: indicore:latest
+    ports:
+      - "8090:80"
+    restart: unless-stopped
+    # volumes:
+    #   - ./dist:/usr/share/nginx/html:ro
+

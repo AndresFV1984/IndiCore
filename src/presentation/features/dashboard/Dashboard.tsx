@@ -1,43 +1,70 @@
-import React from 'react'
-import KpiCard from '../../components/ui/KpiCard'
+import React, { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Container } from '@/di/container'
+import { ROUTES } from '@/config/appRoutes'
+import { useOrdersHook } from '@/presentation/hooks/useOrders'
+import DashboardStatPanel from './DashboardStatPanel'
+import {
+  computePedidosStats,
+  computeProductionStats,
+  computeRemissionsStats,
+} from './dashboardStats'
+import './Dashboard.css'
+
+const container = Container.getInstance()
 
 const Dashboard: React.FC = () => {
+  const { orders, loading: ordersLoading } = useOrdersHook()
+
+  const { data: remissions = [], isLoading: remissionsLoading } = useQuery({
+    queryKey: ['remissions'],
+    queryFn: () => container.getRemissionUseCases().getRemissions(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const productionStats = useMemo(() => computeProductionStats(orders), [orders])
+  const pedidosStats = useMemo(() => computePedidosStats(orders), [orders])
+  const remissionsStats = useMemo(() => computeRemissionsStats(remissions), [remissions])
+
+  const loading = ordersLoading || remissionsLoading
+
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-        <KpiCard
-          label="Órdenes en producción"
-          value="12"
-          trend={5}
-          trendDirection="up"
-          icon="🏭"
-          accentColor="var(--orange)"
-        />
-        <KpiCard
-          label="Entregadas"
-          value="45"
-          trend={-2}
-          trendDirection="down"
-          icon="✅"
-          accentColor="var(--teal)"
-        />
-        <KpiCard
-          label="Valor activo (COP)"
-          value="2.5M"
-          trend={10}
-          trendDirection="up"
-          icon="💰"
-          accentColor="var(--green)"
-        />
-        <KpiCard
-          label="En revisión"
-          value="3"
-          trend={0}
-          icon="🔍"
-          accentColor="var(--amber)"
-        />
-      </div>
+    <div className="dashboard-page">
+      <header className="dashboard-page__header">
+        <h1 className="dashboard-page__title">Dashboard operativo</h1>
+        <p className="dashboard-page__subtitle">
+          Resumen por módulo. Los porcentajes reflejan la distribución por estado.
+        </p>
+      </header>
+
+      {loading ? (
+        <div className="dashboard-page__skeleton" aria-busy="true" aria-label="Cargando indicadores">
+          <div className="dashboard-page__skeleton-card" />
+          <div className="dashboard-page__skeleton-card" />
+          <div className="dashboard-page__skeleton-card" />
+        </div>
+      ) : (
+        <div className="dashboard-page__grid">
+          <DashboardStatPanel
+            title="Producción"
+            to={ROUTES.production.path}
+            accentClass="dash-panel--production"
+            stats={productionStats}
+          />
+          <DashboardStatPanel
+            title="Pedidos"
+            to={ROUTES.orders.path}
+            accentClass="dash-panel--orders"
+            stats={pedidosStats}
+          />
+          <DashboardStatPanel
+            title="Remisiones"
+            to={ROUTES.remissions.path}
+            accentClass="dash-panel--remissions"
+            stats={remissionsStats}
+          />
+        </div>
+      )}
     </div>
   )
 }

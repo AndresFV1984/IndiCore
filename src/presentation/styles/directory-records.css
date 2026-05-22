@@ -1,0 +1,388 @@
+/* Directorios: Clientes, Usuarios, Vendedores */
+
+.directory-dashboard {
+  --dir-accent: var(--teal);
+  --dir-accent-soft: rgba(13, 168, 138, 0.12);
+}
+
+.directory-dashboard--users {
+  --dir-accent: #4a4ae6;
+  --dir-accent-soft: rgba(74, 74, 230, 0.1);
+}
+
+.directory-dashboard--vendedores {
+  --dir-accent: #7c3aed;
+  --dir-accent-soft: rgba(124, 58, 237, 0.1);
+}
+
+.directory-dashboard .remissions-btn-new {
+  background: linear-gradient(135deg, var(--dir-accent) 0%, color-mix(in srgb, var(--dir-accent) 75%, #fff) 100%);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--dir-accent) 35%, transparent);
+}
+
+.directory-dashboard .remissions-btn-new:hover {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--dir-accent) 45%, transparent);
+}
+
+.directory-kpi-grid .remissions-kpi-card--intro {
+  border-left: 3px solid var(--dir-accent);
+  background: linear-gradient(135deg, var(--dir-accent-soft) 0%, var(--surface) 55%);
+}
+
+.directory-kpi-grid .remissions-kpi-card--stat-total .remissions-kpi-value {
+  color: var(--ink);
+}
+
+.directory-kpi-grid .remissions-kpi-card--stat-active {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.directory-kpi-grid .remissions-kpi-card--stat-active .remissions-kpi-value {
+  color: #16a34a;
+}
+
+.directory-kpi-grid .remissions-kpi-card--stat-inactive .remissions-kpi-value {
+  color: #64748b;
+}
+
+.directory-table .remissions-table tbody tr {
+  cursor: default;
+}
+
+.directory-table .remissions-table tbody tr:hover {
+  background: linear-gradient(90deg, var(--dir-accent-soft) 0%, rgba(241, 245, 249, 0.4) 32%);
+}
+
+.directory-table .remissions-table td:first-child {
+  padding-left: 1rem;
+}
+
+.record-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.record-cell__name {
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.record-cell__meta {
+  font-size: 0.75rem;
+  color: var(--txt-2);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.record-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--txt-2);
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid var(--border);
+}
+
+/* Identificación en directorios (tipo + número) */
+.doc-id {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.doc-id__line {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.doc-id--empty {
+  color: var(--txt-3);
+  font-size: 0.875rem;
+}
+
+.doc-id__type {
+  text-transform: uppercase;
+}
+
+.directory-table .remissions-th-documento,
+.directory-table td[data-label='Documento'],
+.directory-table td[data-label='NIT / C.C.'] {
+  min-width: 10.5rem;
+}
+
+.directory-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.directory-empty__icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  background: var(--dir-accent-soft);
+  color: var(--dir-accent);
+  margin-bottom: 0.25rem;
+}
+
+.directory-empty__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.directory-empty__hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--txt-2);
+  max-width: 22rem;
+}
+
+/* Modal de registro: cuerpo con scroll y pie fijo visible */
+.modal-content.modal-content--record {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 860px);
+  overflow: hidden;
+}
+
+.modal-content--record .modal-header {
+  flex-shrink: 0;
+}
+
+.modal-body--record {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 0;
+}
+
+/* Formulario modal */
+.record-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 100%;
+}
+
+.record-form-section {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.record-form-section__title {
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.record-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+}
+
+.record-form-field--full {
+  grid-column: 1 / -1;
+}
+
+.record-form-field__label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--txt);
+  margin-bottom: 0.35rem;
+}
+
+.record-form-field__required {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.record-form-field__hint {
+  margin: 0.3rem 0 0;
+  font-size: 0.75rem;
+  color: var(--txt-2);
+  line-height: 1.35;
+}
+
+.record-form-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--ink);
+  background: #ffffff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.record-form-input:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--dir-accent) 45%, var(--border-2));
+}
+
+.record-form-input:focus {
+  outline: none;
+  border-color: var(--dir-accent);
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 0 0 3px color-mix(in srgb, var(--dir-accent) 22%, transparent);
+}
+
+.record-form-input::placeholder {
+  color: var(--txt-3);
+  opacity: 1;
+}
+
+.record-form-input:disabled {
+  background: #f1f5f9;
+  color: var(--txt-2);
+  cursor: not-allowed;
+}
+
+.record-form-error {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.65);
+  border: 1px solid rgba(252, 165, 165, 0.6);
+  border-radius: var(--radius-md);
+}
+
+.record-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding: 1rem 0 1.25rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, #ffffff 28%);
+  border-top: 1px solid var(--border);
+}
+
+.record-form-btn {
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.7rem 1.35rem;
+  min-width: 7.5rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.record-form-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.record-form-btn--cancel {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1.5px solid var(--border-2);
+}
+
+.record-form-btn--cancel:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--ink-3);
+}
+
+.record-form-btn--submit {
+  background: var(--dir-accent, var(--teal));
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--dir-accent, var(--teal)) 35%, transparent);
+}
+
+.record-form-btn--submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--dir-accent, var(--teal)) 40%, transparent);
+}
+
+.modal-content--record {
+  --dir-accent: var(--teal);
+  --dir-accent-soft: rgba(13, 168, 138, 0.12);
+  border-radius: 14px;
+}
+
+.modal-content--record .modal-header {
+  background: linear-gradient(135deg, var(--dir-accent-soft) 0%, var(--surface) 70%);
+  border-bottom-color: var(--border);
+}
+
+.modal-content--record .modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.modal-content--record.modal-content--clients {
+  --dir-accent: var(--teal);
+  --dir-accent-soft: rgba(13, 168, 138, 0.12);
+}
+
+.modal-content--record.modal-content--users {
+  --dir-accent: #4a4ae6;
+  --dir-accent-soft: rgba(74, 74, 230, 0.1);
+}
+
+.modal-content--record.modal-content--vendedores {
+  --dir-accent: #7c3aed;
+  --dir-accent-soft: rgba(124, 58, 237, 0.1);
+}
+
+@media (max-width: 600px) {
+  .record-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .record-form-field--full {
+    grid-column: auto;
+  }
+}

@@ -1,4 +1,4 @@
-import { Client, CreateClientDTO } from '../entities/Client';
+import { Client, CreateClientDTO } from '../../domain/entities/Client';
 
 export interface IClientUseCases {
   createClient(dto: CreateClientDTO): Promise<Client>;
