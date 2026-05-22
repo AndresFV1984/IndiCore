@@ -3,9 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: bayronindicore/indicore:v1.0.0
+    image: bayronindicore/indicore:v1.2.0
     ports:
-      - "8080:80"
+      - "5173:5173"
     restart: unless-stopped
     # Uncomment the volume below for local development to serve built files from host
     # volumes:

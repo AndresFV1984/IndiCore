@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { DisenoColorPlanchaItem, DisenoColoresOption } from '../../../core/domain/entities/PreprensaDiseno'
+import { createId } from '../../../core/utils/createId'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
 import ActionIcon from '../../components/ui/ActionIcon'
 import DisenoColoresPicker, { ColoresCountIcons } from './DisenoColoresPicker'
@@ -842,7 +843,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
         onChange([
           ...itemsRef.current,
           {
-            id: crypto.randomUUID(),
+            id: createId(),
             colores: draftColor,
             cantidad,
             numeroPlanchas,
@@ -873,7 +874,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
         onChange([
           ...itemsRef.current,
           {
-            id: crypto.randomUUID(),
+            id: createId(),
             colores: draftColor,
             cantidad: 0,
             numeroPlanchas: 0,

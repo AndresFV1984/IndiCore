@@ -3,6 +3,7 @@ import {
   DisenoColoresOption,
   PreprensaDisenoSpecs,
 } from '../../../../core/domain/entities/PreprensaDiseno'
+import { createId } from '../../../../core/utils/createId'
 import { TamanoPlancha } from '../../../../core/domain/entities/TamanoPlancha'
 import {
   DISENO_COLORES_COUNT_OPTIONS,
@@ -228,7 +229,7 @@ export const normalizeColoresPlanchas = (
   if (raw.planchaId?.trim() && fallbackColores) {
     return [
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         colores: fallbackColores,
         planchaId: raw.planchaId,
         planchaNombreMedida: raw.planchaNombreMedida ?? '',
@@ -248,7 +249,7 @@ export const normalizeColoresPlanchas = (
   if (raw.planchaId?.trim()) {
     return [
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         colores: '1-color',
         planchaId: raw.planchaId,
         planchaNombreMedida: raw.planchaNombreMedida ?? '',
