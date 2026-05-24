@@ -253,7 +253,6 @@ if (!routes.includes('APP_ROUTES')) {
   catalogTipoPapel: ROUTES.catalogTipoPapel.path,
   catalogTamanoPapel: ROUTES.catalogTamanoPapel.path,
   catalogDespiece: ROUTES.catalogDespiecePliego.path,
-  catalogCorte: ROUTES.catalogCortePapel.path,
   catalogTamanoPlancha: ROUTES.catalogTamanoPlancha.path,
 } as const
 

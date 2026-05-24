@@ -4,7 +4,6 @@ import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import RecordCell from '../../components/directory/RecordCell'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
-import Badge from '../../components/ui/Badge'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import TamanoPlanchaModal from './TamanoPlanchaModal'
@@ -16,6 +15,8 @@ import {
   performAction,
 } from '../../utils/actionFeedback'
 import { formatMedidaDisplayFrom } from './cortePapelUtils'
+import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
+import { countDirectoryStats } from '../../components/directory/directoryStats'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
 
@@ -29,14 +30,12 @@ const formatValor = (value: number) =>
 const CatalogTamanoPlancha: React.FC = () => {
   const { items, loading, error, createTamanoPlancha, updateTamanoPlancha } = useTamanoPlanchaHook()
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'activo' | 'inactivo'>('todos')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<TamanoPlancha | null>(null)
+  const activeItems = useMemo(() => items.filter(p => p.active), [items])
 
   const filtered = useMemo(() => {
-    let result = items
-    if (statusFilter === 'activo') result = result.filter(p => p.active)
-    if (statusFilter === 'inactivo') result = result.filter(p => !p.active)
+    let result = activeItems
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -47,16 +46,9 @@ const CatalogTamanoPlancha: React.FC = () => {
       )
     }
     return result
-  }, [items, searchQuery, statusFilter])
+  }, [activeItems, searchQuery])
 
-  const stats = useMemo(
-    () => ({
-      total: items.length,
-      active: items.filter(p => p.active).length,
-      inactive: items.filter(p => !p.active).length,
-    }),
-    [items]
-  )
+  const stats = useMemo(() => countDirectoryStats(items), [items])
 
   const {
     page,
@@ -111,7 +103,7 @@ const CatalogTamanoPlancha: React.FC = () => {
   const handleToggleActive = async (item: TamanoPlancha) => {
     if (!(await confirmToggleState(item.name, item.active))) return
     await performAction({
-      success: item.active ? 'Tipo de plancha inactivado.' : 'Tipo de plancha activado.',
+      success: 'Tipo de plancha inactivado.',
       error: 'No se pudo cambiar el estado.',
       action: async () =>
         updateTamanoPlancha({
@@ -121,7 +113,7 @@ const CatalogTamanoPlancha: React.FC = () => {
           alto: item.alto,
           unidadMedida: item.unidadMedida,
           valor: item.valor,
-          active: !item.active,
+          active: false,
         }),
     })
   }
@@ -132,7 +124,7 @@ const CatalogTamanoPlancha: React.FC = () => {
   if (error) return <div className="remissions-kpi-card">Error: {error}</div>
 
   return (
-    <div className="remissions-container clients-dashboard directory-dashboard">
+    <div className="remissions-container clients-dashboard directory-dashboard directory-dashboard--catalog">
       <div className="remissions-header">
         <div className="remissions-header-left">
           <h1 className="remissions-title">Tipo Plancha</h1>
@@ -146,24 +138,13 @@ const CatalogTamanoPlancha: React.FC = () => {
         </div>
       </div>
 
-      <div className="remissions-kpi-grid directory-kpi-grid">
-        <div className="remissions-kpi-card remissions-kpi-card--intro">
-          <div className="remissions-kpi-label">DIRECTORIO DE TIPOS DE PLANCHA</div>
-          <div className="remissions-kpi-sublabel">Listado</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-total">
-          <div className="remissions-kpi-label">TOTAL</div>
-          <div className="remissions-kpi-value">{stats.total}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-active">
-          <div className="remissions-kpi-label">ACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.active}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-inactive">
-          <div className="remissions-kpi-label">INACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.inactive}</div>
-        </div>
-      </div>
+      <DirectoryKpiGrid
+        sectionLabel="CATÁLOGOS"
+        sectionSubtitle="Tipos de plancha"
+        total={stats.total}
+        active={stats.active}
+        inactive={stats.inactive}
+      />
 
       <div className="remissions-section">
         <div className="remissions-section-header">
@@ -176,15 +157,6 @@ const CatalogTamanoPlancha: React.FC = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-            <select
-              className="remissions-status-select"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-            >
-              <option value="todos">Todos</option>
-              <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
-            </select>
             <button type="button" className="remissions-btn-export" onClick={handleExportList}>
               Exportar
             </button>
@@ -198,7 +170,6 @@ const CatalogTamanoPlancha: React.FC = () => {
                 <th className="remissions-th-nombre">NOMBRE</th>
                 <th>MEDIDA</th>
                 <th>VALOR</th>
-                <th className="remissions-th-estado">ESTADO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
             </thead>
@@ -211,16 +182,10 @@ const CatalogTamanoPlancha: React.FC = () => {
                     </td>
                     <td data-label="Medida">{formatMedidaDisplayFrom(item)}</td>
                     <td data-label="Valor">{formatValor(item.valor)}</td>
-                    <td data-label="Estado" className="orders-td-estado">
-                      <Badge
-                        variant={item.active ? 'success' : 'neutral'}
-                        label={item.active ? 'Activo' : 'Inactivo'}
-                      />
-                    </td>
                     <td className="orders-td-acciones" data-label="Acciones">
                       <ListRecordActions
                         recordName={item.name}
-                        isActive={item.active}
+                        isActive
                         onView={() => handleEdit(item)}
                         onEdit={() => handleEdit(item)}
                         onExport={() => handleExportOne(item)}
@@ -231,7 +196,7 @@ const CatalogTamanoPlancha: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="remissions-td-empty">
+                  <td colSpan={4} className="remissions-td-empty">
                     <DirectoryEmptyState
                       icon="📐"
                       title="Sin tipos de plancha"

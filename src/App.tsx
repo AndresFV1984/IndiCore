@@ -23,7 +23,6 @@ const Operaciones = lazy(() => import('./presentation/features/catalog/Operation
 const TamanoPlancha = lazy(() => import('./presentation/features/catalog/CatalogTamanoPlancha'))
 const TipoPapel = lazy(() => import('./presentation/features/catalog/CatalogTipoPapel'))
 const DespiecePliego = lazy(() => import('./presentation/features/catalog/CatalogDespiecePliego'))
-const CortePapel = lazy(() => import('./presentation/features/catalog/CatalogCortePapel'))
 const PrecioMontaje = lazy(() => import('./presentation/features/precio-montaje/PrecioMontaje'))
 
 function App() {
@@ -65,7 +64,6 @@ function App() {
               element={<ComingSoonPage route={ROUTES.catalogTamanoPapel} />}
             />
             <Route path={ROUTES.catalogDespiecePliego.path} element={<DespiecePliego />} />
-            <Route path={ROUTES.catalogCortePapel.path} element={<CortePapel />} />
             <Route path={ROUTES.catalogTamanoPlancha.path} element={<TamanoPlancha />} />
             <Route path={ROUTES.precioMontaje.path} element={<PrecioMontaje />} />
             <Route path={ROUTES.reports.path} element={<ComingSoonPage route={ROUTES.reports} />} />

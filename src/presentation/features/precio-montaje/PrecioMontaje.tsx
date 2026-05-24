@@ -4,7 +4,6 @@ import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import RecordCell from '../../components/directory/RecordCell'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
-import Badge from '../../components/ui/Badge'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import NewPrecioMontajeModal from './NewPrecioMontajeModal'
@@ -15,6 +14,8 @@ import {
   confirmToggleState,
   performAction,
 } from '../../utils/actionFeedback'
+import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
+import { countDirectoryStats } from '../../components/directory/directoryStats'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
 
@@ -28,14 +29,12 @@ const formatCost = (value: number) =>
 const PrecioMontajePage: React.FC = () => {
   const { items, loading, error, createPrecioMontaje, updatePrecioMontaje } = usePrecioMontajeHook()
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'activo' | 'inactivo'>('todos')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<PrecioMontaje | null>(null)
+  const activeItems = useMemo(() => items.filter(p => p.state), [items])
 
   const filtered = useMemo(() => {
-    let result = items
-    if (statusFilter === 'activo') result = result.filter(p => p.state)
-    if (statusFilter === 'inactivo') result = result.filter(p => !p.state)
+    let result = activeItems
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -45,16 +44,9 @@ const PrecioMontajePage: React.FC = () => {
       )
     }
     return result
-  }, [items, searchQuery, statusFilter])
+  }, [activeItems, searchQuery])
 
-  const stats = useMemo(
-    () => ({
-      total: items.length,
-      active: items.filter(p => p.state).length,
-      inactive: items.filter(p => !p.state).length,
-    }),
-    [items]
-  )
+  const stats = useMemo(() => countDirectoryStats(items), [items])
 
   const {
     page,
@@ -107,14 +99,14 @@ const PrecioMontajePage: React.FC = () => {
   const handleToggleState = async (item: PrecioMontaje) => {
     if (!(await confirmToggleState(item.name, item.state))) return
     await performAction({
-      success: item.state ? 'Precio de montaje inactivado.' : 'Precio de montaje activado.',
+      success: 'Precio de montaje inactivado.',
       error: 'No se pudo cambiar el estado.',
       action: async () =>
         updatePrecioMontaje({
           id: item.id,
           name: item.name,
           cost: item.cost,
-          state: !item.state,
+          state: false,
         }),
     })
   }
@@ -125,7 +117,7 @@ const PrecioMontajePage: React.FC = () => {
   if (error) return <div className="remissions-kpi-card">Error: {error}</div>
 
   return (
-    <div className="remissions-container clients-dashboard directory-dashboard">
+    <div className="remissions-container clients-dashboard directory-dashboard directory-dashboard--catalog">
       <div className="remissions-header">
         <div className="remissions-header-left">
           <h1 className="remissions-title">Precio montaje</h1>
@@ -139,24 +131,13 @@ const PrecioMontajePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="remissions-kpi-grid directory-kpi-grid">
-        <div className="remissions-kpi-card remissions-kpi-card--intro">
-          <div className="remissions-kpi-label">DIRECTORIO DE PRECIOS DE MONTAJE</div>
-          <div className="remissions-kpi-sublabel">Listado</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-total">
-          <div className="remissions-kpi-label">TOTAL</div>
-          <div className="remissions-kpi-value">{stats.total}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-active">
-          <div className="remissions-kpi-label">ACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.active}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-inactive">
-          <div className="remissions-kpi-label">INACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.inactive}</div>
-        </div>
-      </div>
+      <DirectoryKpiGrid
+        sectionLabel="CATÁLOGOS"
+        sectionSubtitle="Precios de montaje"
+        total={stats.total}
+        active={stats.active}
+        inactive={stats.inactive}
+      />
 
       <div className="remissions-section">
         <div className="remissions-section-header">
@@ -169,15 +150,6 @@ const PrecioMontajePage: React.FC = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-            <select
-              className="remissions-status-select"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-            >
-              <option value="todos">Todos</option>
-              <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
-            </select>
             <button type="button" className="remissions-btn-export" onClick={handleExportList}>
               Exportar
             </button>
@@ -190,7 +162,6 @@ const PrecioMontajePage: React.FC = () => {
               <tr>
                 <th className="remissions-th-nombre">NOMBRE</th>
                 <th>COSTO</th>
-                <th className="remissions-th-estado">ESTADO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
             </thead>
@@ -204,16 +175,10 @@ const PrecioMontajePage: React.FC = () => {
                     <td data-label="Costo">
                       {formatCost(item.cost)}
                     </td>
-                    <td data-label="Estado" className="orders-td-estado">
-                      <Badge
-                        variant={item.state ? 'success' : 'neutral'}
-                        label={item.state ? 'Activo' : 'Inactivo'}
-                      />
-                    </td>
                     <td className="orders-td-acciones" data-label="Acciones">
                       <ListRecordActions
                         recordName={item.name}
-                        isActive={item.state}
+                        isActive
                         onView={() => handleEdit(item)}
                         onEdit={() => handleEdit(item)}
                         onExport={() => handleExportOne(item)}
@@ -224,7 +189,7 @@ const PrecioMontajePage: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="remissions-td-empty">
+                  <td colSpan={3} className="remissions-td-empty">
                     <DirectoryEmptyState
                       icon="⚙️"
                       title="Sin precios de montaje"

@@ -21,41 +21,101 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
     className: 'production-specs-nav__icon',
     'aria-hidden': true as const,
   }
+  const s = {
+    stroke: 'currentColor',
+    strokeWidth: 1.75,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }
 
   if (id === 'cliente') {
     return (
       <svg {...props}>
-        <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.75" />
+        <circle cx="12" cy="8" r="3.5" {...s} />
+        <path d="M6 19c0-3.3 2.7-5 6-5s6 1.7 6 5" {...s} />
+      </svg>
+    )
+  }
+
+  /** Preprensa — arte, PDF, colores y planchas */
+  if (id === 'diseno') {
+    return (
+      <svg {...props}>
+        <rect x="4.5" y="5" width="15" height="13" rx="1.5" {...s} />
+        <path d="M8 16.5l3.2-4.2 2.3 2.1L15.5 9" {...s} />
+        <circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none" />
         <path
-          d="M6 19c0-3.3 2.7-5 6-5s6 1.7 6 5"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
+          d="M16.5 6.5l1.8 1.8M17.8 5.2l1.5 1.5"
+          {...s}
+          strokeWidth={1.5}
         />
       </svg>
     )
   }
 
-  if (id === 'diseno') {
+  /** Preprensa — planchas, montaje y valores */
+  if (id === 'detalle') {
+    return (
+      <svg {...props}>
+        <rect x="5" y="6" width="14" height="3.25" rx="0.75" {...s} />
+        <rect x="5" y="10.375" width="14" height="3.25" rx="0.75" {...s} />
+        <rect x="5" y="14.75" width="14" height="3.25" rx="0.75" {...s} />
+        <path d="M8.5 7.6h2.25M8.5 12h4M8.5 16.4h3.5" {...s} strokeWidth={1.5} />
+        <circle cx="17" cy="7.6" r="0.85" fill="currentColor" stroke="none" />
+        <circle cx="17" cy="12" r="0.85" fill="currentColor" stroke="none" />
+        <circle cx="17" cy="16.4" r="0.85" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+
+  /** Especificaciones — cantidad y datos de la OP */
+  if (id === 'detalle-op') {
     return (
       <svg {...props}>
         <path
-          d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinejoin="round"
+          d="M8 4.5h8a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5V6a1.5 1.5 0 0 1 1.5-1.5z"
+          {...s}
+        />
+        <path d="M9.25 4.5V3.25A1.25 1.25 0 0 1 10.5 2h3a1.25 1.25 0 0 1 1.25 1.25V4.5" {...s} />
+        <path d="M9 10h6M9 13h6M9 16h4" {...s} strokeWidth={1.5} />
+        <path d="M15.5 9.5h1.75v1.75h-1.75z" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+
+  /** Corte de papel — tijeras (acción de cortar) */
+  if (id === 'corte') {
+    return (
+      <svg {...props}>
+        <path
+          d="M4.5 19.25h15"
+          {...s}
+          strokeWidth={2}
+          strokeLinecap="round"
+          opacity={0.35}
+        />
+        <circle cx="8.25" cy="6.75" r="2.65" {...s} />
+        <circle cx="15.75" cy="6.75" r="2.65" {...s} />
+        <path d="M8.25 8.75L11.75 12.25 11.75 19.25" {...s} />
+        <path d="M15.75 8.75L12.25 12.25 12.25 19.25" {...s} />
+        <circle cx="12" cy="12.35" r="1.05" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+
+  /** Corte de papel — tintas y miles */
+  if (id === 'tintas') {
+    return (
+      <svg {...props}>
+        <path
+          d="M12 3.75c-3.65 4.75-5.75 8.1-5.75 11.25a5.75 5.75 0 1 0 11.5 0C17.75 11.85 15.65 8.5 12 3.75z"
+          {...s}
         />
         <path
-          d="M5 19c1.5-2 3.5-3 7-3s5.5 1 7 3"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-        />
-        <path
-          d="M17 5l2 2M19 3l2 2"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
+          d="M9.75 14.25c.55 1.05 1.35 1.75 2.25 1.75s1.7-.7 2.25-1.75"
+          {...s}
+          strokeWidth={1.5}
+          opacity={0.7}
         />
       </svg>
     )
@@ -63,8 +123,8 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
 
   return (
     <svg {...props}>
-      <rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M9 9h6M9 13h6M9 17h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <rect x="6" y="4" width="12" height="16" rx="2" {...s} />
+      <path d="M9 9h6M9 13h6M9 17h4" {...s} strokeWidth={1.5} />
     </svg>
   )
 }

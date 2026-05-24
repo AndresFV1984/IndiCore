@@ -3,6 +3,7 @@ import {
   resolveMedidaInput,
   type MedidaDimension,
 } from '../value-objects/MedidaDimensions.js'
+import type { DespieceAsociado } from './CortePapel.js'
 
 export class TipoPapel {
   constructor(
@@ -13,7 +14,8 @@ export class TipoPapel {
     public readonly unidadMedida: string,
     public readonly valorHoja: number,
     public readonly unidadEmpaque: string,
-    public readonly active: boolean = true
+    public readonly active: boolean = true,
+    public readonly despiecesPliego: DespieceAsociado[] = []
   ) {}
 
   get medida(): string {
@@ -34,7 +36,8 @@ export class TipoPapel {
       dim.unidadMedida,
       dto.valorHoja ?? 0,
       dto.unidadEmpaque,
-      dto.active ?? true
+      dto.active ?? true,
+      dto.despiecesPliego ?? []
     )
   }
 }
@@ -50,4 +53,5 @@ export interface CreateTipoPapelDTO {
   valorHoja?: number
   unidadEmpaque: string
   active?: boolean
+  despiecesPliego?: DespieceAsociado[]
 }

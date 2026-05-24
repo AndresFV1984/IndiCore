@@ -31,11 +31,6 @@ const CATALOG_LINKS: CatalogLink[] = [
     description: 'Configuración de despiece por pliego',
   },
   {
-    to: APP_ROUTES.catalogCorte,
-    title: 'Corte de papel',
-    description: 'Operaciones y costos de corte',
-  },
-  {
     to: APP_ROUTES.catalogTamanoPlancha,
     title: 'Tamaño plancha',
     description: 'Dimensiones estándar de plancha offset',

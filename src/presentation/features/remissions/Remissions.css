@@ -32,6 +32,8 @@
   color: var(--rem-ink);
   font-weight: 700;
   letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .remissions-breadcrumb {
   font-size: 0.8125rem;
@@ -178,6 +180,9 @@
   color: var(--rem-ink);
   vertical-align: middle;
   border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .remissions-table tbody tr {
   transition: background 0.12s ease;

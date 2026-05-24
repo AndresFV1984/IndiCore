@@ -7,6 +7,7 @@ import SearchBox from '@/presentation/components/ui/SearchBox'
 import ListRecordActions from '@/presentation/components/ui/ListRecordActions'
 import Pagination from '@/presentation/components/ui/Pagination'
 import RecordCell from '@/presentation/components/directory/RecordCell'
+import CellValue from '@/presentation/components/directory/CellValue'
 import { usePagination } from '@/presentation/hooks/usePagination'
 import { useClientsHook } from '@/presentation/hooks/useClients'
 import { Container } from '@/di/container'
@@ -214,7 +215,9 @@ const Remissions: React.FC = () => {
                       <td data-label="Destinatario">
                         <RecordCell name={clientsMap[row.clientId] || row.clientId} />
                       </td>
-                      <td data-label="Descripción">{itemsDescription(row)}</td>
+                      <td data-label="Descripción">
+                        <CellValue>{itemsDescription(row)}</CellValue>
+                      </td>
                       <td data-label="Orden prod.">
                         <Link
                           to={`${ROUTES.production.path}/${row.orderId}`}

@@ -181,6 +181,24 @@ const snapshotFromPlancha = (plancha: TamanoPlancha) => ({
   planchaValor: plancha.valor,
 })
 
+/**
+ * Tras registrar la cantidad en Detalle OP: rellena filas de historial que quedaron en 0
+ * (p. ej. diseño existente cargado antes de definir la cantidad).
+ */
+export const syncColoresPlanchasCantidadFromOrder = (
+  items: DisenoColorPlanchaItem[],
+  orderQuantity: number
+): DisenoColorPlanchaItem[] | null => {
+  if (orderQuantity <= 0) return null
+  let changed = false
+  const next = items.map(item => {
+    if (item.registroManual || item.cantidad > 0) return item
+    changed = true
+    return { ...item, cantidad: orderQuantity }
+  })
+  return changed ? next : null
+}
+
 /** Al reutilizar un trabajo anterior: migra al modelo de registros OP y aplica precio vigente si la plancha sigue en catálogo. */
 export const applyColoresPlanchasForHistorialReuse = (
   raw: Partial<PreprensaDisenoSpecs>,

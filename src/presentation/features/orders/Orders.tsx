@@ -4,6 +4,7 @@ import SearchBox from '@/presentation/components/ui/SearchBox'
 import ListRecordActions from '@/presentation/components/ui/ListRecordActions'
 import Pagination from '@/presentation/components/ui/Pagination'
 import RecordCell from '@/presentation/components/directory/RecordCell'
+import CellValue from '@/presentation/components/directory/CellValue'
 import { usePagination } from '@/presentation/hooks/usePagination'
 import { useOrdersHook } from '@/presentation/hooks/useOrders'
 import { useClientsHook } from '@/presentation/hooks/useClients'
@@ -181,7 +182,9 @@ const Orders: React.FC = () => {
                       <td data-label="Cliente">
                         <RecordCell name={clientsMap[row.clientId] || row.clientId} />
                       </td>
-                      <td data-label="Descripción">{row.workName}</td>
+                      <td data-label="Descripción">
+                        <CellValue>{row.workName}</CellValue>
+                      </td>
                       <td data-label="Cantidad">{formatPedidoQuantity(row) || '—'}</td>
                       <td data-label="Valor total">{formatPedidoCurrency(row.total.getValue())}</td>
                       <td className="orders-td-estado" data-label="Estado">

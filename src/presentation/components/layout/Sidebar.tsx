@@ -317,18 +317,6 @@ const Sidebar: React.FC = () => {
               </span>
               {sidebarOpen && <span className="sidebar-label">Despiece pliego</span>}
             </NavLink>
-            <NavLink to={ROUTES.catalogCortePapel.path} title={ROUTES.catalogCortePapel.purpose} className={`sidebar-link ${location.pathname === ROUTES.catalogCortePapel.path ? 'sidebar-link-active' : ''}`}>
-              <span className="sidebar-icon-wrapper">
-                <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <circle cx="6" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-                  <circle cx="6" cy="18" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M20 4L8.5 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M14.5 14.5L20 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M8.5 8.5L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </span>
-              {sidebarOpen && <span className="sidebar-label">Corte de papel</span>}
-            </NavLink>
             <NavLink to={ROUTES.catalogTamanoPlancha.path} title={ROUTES.catalogTamanoPlancha.purpose} className={`sidebar-link ${location.pathname === ROUTES.catalogTamanoPlancha.path ? 'sidebar-link-active' : ''}`}>
               <span className="sidebar-icon-wrapper">
                 <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>

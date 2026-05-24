@@ -8,6 +8,7 @@ import { usePagination } from '../../hooks/usePagination'
 import NewUserModal from './NewUserModal'
 import { User, CreateUserDTO } from '../../../core/domain/entities/User'
 import RecordCell from '../../components/directory/RecordCell'
+import CellValue from '../../components/directory/CellValue'
 import IdentityDocumentDisplay from '../../components/directory/IdentityDocumentDisplay'
 import { formatLocationLabel } from '../../../core/utils/colombiaLocations'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
@@ -217,11 +218,15 @@ const Users: React.FC = () => {
                         number={u.identification_number}
                       />
                     </td>
-                    <td data-label="Correo">{u.mail || '—'}</td>
-                    <td data-label="Ubicación">
-                      {formatLocationLabel(u.department, u.city)}
+                    <td data-label="Correo">
+                      <CellValue>{u.mail || '—'}</CellValue>
                     </td>
-                    <td data-label="Contacto">{u.contact || '—'}</td>
+                    <td data-label="Ubicación">
+                      <CellValue>{formatLocationLabel(u.department, u.city)}</CellValue>
+                    </td>
+                    <td data-label="Contacto">
+                      <CellValue>{u.contact || '—'}</CellValue>
+                    </td>
                     <td data-label="Estado" className="orders-td-estado">
                       <Badge
                         variant={u.state ? 'success' : 'neutral'}

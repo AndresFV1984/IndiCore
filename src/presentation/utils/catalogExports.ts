@@ -2,7 +2,7 @@ import { TamanoPlancha } from '../../core/domain/entities/TamanoPlancha'
 import { TipoPapel } from '../../core/domain/entities/TipoPapel'
 import { DespiecePliego } from '../../core/domain/entities/DespiecePliego'
 import { CortePapel } from '../../core/domain/entities/CortePapel'
-import { formatDespieceBadge, formatMedidaDisplay } from '../features/catalog/cortePapelUtils'
+import { formatDespieceBadge, formatDespieceMedidaPiezas, formatMedidaDisplay } from '../features/catalog/cortePapelUtils'
 import { PrecioMontaje } from '../../core/domain/entities/PrecioMontaje'
 import type { CatalogRecord } from '../features/catalog/catalogRecord'
 import { displayCatalogUnitCost } from '../features/catalog/catalogRecord'
@@ -55,6 +55,13 @@ const tipoPapelFields: ExportField<TipoPapel>[] = [
   { label: 'ID', value: r => r.id },
   { label: 'Nombre', value: r => r.name, width: 32 },
   { label: 'Medida', value: r => formatMedidaDisplay(r.medidaDimension) },
+  {
+    label: 'Despiece pliego',
+    value: r =>
+      r.despiecesPliego.length > 0
+        ? r.despiecesPliego.map(d => formatDespieceMedidaPiezas(d)).join('; ')
+        : '—',
+  },
   { label: 'Valor hoja', value: r => formatCop(r.valorHoja) },
   { label: 'Unidad empaque', value: r => r.unidadEmpaque },
   { label: 'Estado', value: r => estadoLabel(r.active) },
@@ -106,20 +113,45 @@ export function exportCatalogOperaciones(rows: CatalogRecord[], scope: 'listado'
   return exportRows('operaciones', 'Operación de acabado', catalogRecordFields, rows, scope, r => r.name)
 }
 
-const cortePapelFields: ExportField<CortePapel>[] = [
+const buildCortePapelFields = (
+  tiposPapelById: Map<string, TipoPapel>
+): ExportField<CortePapel>[] => [
   { label: 'ID', value: r => r.id },
   { label: 'Nombre', value: r => r.name, width: 32 },
-  { label: 'Medida pliego', value: r => formatMedidaDisplay(r.medidaDimension) },
   {
-    label: 'Despieces asociados',
+    label: 'Despiece pliego',
     value: r =>
       r.despieces.length > 0
         ? r.despieces.map(d => formatDespieceBadge(d)).join('; ')
         : '—',
     width: 44,
   },
+  {
+    label: 'Medida papel',
+    value: r => {
+      const tipo = tiposPapelById.get(r.tipoPapelId)
+      return tipo ? formatMedidaDisplay(tipo.medidaDimension) : '—'
+    },
+  },
+  {
+    label: 'Nombre papel',
+    value: r => tiposPapelById.get(r.tipoPapelId)?.name ?? '—',
+    width: 28,
+  },
 ]
 
-export function exportCortePapel(rows: CortePapel[], scope: 'listado' | string): Promise<void> {
-  return exportRows('corte-papel', 'Corte de papel', cortePapelFields, rows, scope, r => r.name)
+export function exportCortePapel(
+  rows: CortePapel[],
+  scope: 'listado' | string,
+  tiposPapel: TipoPapel[] = []
+): Promise<void> {
+  const tiposPapelById = new Map(tiposPapel.map(t => [t.id, t]))
+  return exportRows(
+    'corte-papel',
+    'Corte de papel',
+    buildCortePapelFields(tiposPapelById),
+    rows,
+    scope,
+    r => r.name
+  )
 }

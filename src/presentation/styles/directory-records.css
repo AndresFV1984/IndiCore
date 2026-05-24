@@ -1,4 +1,9 @@
-/* Directorios: Clientes, Usuarios, Vendedores */
+/* Directorios: Clientes, Usuarios, Vendedores, Catálogos */
+
+.directory-dashboard--catalog {
+  --dir-accent: #2563eb;
+  --dir-accent-soft: rgba(37, 99, 235, 0.1);
+}
 
 .directory-dashboard {
   --dir-accent: var(--teal);
@@ -67,19 +72,26 @@
 .record-cell__name {
   font-weight: 600;
   color: var(--ink);
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .record-cell__meta {
   font-size: 0.75rem;
   color: var(--txt-2);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Valor de celda (correo, teléfono, ubicación…) — rompe cadenas largas en móvil */
+.cell-value {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .record-tag {
@@ -103,18 +115,16 @@
 }
 
 .doc-id__line {
-  display: inline-block;
+  display: block;
   max-width: 100%;
   font-size: 0.8125rem;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   color: var(--ink);
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: bottom;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .doc-id--empty {
@@ -247,6 +257,10 @@
 
 .record-form-input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
   padding: 0.65rem 0.85rem;
   border: 1.5px solid var(--border-2);
   border-radius: var(--radius-md);

@@ -8,6 +8,7 @@ import { usePagination } from '../../hooks/usePagination'
 import NewVendedorModal from './NewVendedorModal'
 import { Vendedor, CreateVendedorDTO } from '../../../core/domain/entities/Vendedor'
 import RecordCell from '../../components/directory/RecordCell'
+import CellValue from '../../components/directory/CellValue'
 import IdentityDocumentDisplay from '../../components/directory/IdentityDocumentDisplay'
 import { formatLocationLabel } from '../../../core/utils/colombiaLocations'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
@@ -216,11 +217,15 @@ const Vendedores: React.FC = () => {
                         number={v.identification_number}
                       />
                     </td>
-                    <td data-label="Correo">{v.mail || '—'}</td>
-                    <td data-label="Ubicación">
-                      {formatLocationLabel(v.department, v.city)}
+                    <td data-label="Correo">
+                      <CellValue>{v.mail || '—'}</CellValue>
                     </td>
-                    <td data-label="Contacto">{v.contact || '—'}</td>
+                    <td data-label="Ubicación">
+                      <CellValue>{formatLocationLabel(v.department, v.city)}</CellValue>
+                    </td>
+                    <td data-label="Contacto">
+                      <CellValue>{v.contact || '—'}</CellValue>
+                    </td>
                     <td data-label="Estado" className="orders-td-estado">
                       <Badge
                         variant={v.state ? 'success' : 'neutral'}

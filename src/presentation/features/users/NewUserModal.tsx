@@ -26,7 +26,7 @@ const defaultValues: NewUserFormValues = {
   name: '',
   document_type: 'CC',
   identification_number: '',
-  location: resolveLocationFields('Medellín'),
+  location: resolveLocationFields('MedellÃ­n'),
   address: '',
   mail: '',
   contact: '',
@@ -88,7 +88,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
       return
     }
     if (!identification_number) {
-      setError('El número de identificación es obligatorio.')
+      setError('El nÃºmero de identificaciÃ³n es obligatorio.')
       return
     }
     if (!mail) {
@@ -100,7 +100,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
       return
     }
     if (!isEditing && !values.password.trim()) {
-      setError('La contraseña es obligatoria al crear un usuario.')
+      setError('La contraseÃ±a es obligatoria al crear un usuario.')
       return
     }
 
@@ -111,7 +111,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
       if (values.password.trim()) {
         password_hash = await hashPassword(values.password.trim())
       } else if (!isEditing) {
-        setError('La contraseña es obligatoria al crear un usuario.')
+        setError('La contraseÃ±a es obligatoria al crear un usuario.')
         setSubmitting(false)
         return
       }
@@ -181,7 +181,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
               ))}
             </select>
           </FormField>
-          <FormField id="user-identification" label="Número de identificación" required>
+          <FormField id="user-identification" label="NÃºmero de identificaciÃ³n" required>
             <input
               id="user-identification"
               type="text"
@@ -190,7 +190,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
               onChange={handleChange('identification_number')}
             />
           </FormField>
-          <FormField id="user-mail" label="Correo electrónico" required>
+          <FormField id="user-mail" label="Correo electrÃ³nico" required>
             <input
               id="user-mail"
               type="email"
@@ -200,7 +200,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
               placeholder="usuario@empresa.com"
             />
           </FormField>
-          <FormField id="user-contact" label="Teléfono / contacto">
+          <FormField id="user-contact" label="TelÃ©fono / contacto">
             <input
               id="user-contact"
               type="text"
@@ -216,7 +216,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
             onChange={location => setValues(prev => ({ ...prev, location }))}
             disabled={submitting}
           />
-          <FormField id="user-address" label="Dirección" fullWidth>
+          <FormField id="user-address" label="DirecciÃ³n" fullWidth>
             <input
               id="user-address"
               type="text"
@@ -231,9 +231,9 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
         <FormSection title="Acceso al sistema">
           <FormField
             id="user-password"
-            label="Contraseña"
+            label="ContraseÃ±a"
             required={!isEditing}
-            hint={isEditing ? 'Deje vacío para no cambiar la contraseña' : undefined}
+            hint={isEditing ? 'Deje vacÃ­o para no cambiar la contraseÃ±a' : undefined}
           >
             <input
               id="user-password"
@@ -242,7 +242,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
               value={values.password}
               onChange={handleChange('password')}
               autoComplete="new-password"
-              placeholder={isEditing ? 'Sin cambios' : 'Mínimo 6 caracteres'}
+              placeholder={isEditing ? 'Sin cambios' : 'MÃ­nimo 6 caracteres'}
             />
           </FormField>
           <FormField id="user-state" label="Estado" required>
@@ -278,7 +278,7 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
             className="record-form-btn record-form-btn--submit"
             disabled={submitting}
           >
-            {submitting ? 'Guardando…' : isEditing ? 'Guardar' : 'Guardar usuario'}
+            {submitting ? 'Guardandoâ€¦' : isEditing ? 'Guardar' : 'Guardar usuario'}
           </button>
         </div>
       </form>

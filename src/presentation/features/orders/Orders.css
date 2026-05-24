@@ -35,6 +35,8 @@
   margin: 0;
   line-height: 1.15;
   letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .orders-breadcrumb {
@@ -174,6 +176,9 @@
   padding: 0.875rem 0.75rem;
   color: var(--txt);
   font-size: 0.8125rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .orders-table th:last-child {

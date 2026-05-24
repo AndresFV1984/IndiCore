@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import ActionIcon from '../../components/ui/ActionIcon'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
+import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import CatalogRecordModal from './CatalogRecordModal'
 import type { CatalogRecord, CatalogRecordFormValues } from './catalogRecord'
 import { normalizeCatalogUnitCost } from './catalogRecord'
@@ -15,6 +16,7 @@ import {
 } from '../../utils/actionFeedback'
 import './Catalog.css'
 import '../remissions/Remissions.css'
+import '../clients/Clients.css'
 
 function toRecord(values: CatalogRecordFormValues, id?: string): CatalogRecord {
   const cost = normalizeCatalogUnitCost(values.cost)
@@ -100,6 +102,15 @@ const OperationsCatalog: React.FC = () => {
     endIndex,
   } = usePagination(items)
 
+  const stats = useMemo(
+    () => ({
+      total: items.length,
+      active: items.length,
+      inactive: 0,
+    }),
+    [items]
+  )
+
   const handleNew = () => {
     setEditingItem(null)
     setIsNewOpen(true)
@@ -170,6 +181,14 @@ const OperationsCatalog: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <DirectoryKpiGrid
+        sectionLabel="CATÁLOGOS"
+        sectionSubtitle="Operaciones de acabado"
+        total={stats.total}
+        active={stats.active}
+        inactive={stats.inactive}
+      />
 
       <div className="catalog-grid">
         {paginatedItems.map(i => (

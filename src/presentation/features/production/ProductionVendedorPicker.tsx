@@ -142,7 +142,11 @@ const ProductionVendedorPicker: React.FC<ProductionVendedorPickerProps> = ({
             {VENDEDOR_DETAIL_ROWS.map(row => (
               <React.Fragment key={row.label}>
                 <dt>{row.label}</dt>
-                <dd>{displayValue(row.getValue(selectedVendedor))}</dd>
+                <dd>
+                  <span className="production-client-card__value">
+                    {displayValue(row.getValue(selectedVendedor))}
+                  </span>
+                </dd>
               </React.Fragment>
             ))}
           </dl>

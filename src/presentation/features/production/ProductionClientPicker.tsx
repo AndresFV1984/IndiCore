@@ -224,7 +224,11 @@ const ProductionClientPicker: React.FC<ProductionClientPickerProps> = ({
             {CLIENT_DETAIL_ROWS.map(row => (
               <React.Fragment key={row.label}>
                 <dt>{row.label}</dt>
-                <dd>{displayValue(row.getValue(selectedClient))}</dd>
+                <dd>
+                  <span className="production-client-card__value">
+                    {displayValue(row.getValue(selectedClient))}
+                  </span>
+                </dd>
               </React.Fragment>
             ))}
           </dl>

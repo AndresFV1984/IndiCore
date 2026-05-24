@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useCortePapelHook } from '../../hooks/useCortePapel'
+import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import RecordCell from '../../components/directory/RecordCell'
@@ -8,6 +9,7 @@ import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import CortePapelModal from './CortePapelModal'
 import { CreateCortePapelDTO, CortePapel } from '../../../core/domain/entities/CortePapel'
+import { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import {
   confirmDelete,
   confirmExport,
@@ -16,25 +18,37 @@ import {
 } from '../../utils/actionFeedback'
 import { formatMedidaDisplayFrom } from './cortePapelUtils'
 import { DespieceAsociadoChips } from './DespieceAsociadoUI'
+import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
-import './Catalog.css'
 
 const CatalogCortePapel: React.FC = () => {
   const { items, loading, error, createCortePapel, updateCortePapel, deleteCortePapel } =
     useCortePapelHook()
+  const { items: tiposPapel } = useTipoPapelHook()
   const [searchQuery, setSearchQuery] = useState('')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CortePapel | null>(null)
+
+  const tiposPapelById = useMemo(() => {
+    const map = new Map<string, TipoPapel>()
+    for (const tipo of tiposPapel) map.set(tipo.id, tipo)
+    return map
+  }, [tiposPapel])
+
+  const resolveTipoPapel = (item: CortePapel): TipoPapel | null =>
+    item.tipoPapelId ? tiposPapelById.get(item.tipoPapelId) ?? null : null
 
   const filtered = useMemo(() => {
     let result = items
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
-      result = result.filter(
-        c =>
+      result = result.filter(c => {
+        const tipo = resolveTipoPapel(c)
+        return (
           c.name.toLowerCase().includes(q) ||
-          c.medida.toLowerCase().includes(q) ||
+          (tipo?.name.toLowerCase().includes(q) ?? false) ||
+          (tipo?.medida.toLowerCase().includes(q) ?? false) ||
           c.despieces.some(
             d =>
               d.name.toLowerCase().includes(q) ||
@@ -43,20 +57,20 @@ const CatalogCortePapel: React.FC = () => {
               d.unidadMedida.toLowerCase().includes(q) ||
               String(d.piezasPorPliego).includes(q)
           )
-      )
+        )
+      })
     }
     return result
-  }, [items, searchQuery])
+  }, [items, searchQuery, tiposPapelById])
 
-  const stats = useMemo(() => {
-    const despieceLinks = items.reduce((sum, c) => sum + c.despieces.length, 0)
-    const medidas = new Set(items.map(c => c.medida.toLowerCase()))
-    return {
+  const stats = useMemo(
+    () => ({
       total: items.length,
-      despieceLinks,
-      medidas: medidas.size,
-    }
-  }, [items])
+      active: items.length,
+      inactive: 0,
+    }),
+    [items]
+  )
 
   const {
     page,
@@ -109,12 +123,16 @@ const CatalogCortePapel: React.FC = () => {
 
   const handleExportList = async () => {
     if (!(await confirmExport('el listado de cortes de papel'))) return
-    void import('../../utils/catalogExports').then(m => m.exportCortePapel(filtered, 'listado'))
+    void import('../../utils/catalogExports').then(m =>
+      m.exportCortePapel(filtered, 'listado', tiposPapel)
+    )
   }
 
   const handleExportOne = async (item: CortePapel) => {
     if (!(await confirmExport(`el corte «${item.name}»`))) return
-    void import('../../utils/catalogExports').then(m => m.exportCortePapel([item], item.name))
+    void import('../../utils/catalogExports').then(m =>
+      m.exportCortePapel([item], item.name, tiposPapel)
+    )
   }
 
   const isModalOpen = isNewOpen || editingItem !== null
@@ -123,14 +141,11 @@ const CatalogCortePapel: React.FC = () => {
   if (error) return <div className="remissions-kpi-card">Error: {error}</div>
 
   return (
-    <div className="remissions-container clients-dashboard directory-dashboard">
+    <div className="remissions-container clients-dashboard directory-dashboard directory-dashboard--catalog">
       <div className="remissions-header">
         <div className="remissions-header-left">
           <h1 className="remissions-title">Corte de papel</h1>
           <p className="remissions-breadcrumb">IndiColors › Catálogos › Corte de papel</p>
-          <p className="catalog-corte-subtitle">
-            Cortes de papel con su despiece por pliego asociado
-          </p>
         </div>
         <div className="remissions-header-right">
           <SearchBox placeholder="Buscar..." onSearch={handleSearch} debounceMs={300} />
@@ -140,24 +155,13 @@ const CatalogCortePapel: React.FC = () => {
         </div>
       </div>
 
-      <div className="remissions-kpi-grid directory-kpi-grid">
-        <div className="remissions-kpi-card remissions-kpi-card--intro">
-          <div className="remissions-kpi-label">CATÁLOGO DE CORTES DE PAPEL</div>
-          <div className="remissions-kpi-sublabel">Listado</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-total">
-          <div className="remissions-kpi-label">TOTAL</div>
-          <div className="remissions-kpi-value">{stats.total}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-active">
-          <div className="remissions-kpi-label">DESPIECES VINCULADOS</div>
-          <div className="remissions-kpi-value">{stats.despieceLinks}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-inactive">
-          <div className="remissions-kpi-label">MEDIDAS</div>
-          <div className="remissions-kpi-value">{stats.medidas}</div>
-        </div>
-      </div>
+      <DirectoryKpiGrid
+        sectionLabel="CATÁLOGOS"
+        sectionSubtitle="Cortes de papel"
+        total={stats.total}
+        active={stats.active}
+        inactive={stats.inactive}
+      />
 
       <div className="remissions-section">
         <div className="remissions-section-header">
@@ -177,45 +181,47 @@ const CatalogCortePapel: React.FC = () => {
         </div>
 
         <div className="remissions-table-wrapper directory-table">
-          <table className="remissions-table catalog-corte-table">
+          <table className="remissions-table">
             <thead>
               <tr>
-                <th className="catalog-corte-th-index">#</th>
                 <th className="remissions-th-nombre">NOMBRE</th>
-                <th>MEDIDA</th>
-                <th className="catalog-corte-th-despiece">DESPIECE ASOCIADO</th>
+                <th>DESPIECE PLIEGO</th>
+                <th>MEDIDA PAPEL</th>
+                <th>NOMBRE PAPEL</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
             </thead>
             <tbody>
               {paginatedItems.length > 0 ? (
-                paginatedItems.map((item, idx) => (
-                  <tr key={item.id}>
-                    <td data-label="#" className="catalog-corte-td-index">
-                      {startIndex + idx + 1}
-                    </td>
-                    <td data-label="Nombre">
-                      <RecordCell name={item.name} />
-                    </td>
-                    <td data-label="Medida">{formatMedidaDisplayFrom(item)}</td>
-                    <td data-label="Despiece asociado" className="catalog-corte-td-despiece">
-                      <DespieceAsociadoChips
-                        despieces={item.despieces.slice(0, 1)}
-                        showName={false}
-                        piezasFirst
-                      />
-                    </td>
-                    <td className="orders-td-acciones" data-label="Acciones">
-                      <ListRecordActions
-                        recordName={item.name}
-                        onView={() => handleEdit(item)}
-                        onEdit={() => handleEdit(item)}
-                        onExport={() => handleExportOne(item)}
-                        onDelete={() => handleDelete(item)}
-                      />
-                    </td>
-                  </tr>
-                ))
+                paginatedItems.map(item => {
+                  const tipoPapel = resolveTipoPapel(item)
+                  return (
+                    <tr key={item.id}>
+                      <td data-label="Nombre">
+                        <RecordCell name={item.name} />
+                      </td>
+                      <td data-label="Despiece pliego">
+                        <DespieceAsociadoChips
+                          despieces={item.despieces.slice(0, 1)}
+                          showName={false}
+                        />
+                      </td>
+                      <td data-label="Medida papel">
+                        {tipoPapel ? formatMedidaDisplayFrom(tipoPapel) : '—'}
+                      </td>
+                      <td data-label="Nombre papel">{tipoPapel?.name ?? '—'}</td>
+                      <td className="orders-td-acciones" data-label="Acciones">
+                        <ListRecordActions
+                          recordName={item.name}
+                          onView={() => handleEdit(item)}
+                          onEdit={() => handleEdit(item)}
+                          onExport={() => handleExportOne(item)}
+                          onDelete={() => handleDelete(item)}
+                        />
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={5} className="remissions-td-empty">

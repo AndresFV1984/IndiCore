@@ -13,7 +13,6 @@ export const routePrefetchers: Record<string, () => Promise<unknown>> = {
   [ROUTES.catalogOperaciones.path]: () => import('../features/catalog/OperationsCatalog'),
   [ROUTES.catalogTipoPapel.path]: () => import('../features/catalog/CatalogTipoPapel'),
   [ROUTES.catalogDespiecePliego.path]: () => import('../features/catalog/CatalogDespiecePliego'),
-  [ROUTES.catalogCortePapel.path]: () => import('../features/catalog/CatalogCortePapel'),
   [ROUTES.catalogTamanoPlancha.path]: () => import('../features/catalog/CatalogTamanoPlancha'),
   [ROUTES.precioMontaje.path]: () => import('../features/precio-montaje/PrecioMontaje'),
 }

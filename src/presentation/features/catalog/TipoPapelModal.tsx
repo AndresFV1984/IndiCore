@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/ui/Modal'
 import FormSection from '../../components/directory/FormSection'
 import FormField from '../../components/directory/FormField'
 import { validateMedidaDimension } from '../../../core/domain/value-objects/MedidaDimensions'
 import { CreateTipoPapelDTO, TipoPapel } from '../../../core/domain/entities/TipoPapel'
+import type { DespieceAsociado } from '../../../core/domain/entities/CortePapel'
+import { useDespiecePliegoHook } from '../../hooks/useDespiecePliego'
 import MedidaFields, {
   defaultMedidaFormValues,
   medidaDimensionToForm,
   type MedidaFormValues,
 } from './MedidaFields'
+import { DespieceAsociadoPicker } from './DespieceAsociadoUI'
 import './Catalog.css'
 
 export interface TipoPapelFormValues {
@@ -41,7 +44,13 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
   item,
 }) => {
   const isEditing = Boolean(item)
+  const { items: despiecesCatalogAll, loading: loadingDespieces } = useDespiecePliegoHook()
+  const despiecesCatalog = useMemo(
+    () => despiecesCatalogAll.filter(d => d.active),
+    [despiecesCatalogAll]
+  )
   const [values, setValues] = useState<TipoPapelFormValues>(defaultValues)
+  const [selectedDespieces, setSelectedDespieces] = useState<DespieceAsociado[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,12 +67,13 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
           }
         : defaultValues
     )
+    setSelectedDespieces(item?.despiecesPliego?.length ? [...item.despiecesPliego] : [])
     setError(null)
     setSubmitting(false)
   }, [isOpen, item])
 
   const handleChange = (field: keyof Omit<TipoPapelFormValues, 'medida'>) => (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setValues(prev => ({ ...prev, [field]: e.target.value }))
     if (error) setError(null)
@@ -92,6 +102,10 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
       setError('Ingrese un valor hoja válido (número mayor o igual a cero).')
       return
     }
+    if (selectedDespieces.length === 0) {
+      setError('Seleccione al menos un despiece por pliego asociado.')
+      return
+    }
 
     setSubmitting(true)
     setError(null)
@@ -105,6 +119,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
         valorHoja,
         unidadEmpaque,
         active: values.active,
+        despiecesPliego: selectedDespieces,
       })
       onClose()
     } catch {
@@ -125,10 +140,10 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
       subtitle={
         isEditing
           ? 'Modifique los datos y pulse Guardar'
-          : 'Los campos con * son obligatorios'
+          : 'Registre el tipo de papel y asocie uno o más despieces por pliego'
       }
       onClose={onClose}
-      maxWidth="640px"
+      maxWidth="680px"
       directoryTone="clients"
     >
       <form className="record-form" onSubmit={handleSubmit} noValidate>
@@ -186,6 +201,34 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
           </FormField>
         </FormSection>
 
+        <FormSection title="Despieces por pliego asociados">
+          <FormField
+            id="papel-despiece"
+            label="Despiece por pliego asociado"
+            required
+            fullWidth
+            hint="Seleccione del listado. Puede agregar varios; use × para quitar."
+          >
+            {loadingDespieces ? (
+              <p className="catalog-corte-despiece-picker-empty">Cargando despieces…</p>
+            ) : despiecesCatalog.length === 0 ? (
+              <p className="catalog-corte-despiece-picker-empty">
+                No hay despieces activos. Regístrelos en Catálogos › Despiece por pliego.
+              </p>
+            ) : (
+              <DespieceAsociadoPicker
+                selectId="papel-despiece"
+                catalog={despiecesCatalog}
+                selected={selectedDespieces}
+                onChange={next => {
+                  setSelectedDespieces(next)
+                  if (error) setError(null)
+                }}
+              />
+            )}
+          </FormField>
+        </FormSection>
+
         {error && (
           <p className="record-form-error" role="alert">
             {error}
@@ -204,7 +247,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
           <button
             type="submit"
             className="record-form-btn record-form-btn--submit"
-            disabled={submitting}
+            disabled={submitting || loadingDespieces}
           >
             {submitting
               ? 'Guardando…'

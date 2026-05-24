@@ -99,12 +99,6 @@ export const ROUTES = {
     label: 'Despiece pliego',
     purpose: 'Definición de despieces por pliego para cálculos de producción.',
   },
-  catalogCortePapel: {
-    id: 'CATALOG_PAPER_CUT',
-    path: '/catalog/corte-papel',
-    label: 'Corte de papel',
-    purpose: 'Reglas de corte de papel relacionadas con pliegos y medidas.',
-  },
   catalogTamanoPlancha: {
     id: 'CATALOG_PLATE_SIZE',
     path: '/catalog/tamano-plancha',
@@ -143,6 +137,5 @@ export const APP_ROUTES = {
   catalogTipoPapel: ROUTES.catalogTipoPapel.path,
   catalogTamanoPapel: ROUTES.catalogTamanoPapel.path,
   catalogDespiece: ROUTES.catalogDespiecePliego.path,
-  catalogCorte: ROUTES.catalogCortePapel.path,
   catalogTamanoPlancha: ROUTES.catalogTamanoPlancha.path,
 } as const

@@ -103,7 +103,7 @@ const DisenoSection: React.FC<DisenoSectionProps> = ({ title, subtitle, tone, ch
 interface ProductionPreprensaDisenoProps {
   diseno: PreprensaDisenoSpecs
   isNewOrder?: boolean
-  /** Cantidad de Especificaciones › Detalle OP */
+  /** Cantidad de Especificaciones â€º Detalle OP */
   orderQuantity?: number
   clientId: string
   clientName?: string
@@ -258,7 +258,7 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
                 <span className="production-diseno-historial-banner__ref-label">Trabajo</span>
                 <span>{trabajoHistorial.workName}</span>
                 <span className="production-diseno-historial-banner__sep" aria-hidden>
-                  {' · '}
+                  {' â€º '}
                 </span>
                 <span className="production-diseno-historial-banner__ref-label">
                   {n.refDiseno}

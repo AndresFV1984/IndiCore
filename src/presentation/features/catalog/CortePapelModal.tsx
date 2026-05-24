@@ -2,29 +2,31 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '../../components/ui/Modal'
 import FormSection from '../../components/directory/FormSection'
 import FormField from '../../components/directory/FormField'
-import { validateMedidaDimension } from '../../../core/domain/value-objects/MedidaDimensions'
 import { useDespiecePliegoHook } from '../../hooks/useDespiecePliego'
+import { useTipoPapelHook } from '../../hooks/useTipoPapel'
+import {
+  formatTipoPapelOptionLabel,
+} from '../production/utils/tipoPapelDisplay'
 import {
   CreateCortePapelDTO,
   CortePapel,
   type DespieceAsociado,
 } from '../../../core/domain/entities/CortePapel'
-import { DespieceAsociadoPicker } from './DespieceAsociadoUI'
-import MedidaFields, {
-  defaultMedidaFormValues,
-  medidaDimensionToForm,
-  type MedidaFormValues,
-} from './MedidaFields'
+import type { DespiecePliego } from '../../../core/domain/entities/DespiecePliego'
+import { formatDespiecePliegoOptionLabel } from './cortePapelUtils'
+import { DespieceMetrics } from './DespieceAsociadoUI'
 import './Catalog.css'
 
 export interface CortePapelFormValues {
   name: string
-  medida: MedidaFormValues
+  tipoPapelId: string
+  despieceId: string
 }
 
 const defaultValues: CortePapelFormValues = {
   name: '',
-  medida: defaultMedidaFormValues,
+  tipoPapelId: '',
+  despieceId: '',
 }
 
 interface CortePapelModalProps {
@@ -34,6 +36,15 @@ interface CortePapelModalProps {
   item?: CortePapel | null
 }
 
+const toAsociado = (item: DespiecePliego): DespieceAsociado => ({
+  despieceId: item.id,
+  name: item.name,
+  ancho: item.ancho,
+  alto: item.alto,
+  unidadMedida: item.unidadMedida,
+  piezasPorPliego: item.piezasPorPliego,
+})
+
 const CortePapelModal: React.FC<CortePapelModalProps> = ({
   isOpen,
   onClose,
@@ -41,13 +52,17 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
   item,
 }) => {
   const isEditing = Boolean(item)
-  const { items: despiecesCatalogAll } = useDespiecePliegoHook()
+  const { items: tiposPapelAll } = useTipoPapelHook()
+  const tiposPapel = useMemo(
+    () => tiposPapelAll.filter(t => t.active),
+    [tiposPapelAll]
+  )
+  const { items: despiecesCatalogAll, loading: loadingDespieces } = useDespiecePliegoHook()
   const despiecesCatalog = useMemo(
     () => despiecesCatalogAll.filter(d => d.active),
     [despiecesCatalogAll]
   )
   const [values, setValues] = useState<CortePapelFormValues>(defaultValues)
-  const [selectedDespieces, setSelectedDespieces] = useState<DespieceAsociado[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,16 +70,24 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
     if (!isOpen) return
     setValues(
       item
-        ? { name: item.name, medida: medidaDimensionToForm(item.medidaDimension) }
+        ? {
+            name: item.name,
+            tipoPapelId: item.tipoPapelId,
+            despieceId: item.despieces[0]?.despieceId ?? '',
+          }
         : defaultValues
     )
-    setSelectedDespieces(item?.despieces?.length ? [item.despieces[0]] : [])
     setError(null)
     setSubmitting(false)
   }, [isOpen, item])
 
-  const handleChange = (field: keyof Omit<CortePapelFormValues, 'medida'>) => (
-    e: React.ChangeEvent<HTMLInputElement>
+  const selectedDespiece = useMemo(
+    () => despiecesCatalog.find(d => d.id === values.despieceId) ?? null,
+    [despiecesCatalog, values.despieceId]
+  )
+
+  const handleChange = (field: keyof CortePapelFormValues) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setValues(prev => ({ ...prev, [field]: e.target.value }))
     if (error) setError(null)
@@ -73,22 +96,31 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const name = values.name.trim()
-    const medidaErr = validateMedidaDimension(values.medida)
 
     if (!name) {
       setError('El nombre es obligatorio.')
       return
     }
     if (/\d\s*[x×]\s*\d/i.test(name)) {
-      setError('El nombre no debe incluir medidas; indíquelas en «Medida del pliego» y en los despieces.')
+      setError('El nombre no debe incluir medidas; use solo el nombre del corte.')
       return
     }
-    if (medidaErr) {
-      setError(medidaErr)
+    if (!values.tipoPapelId) {
+      setError('Seleccione un tipo de papel.')
       return
     }
-    if (selectedDespieces.length !== 1) {
+    const tipoPapel = tiposPapel.find(t => t.id === values.tipoPapelId)
+    if (!tipoPapel) {
+      setError('Seleccione un tipo de papel válido.')
+      return
+    }
+    if (!values.despieceId) {
       setError('Seleccione un despiece por pliego asociado.')
+      return
+    }
+    const despiece = despiecesCatalog.find(d => d.id === values.despieceId)
+    if (!despiece) {
+      setError('Seleccione un despiece por pliego válido.')
       return
     }
 
@@ -98,10 +130,11 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
       await onSubmit({
         id: item?.id,
         name,
-        ancho: values.medida.ancho,
-        alto: values.medida.alto,
-        unidadMedida: values.medida.unidadMedida,
-        despieces: selectedDespieces.slice(0, 1),
+        tipoPapelId: values.tipoPapelId,
+        ancho: tipoPapel.ancho,
+        alto: tipoPapel.alto,
+        unidadMedida: tipoPapel.unidadMedida,
+        despieces: [toAsociado(despiece)],
       })
       onClose()
     } catch {
@@ -122,7 +155,7 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
       subtitle={
         isEditing
           ? 'Modifique los datos y pulse Guardar'
-          : 'Registre el corte con su medida y un despiece por pliego'
+          : 'Registre el corte con su tipo de papel y un despiece por pliego'
       }
       onClose={onClose}
       maxWidth="680px"
@@ -134,7 +167,7 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
             id="corte-name"
             label="Nombre"
             required
-            hint="Solo el tipo de corte; las medidas van en los campos siguientes."
+            hint="Solo el nombre del corte; la medida del pliego se toma del tipo de papel."
             fullWidth
           >
             <input
@@ -147,21 +180,71 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
               autoFocus
             />
           </FormField>
-          <MedidaFields
-            idPrefix="corte"
-            label="Medida del pliego"
-            values={values.medida}
-            onChange={medida => setValues(prev => ({ ...prev, medida }))}
-          />
-        </FormSection>
-
-        <FormSection title="Despiece por pliego asociado">
-          <DespieceAsociadoPicker
-            catalog={despiecesCatalog}
-            selected={selectedDespieces}
-            onChange={setSelectedDespieces}
-            single
-          />
+          <FormField id="corte-tipo-papel" label="Tipo de papel" required fullWidth>
+            {tiposPapel.length === 0 ? (
+              <p className="catalog-corte-despiece-picker-empty">
+                No hay tipos de papel activos. Regístrelos en Catálogos › Tipo de papel.
+              </p>
+            ) : (
+              <select
+                id="corte-tipo-papel"
+                className="record-form-input"
+                value={values.tipoPapelId}
+                onChange={handleChange('tipoPapelId')}
+              >
+                <option value="">Seleccionar tipo de papel…</option>
+                {tiposPapel.map(tipo => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {formatTipoPapelOptionLabel(tipo)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </FormField>
+          <FormField
+            id="corte-despiece"
+            label="Despiece por pliego asociado"
+            required
+            fullWidth
+            hint="Obligatorio. Elija el despiece registrado en Catálogos › Despiece por pliego."
+          >
+            {loadingDespieces ? (
+              <p className="catalog-corte-despiece-picker-empty">Cargando despieces…</p>
+            ) : despiecesCatalog.length === 0 ? (
+              <p className="catalog-corte-despiece-picker-empty">
+                No hay despieces activos. Regístrelos en Catálogos › Despiece por pliego.
+              </p>
+            ) : (
+              <select
+                id="corte-despiece"
+                className="record-form-input"
+                value={values.despieceId}
+                onChange={handleChange('despieceId')}
+              >
+                <option value="">Seleccionar despiece por pliego…</option>
+                {despiecesCatalog.map(despiece => (
+                  <option key={despiece.id} value={despiece.id}>
+                    {formatDespiecePliegoOptionLabel(despiece)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </FormField>
+          {selectedDespiece ? (
+            <div className="record-form-field record-form-field--full">
+              <p className="record-form-field__hint">
+                Vista previa:{' '}
+                <DespieceMetrics
+                  ancho={selectedDespiece.ancho}
+                  alto={selectedDespiece.alto}
+                  unidadMedida={selectedDespiece.unidadMedida}
+                  piezasPorPliego={selectedDespiece.piezasPorPliego}
+                  name={selectedDespiece.name}
+                  showName
+                />
+              </p>
+            </div>
+          ) : null}
         </FormSection>
 
         {error && (
@@ -182,7 +265,7 @@ const CortePapelModal: React.FC<CortePapelModalProps> = ({
           <button
             type="submit"
             className="record-form-btn record-form-btn--submit"
-            disabled={submitting}
+            disabled={submitting || loadingDespieces}
           >
             {submitting ? 'Guardando…' : isEditing ? 'Guardar' : 'Guardar corte'}
           </button>

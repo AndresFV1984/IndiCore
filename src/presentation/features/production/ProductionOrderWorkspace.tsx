@@ -18,10 +18,12 @@ import './Production.css'
 import ProductionKpiGrid from './ProductionKpiGrid'
 import ProductionSpecsSubNav from './ProductionSpecsSubNav'
 import ProductionPreprensaSubNav from './ProductionPreprensaSubNav'
+import ProductionCortePapelSubNav from './ProductionCortePapelSubNav'
 import ProductionClientPicker from './ProductionClientPicker'
 import ProductionVendedorPicker from './ProductionVendedorPicker'
 import { SpecsSubTabId } from './productionSpecsSubTabs'
 import { PreprensaSubTabId } from './productionPreprensaSubTabs'
+import { CortePapelSubTabId } from './productionCortePapelSubTabs'
 import { Client } from '../../../core/domain/entities/Client'
 import { Vendedor } from '../../../core/domain/entities/Vendedor'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
@@ -35,6 +37,9 @@ import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
 import { patchPreprensaDesignNuevo } from './utils/preprensaDesignNuevoChange'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
+import { useTipoPapelHook } from '../../hooks/useTipoPapel'
+import ProductionCortePapelForm from './ProductionCortePapelForm'
+import { emptyPaperRow } from './utils/tipoPapelDisplay'
 
 const parseQuantityDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
@@ -62,10 +67,10 @@ const blockNonDigitKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
 }
 
 const emptySpecs = (): OrderSpecs => ({
-  paperRows: [{ type: '', size: '', cut: '' }],
+  paperRows: [emptyPaperRow()],
   quantity: 0,
-  sheets: 0,
-  leftover: 0,
+  cantidadHojas: 0,
+  valorCorte: 0,
   mounting: false,
   mountingValue: new Money(0),
   design: true,
@@ -85,10 +90,12 @@ const ProductionOrderWorkspace: React.FC = () => {
   const navigate = useNavigate()
   const isNew = orderId === 'new'
   const { orders, loading: ordersLoading, createOrder } = useOrdersHook()
+  const { items: tiposPapel } = useTipoPapelHook()
 
   const [activeTab, setActiveTab] = useState<ProductionWorkflowTabId>('especificaciones')
   const [specsSubTab, setSpecsSubTab] = useState<SpecsSubTabId>('cliente')
   const [preprensaSubTab, setPreprensaSubTab] = useState<PreprensaSubTabId>('diseno')
+  const [cortePapelSubTab, setCortePapelSubTab] = useState<CortePapelSubTabId>('corte')
   const [clients, setClients] = useState<Client[]>([])
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [planchas, setPlanchas] = useState<TamanoPlancha[]>([])
@@ -149,8 +156,12 @@ const ProductionOrderWorkspace: React.FC = () => {
     setClientId(existingOrder.clientId)
     setVendedorId(existingOrder.vendedorId ?? '')
     setWorkName(existingOrder.workName)
+    const legacyRow = existingOrder.specs.paperRows[0]
     setSpecs({
       ...existingOrder.specs,
+      cantidadHojas:
+        existingOrder.specs.cantidadHojas ?? legacyRow?.cantidadHojas ?? 0,
+      valorCorte: existingOrder.specs.valorCorte ?? legacyRow?.valorCorte ?? 0,
       preprensaDiseno: normalizePreprensaSnapshot(existingOrder.specs.preprensaDiseno),
     })
   }, [isNew, existingOrder])
@@ -198,11 +209,13 @@ const ProductionOrderWorkspace: React.FC = () => {
     }))
   }
 
-  const updatePaperRow = (index: number, field: 'type' | 'size' | 'cut', value: string) => {
+  const paperRow = specs.paperRows[0] ?? emptyPaperRow()
+
+  const setPaperRow = (row: typeof paperRow) => {
     setSpecs(prev => {
       const rows = [...prev.paperRows]
-      rows[index] = { ...rows[index], [field]: value }
-      return { ...prev, paperRows: rows }
+      rows[0] = row
+      return { ...prev, paperRows: rows.length > 0 ? rows : [row] }
     })
   }
 
@@ -211,6 +224,9 @@ const ProductionOrderWorkspace: React.FC = () => {
     setError(null)
     if (id === 'prepensa') {
       setPreprensaSubTab('diseno')
+    }
+    if (id === 'corte-papel') {
+      setCortePapelSubTab('corte')
     }
   }
 
@@ -563,82 +579,92 @@ const ProductionOrderWorkspace: React.FC = () => {
 
           {activeTab === 'corte-papel' && (
             <>
-              <h2 className="production-workspace-panel-title">Corte de papel</h2>
-              <p className="production-workspace-panel-desc">
-                Tipo, tamaño y corte de papel; pliegos y sobrante.
-              </p>
-              <div className="production-ws-sections-stack">
-                <ProductionWorkspaceSection
-                  tag="Papel"
-                  title="Tipo y dimensiones"
-                  tone={0}
-                >
-                  <div className="production-form-grid production-form-grid--3">
-                    {specs.paperRows.map((row, index) => (
-                      <React.Fragment key={index}>
-                        <div className="production-form-field">
-                          <label className="production-form-label">Tipo de papel</label>
-                          <input
-                            className="production-form-input"
-                            value={row.type}
-                            onChange={e => updatePaperRow(index, 'type', e.target.value)}
-                          />
-                        </div>
-                        <div className="production-form-field">
-                          <label className="production-form-label">Tamaño</label>
-                          <input
-                            className="production-form-input"
-                            value={row.size}
-                            onChange={e => updatePaperRow(index, 'size', e.target.value)}
-                            placeholder="90×64"
-                          />
-                        </div>
-                        <div className="production-form-field">
-                          <label className="production-form-label">Corte</label>
-                          <input
-                            className="production-form-input"
-                            value={row.cut}
-                            onChange={e => updatePaperRow(index, 'cut', e.target.value)}
-                          />
-                        </div>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </ProductionWorkspaceSection>
-                <ProductionWorkspaceSection
-                  tag="Pliegos"
-                  title="Cantidades de corte"
-                  tone={1}
-                >
-                  <div className="production-form-grid production-form-grid--2">
-                    <div className="production-form-field">
-                      <label className="production-form-label" htmlFor="prod-sheets">
-                        Pliegos
-                      </label>
-                      <input
-                        id="prod-sheets"
-                        type="number"
-                        min={0}
-                        className="production-form-input"
-                        value={specs.sheets || ''}
-                        onChange={e => updateSpecs('sheets', Number(e.target.value) || 0)}
+              <h2 className="production-workspace-panel-title production-specs-title">
+                Corte de papel
+              </h2>
+
+              <div className="production-specs-layout">
+                <ProductionCortePapelSubNav
+                  active={cortePapelSubTab}
+                  onChange={setCortePapelSubTab}
+                />
+
+                <div className="production-specs-content">
+                  {cortePapelSubTab === 'corte' && (
+                    <div
+                      className="production-preprensa-diseno-detail"
+                      role="tabpanel"
+                      id="production-corte-papel-panel-corte"
+                      aria-labelledby="production-corte-papel-subtab-corte"
+                    >
+                      <ProductionCortePapelForm
+                        row={paperRow}
+                        tiposPapel={tiposPapel}
+                        cantidadHojas={specs.cantidadHojas}
+                        valorCorte={specs.valorCorte}
+                        onPaperRowChange={setPaperRow}
+                        onCantidadHojasChange={value => updateSpecs('cantidadHojas', value)}
+                        onValorCorteChange={value => updateSpecs('valorCorte', value)}
                       />
                     </div>
-                    <div className="production-form-field">
-                      <label className="production-form-label" htmlFor="prod-leftover">
-                        Sobrante
-                      </label>
-                      <input
-                        id="prod-leftover"
-                        type="number"
-                        min={0}
-                        className="production-form-input"
-                        value={specs.leftover || ''}
-                        onChange={e => updateSpecs('leftover', Number(e.target.value) || 0)}
-                      />
+                  )}
+
+                  {cortePapelSubTab === 'tintas' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-corte-papel-panel-tintas"
+                      aria-labelledby="production-corte-papel-subtab-tintas"
+                    >
+                      <p className="production-workspace-panel-desc">
+                        Configuración de tintas y miles para el cálculo de impresión.
+                      </p>
+                      <div className="production-ws-sections-stack">
+                        <ProductionWorkspaceSection
+                          tag="Tintas"
+                          title="Configuración de tintas"
+                          tone={0}
+                        >
+                          <div className="production-form-field production-form-field--full">
+                            <label className="production-form-label" htmlFor="prod-inks">
+                              Tintas
+                            </label>
+                            <input
+                              id="prod-inks"
+                              type="text"
+                              className="production-form-input"
+                              value={specs.inks}
+                              onChange={e => updateSpecs('inks', e.target.value)}
+                              placeholder="Ej. 4×0, CMYK + Pantone 185 C"
+                            />
+                          </div>
+                        </ProductionWorkspaceSection>
+                        <ProductionWorkspaceSection
+                          tag="Impresión"
+                          title="Miles"
+                          tone={1}
+                        >
+                          <div className="production-form-field">
+                            <label className="production-form-label" htmlFor="prod-thousands">
+                              Miles
+                            </label>
+                            <input
+                              id="prod-thousands"
+                              type="number"
+                              min={0}
+                              className="production-form-input"
+                              value={specs.thousands || ''}
+                              onChange={e =>
+                                updateSpecs('thousands', Number(e.target.value) || 0)
+                              }
+                              placeholder="Ej. 1"
+                            />
+                          </div>
+                        </ProductionWorkspaceSection>
+                      </div>
                     </div>
-                  </div>
-                </ProductionWorkspaceSection>
+                  )}
+                </div>
               </div>
             </>
           )}

@@ -4,12 +4,13 @@ import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import RecordCell from '../../components/directory/RecordCell'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
-import Badge from '../../components/ui/Badge'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import DespiecePliegoModal from './DespiecePliegoModal'
 import { CreateDespiecePliegoDTO, DespiecePliego } from '../../../core/domain/entities/DespiecePliego'
 import { formatMedidaDisplayFrom, formatPiezasLabel } from './cortePapelUtils'
+import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
+import { countDirectoryStats } from '../../components/directory/directoryStats'
 import {
   confirmExport,
   confirmSave,
@@ -24,14 +25,12 @@ const CatalogDespiecePliego: React.FC = () => {
   const { items, loading, error, createDespiecePliego, updateDespiecePliego } =
     useDespiecePliegoHook()
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'activo' | 'inactivo'>('todos')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<DespiecePliego | null>(null)
+  const activeItems = useMemo(() => items.filter(p => p.active), [items])
 
   const filtered = useMemo(() => {
-    let result = items
-    if (statusFilter === 'activo') result = result.filter(p => p.active)
-    if (statusFilter === 'inactivo') result = result.filter(p => !p.active)
+    let result = activeItems
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -41,24 +40,13 @@ const CatalogDespiecePliego: React.FC = () => {
           p.alto.includes(q) ||
           p.unidadMedida.toLowerCase().includes(q) ||
           p.medida.toLowerCase().includes(q) ||
-          String(p.piezasPorPliego).includes(q) ||
-          (p.active ? 'activo' : 'inactivo').includes(q)
+          String(p.piezasPorPliego).includes(q)
       )
     }
-    return [...result].sort((a, b) => {
-      if (a.active !== b.active) return a.active ? -1 : 1
-      return a.name.localeCompare(b.name, 'es')
-    })
-  }, [items, searchQuery, statusFilter])
+    return [...result].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }, [activeItems, searchQuery])
 
-  const stats = useMemo(
-    () => ({
-      total: items.length,
-      active: items.filter(p => p.active).length,
-      inactive: items.filter(p => !p.active).length,
-    }),
-    [items]
-  )
+  const stats = useMemo(() => countDirectoryStats(items), [items])
 
   const {
     page,
@@ -103,7 +91,7 @@ const CatalogDespiecePliego: React.FC = () => {
   const handleToggleActive = async (item: DespiecePliego) => {
     if (!(await confirmToggleState(item.name, item.active))) return
     await performAction({
-      success: item.active ? 'Despiece inactivado.' : 'Despiece activado.',
+      success: 'Despiece inactivado.',
       error: 'No se pudo cambiar el estado.',
       action: async () =>
         updateDespiecePliego({
@@ -113,7 +101,7 @@ const CatalogDespiecePliego: React.FC = () => {
           alto: item.alto,
           unidadMedida: item.unidadMedida,
           piezasPorPliego: item.piezasPorPliego,
-          active: !item.active,
+          active: false,
         }),
     })
   }
@@ -134,7 +122,7 @@ const CatalogDespiecePliego: React.FC = () => {
   if (error) return <div className="remissions-kpi-card">Error: {error}</div>
 
   return (
-    <div className="remissions-container clients-dashboard directory-dashboard catalog-despiece-dashboard">
+    <div className="remissions-container clients-dashboard directory-dashboard directory-dashboard--catalog catalog-despiece-dashboard">
       <div className="remissions-header">
         <div className="remissions-header-left">
           <h1 className="remissions-title">Despiece por pliego</h1>
@@ -151,35 +139,18 @@ const CatalogDespiecePliego: React.FC = () => {
         </div>
       </div>
 
-      <div className="remissions-kpi-grid directory-kpi-grid catalog-despiece-kpis">
-        <div className="remissions-kpi-card remissions-kpi-card--stat-total">
-          <div className="remissions-kpi-label">TOTAL</div>
-          <div className="remissions-kpi-value">{stats.total}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-active">
-          <div className="remissions-kpi-label">ACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.active}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-inactive">
-          <div className="remissions-kpi-label">INACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.inactive}</div>
-        </div>
-      </div>
+      <DirectoryKpiGrid
+        sectionLabel="CATÁLOGOS"
+        sectionSubtitle="Despiece por pliego"
+        total={stats.total}
+        active={stats.active}
+        inactive={stats.inactive}
+      />
 
       <div className="remissions-section catalog-despiece-section">
         <div className="remissions-section-header catalog-despiece-section-header">
           <h2 className="remissions-section-title">Listado de despieces</h2>
           <div className="remissions-section-actions">
-            <select
-              className="remissions-status-select"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-              aria-label="Filtrar por estado"
-            >
-              <option value="todos">Todos</option>
-              <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
-            </select>
             <button type="button" className="remissions-btn-export" onClick={handleExportList}>
               Exportar
             </button>
@@ -194,17 +165,13 @@ const CatalogDespiecePliego: React.FC = () => {
                 <th className="remissions-th-nombre">NOMBRE</th>
                 <th>MEDIDA</th>
                 <th>PIEZAS</th>
-                <th className="remissions-th-estado">ESTADO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
             </thead>
             <tbody>
               {paginatedItems.length > 0 ? (
                 paginatedItems.map((item, index) => (
-                  <tr
-                    key={item.id}
-                    className={item.active ? undefined : 'catalog-despiece-row--inactive'}
-                  >
+                  <tr key={item.id}>
                     <td data-label="#" className="catalog-despiece-td-index">
                       {startIndex + index}
                     </td>
@@ -217,16 +184,10 @@ const CatalogDespiecePliego: React.FC = () => {
                     <td data-label="Piezas" className="catalog-despiece-td-piezas">
                       {formatPiezasLabel(item.piezasPorPliego)}
                     </td>
-                    <td data-label="Estado" className="orders-td-estado">
-                      <Badge
-                        variant={item.active ? 'success' : 'neutral'}
-                        label={item.active ? 'Activo' : 'Inactivo'}
-                      />
-                    </td>
                     <td className="orders-td-acciones" data-label="Acciones">
                       <ListRecordActions
                         recordName={item.name}
-                        isActive={item.active}
+                        isActive
                         onView={() => handleEdit(item)}
                         onEdit={() => handleEdit(item)}
                         onExport={() => handleExportOne(item)}
@@ -237,13 +198,13 @@ const CatalogDespiecePliego: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="remissions-td-empty">
+                  <td colSpan={5} className="remissions-td-empty">
                     <DirectoryEmptyState
                       icon="📐"
-                      title={searchQuery.trim() || statusFilter !== 'todos' ? 'Sin resultados' : 'Sin despieces registrados'}
+                      title={searchQuery.trim() ? 'Sin resultados' : 'Sin despieces registrados'}
                       hint={
-                        searchQuery.trim() || statusFilter !== 'todos'
-                          ? 'Pruebe otro criterio o filtro de estado.'
+                        searchQuery.trim()
+                          ? 'Pruebe otro criterio de búsqueda.'
                           : 'Agregue el primero con «+ Nuevo despiece».'
                       }
                     />

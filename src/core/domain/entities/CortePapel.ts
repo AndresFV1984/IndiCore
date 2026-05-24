@@ -24,7 +24,8 @@ export class CortePapel {
     public readonly ancho: string,
     public readonly alto: string,
     public readonly unidadMedida: string,
-    public readonly despieces: DespieceAsociado[]
+    public readonly despieces: DespieceAsociado[],
+    public readonly tipoPapelId: string = ''
   ) {}
 
   get medida(): string {
@@ -43,7 +44,8 @@ export class CortePapel {
       dim.ancho,
       dim.alto,
       dim.unidadMedida,
-      dto.despieces ?? []
+      dto.despieces ?? [],
+      dto.tipoPapelId ?? ''
     )
   }
 }
@@ -56,4 +58,6 @@ export interface CreateCortePapelDTO {
   alto?: string
   unidadMedida?: string
   despieces?: DespieceAsociado[]
+  /** Id en catálogo Tipo de papel */
+  tipoPapelId?: string
 }

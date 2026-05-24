@@ -1,13 +1,14 @@
 import { Money } from '../value-objects/Money.js';
 import { OrderStatus } from '../value-objects/OrderStatus.js';
 import { OrderTotalCalculator } from '../value-objects/OrderTotalCalculator.js';
+import type { DespieceAsociado } from './CortePapel.js';
 import { PreprensaDisenoSpecs } from './PreprensaDiseno.js';
 
 export interface OrderSpecs {
   paperRows: PaperRow[];
   quantity: number;
-  sheets: number;
-  leftover: number;
+  cantidadHojas: number;
+  valorCorte: number;
   mounting: boolean;
   mountingValue?: Money;
   design: boolean;
@@ -23,9 +24,20 @@ export interface OrderSpecs {
 }
 
 export interface PaperRow {
+  /** Id en catálogo Tipo de papel */
+  tipoPapelId?: string;
   type: string;
   size: string;
+  valorHoja?: number;
+  unidadEmpaque?: string;
+  /** Id en catálogo Corte de papel */
+  cortePapelId?: string;
+  /** Nombre del corte (catálogo) */
   cut: string;
+  corteAncho?: string;
+  corteAlto?: string;
+  corteUnidadMedida?: string;
+  despiece?: DespieceAsociado;
 }
 
 export interface FinishItem {

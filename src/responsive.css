@@ -1,14 +1,76 @@
-/* Responsive — reglas solo dentro de media queries (no afectan escritorio por defecto) */
+/* Responsive — layout adaptable y texto que no desborda contenedores */
 
 html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Contenedores de dashboard: permitir encoger en flex/grid */
+/* Contenedores principales: permitir encoger en flex/grid */
+.panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .orders-container,
-.remissions-container {
+.remissions-container,
+.directory-dashboard,
+.catalog-page,
+.dashboard-page {
   min-width: 0;
   width: 100%;
+  max-width: 100%;
+}
+
+/* Tablas de listados: scroll horizontal en escritorio; celdas con texto adaptable */
+.remissions-section,
+.orders-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.remissions-table-wrapper,
+.orders-table-wrapper,
+.directory-table {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.remissions-table,
+.orders-table {
+  max-width: 100%;
+}
+
+.remissions-table td .record-cell,
+.remissions-table td .doc-id,
+.remissions-table td .cell-value,
+.orders-table td .record-cell,
+.orders-table td .cell-value {
+  max-width: 100%;
+}
+
+.remissions-table td:not(.orders-td-acciones):not(.remissions-td-acciones),
+.orders-table td:not(.orders-td-acciones) {
+  hyphens: auto;
+}
+
+/* Catálogo: celdas largas (despiece, medidas) */
+.catalog-corte-despiece-inline {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.catalog-corte-despiece-inline__medida,
+.catalog-corte-despiece-inline__piezas {
+  white-space: normal;
+}
+
+@media (max-width: 1024px) {
+  .clients-dashboard .remissions-th-nombre,
+  .clients-dashboard .remissions-th-email,
+  .clients-dashboard .remissions-th-estado {
+    min-width: 0;
+  }
 }
 
 /* Tablas: scroll horizontal en tablet */
@@ -22,10 +84,16 @@ html {
 /* —— Tablet (≤1024px) —— */
 @media (max-width: 1024px) {
   .orders-header,
-  .remissions-header {
+  .remissions-header,
+  .production-workspace-header {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
+  }
+
+  .production-workspace-header-right {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .orders-header-right,
@@ -81,6 +149,23 @@ html {
   }
 }
 
+/* Orden de producción: ficha de cliente / vendedor sin desborde horizontal */
+@media (max-width: 900px) {
+  .production-workspace-panel,
+  .production-workspace-tabs-card,
+  .production-specs-layout,
+  .production-specs-content {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .production-workspace-panel {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    box-sizing: border-box;
+  }
+}
+
 /* —— Móvil / lista en tarjetas (≤768px) —— */
 @media (max-width: 768px) {
   .orders-table-wrapper,
@@ -102,6 +187,16 @@ html {
   .remissions-table {
     min-width: 0;
     width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+
+  .directory-table .remissions-table th,
+  .clients-dashboard .remissions-th-nombre,
+  .clients-dashboard .remissions-th-email,
+  .clients-dashboard .remissions-th-estado,
+  .directory-table .remissions-th-documento {
+    min-width: 0 !important;
   }
 
   .orders-table thead,
@@ -131,7 +226,8 @@ html {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   .orders-table tbody tr:hover,
@@ -142,16 +238,41 @@ html {
   .orders-table td,
   .remissions-table td {
     display: grid;
-    grid-template-columns: minmax(88px, 36%) 1fr;
+    grid-template-columns: minmax(5.5rem, 34%) minmax(0, 1fr);
     gap: 0.35rem 0.75rem;
-    align-items: center;
+    align-items: start;
     padding: 0.6rem 1rem;
     border-bottom: 1px solid rgba(226, 232, 240, 0.75);
     border-right: none;
     text-align: right;
     white-space: normal;
+    overflow-wrap: anywhere;
     word-break: break-word;
     font-size: 0.8125rem;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .orders-table td > *,
+  .remissions-table td > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .orders-table td .cell-value,
+  .remissions-table td .cell-value,
+  .remissions-table td .remissions-link {
+    justify-self: stretch;
+    text-align: right;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .remissions-table td .remissions-link {
+    display: block;
   }
 
   .orders-table td::before,

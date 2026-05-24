@@ -4,7 +4,6 @@ import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import RecordCell from '../../components/directory/RecordCell'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
-import Badge from '../../components/ui/Badge'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import TipoPapelModal from './TipoPapelModal'
@@ -16,8 +15,12 @@ import {
   performAction,
 } from '../../utils/actionFeedback'
 import { formatMedidaDisplayFrom } from './cortePapelUtils'
+import { DespieceAsociadoDirectoryList } from './DespieceAsociadoUI'
+import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
+import { countDirectoryStats } from '../../components/directory/directoryStats'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
+import './Catalog.css'
 
 const formatValor = (value: number) =>
   new Intl.NumberFormat('es-CO', {
@@ -29,14 +32,12 @@ const formatValor = (value: number) =>
 const CatalogTipoPapel: React.FC = () => {
   const { items, loading, error, createTipoPapel, updateTipoPapel } = useTipoPapelHook()
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'activo' | 'inactivo'>('todos')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<TipoPapel | null>(null)
+  const activeItems = useMemo(() => items.filter(p => p.active), [items])
 
   const filtered = useMemo(() => {
-    let result = items
-    if (statusFilter === 'activo') result = result.filter(p => p.active)
-    if (statusFilter === 'inactivo') result = result.filter(p => !p.active)
+    let result = activeItems
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -44,20 +45,20 @@ const CatalogTipoPapel: React.FC = () => {
           p.name.toLowerCase().includes(q) ||
           p.medida.toLowerCase().includes(q) ||
           p.unidadEmpaque.toLowerCase().includes(q) ||
-          String(p.valorHoja).includes(q)
+          String(p.valorHoja).includes(q) ||
+          p.despiecesPliego.some(
+            d =>
+              d.name.toLowerCase().includes(q) ||
+              d.ancho.includes(q) ||
+              d.alto.includes(q) ||
+              String(d.piezasPorPliego).includes(q)
+          )
       )
     }
     return result
-  }, [items, searchQuery, statusFilter])
+  }, [activeItems, searchQuery])
 
-  const stats = useMemo(
-    () => ({
-      total: items.length,
-      active: items.filter(p => p.active).length,
-      inactive: items.filter(p => !p.active).length,
-    }),
-    [items]
-  )
+  const stats = useMemo(() => countDirectoryStats(items), [items])
 
   const {
     page,
@@ -112,7 +113,7 @@ const CatalogTipoPapel: React.FC = () => {
   const handleToggleActive = async (item: TipoPapel) => {
     if (!(await confirmToggleState(item.name, item.active))) return
     await performAction({
-      success: item.active ? 'Tipo de papel inactivado.' : 'Tipo de papel activado.',
+      success: 'Tipo de papel inactivado.',
       error: 'No se pudo cambiar el estado.',
       action: async () =>
         updateTipoPapel({
@@ -123,7 +124,8 @@ const CatalogTipoPapel: React.FC = () => {
           unidadMedida: item.unidadMedida,
           valorHoja: item.valorHoja,
           unidadEmpaque: item.unidadEmpaque,
-          active: !item.active,
+          active: false,
+          despiecesPliego: item.despiecesPliego,
         }),
     })
   }
@@ -134,7 +136,7 @@ const CatalogTipoPapel: React.FC = () => {
   if (error) return <div className="remissions-kpi-card">Error: {error}</div>
 
   return (
-    <div className="remissions-container clients-dashboard directory-dashboard">
+    <div className="remissions-container clients-dashboard directory-dashboard directory-dashboard--catalog">
       <div className="remissions-header">
         <div className="remissions-header-left">
           <h1 className="remissions-title">Tipo de papel</h1>
@@ -148,24 +150,13 @@ const CatalogTipoPapel: React.FC = () => {
         </div>
       </div>
 
-      <div className="remissions-kpi-grid directory-kpi-grid">
-        <div className="remissions-kpi-card remissions-kpi-card--intro">
-          <div className="remissions-kpi-label">DIRECTORIO DE TIPOS DE PAPEL</div>
-          <div className="remissions-kpi-sublabel">Listado</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-total">
-          <div className="remissions-kpi-label">TOTAL</div>
-          <div className="remissions-kpi-value">{stats.total}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-active">
-          <div className="remissions-kpi-label">ACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.active}</div>
-        </div>
-        <div className="remissions-kpi-card remissions-kpi-card--stat-inactive">
-          <div className="remissions-kpi-label">INACTIVOS</div>
-          <div className="remissions-kpi-value">{stats.inactive}</div>
-        </div>
-      </div>
+      <DirectoryKpiGrid
+        sectionLabel="CATÁLOGOS"
+        sectionSubtitle="Tipos de papel"
+        total={stats.total}
+        active={stats.active}
+        inactive={stats.inactive}
+      />
 
       <div className="remissions-section">
         <div className="remissions-section-header">
@@ -178,15 +169,6 @@ const CatalogTipoPapel: React.FC = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-            <select
-              className="remissions-status-select"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-            >
-              <option value="todos">Todos</option>
-              <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
-            </select>
             <button type="button" className="remissions-btn-export" onClick={handleExportList}>
               Exportar
             </button>
@@ -201,7 +183,7 @@ const CatalogTipoPapel: React.FC = () => {
                 <th>MEDIDA</th>
                 <th>VALOR HOJA</th>
                 <th>UNIDAD EMPAQUE</th>
-                <th className="remissions-th-estado">ESTADO</th>
+                <th>DESPIECE PLIEGO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
             </thead>
@@ -215,16 +197,13 @@ const CatalogTipoPapel: React.FC = () => {
                     <td data-label="Medida">{formatMedidaDisplayFrom(item)}</td>
                     <td data-label="Valor hoja">{formatValor(item.valorHoja)}</td>
                     <td data-label="Unidad empaque">{item.unidadEmpaque}</td>
-                    <td data-label="Estado" className="orders-td-estado">
-                      <Badge
-                        variant={item.active ? 'success' : 'neutral'}
-                        label={item.active ? 'Activo' : 'Inactivo'}
-                      />
+                    <td data-label="Despiece pliego">
+                      <DespieceAsociadoDirectoryList despieces={item.despiecesPliego} />
                     </td>
                     <td className="orders-td-acciones" data-label="Acciones">
                       <ListRecordActions
                         recordName={item.name}
-                        isActive={item.active}
+                        isActive
                         onView={() => handleEdit(item)}
                         onEdit={() => handleEdit(item)}
                         onExport={() => handleExportOne(item)}

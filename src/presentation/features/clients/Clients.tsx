@@ -3,6 +3,7 @@ import { useClientsHook } from '../../hooks/useClients'
 import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import RecordCell from '../../components/directory/RecordCell'
+import CellValue from '../../components/directory/CellValue'
 import IdentityDocumentDisplay from '../../components/directory/IdentityDocumentDisplay'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
 import Badge from '../../components/ui/Badge'
@@ -191,10 +192,14 @@ const Clients: React.FC = () => {
                   <td data-label="Identificación">
                     <IdentityDocumentDisplay documentType="NIT" number={c.nit} />
                   </td>
-                  <td data-label="Teléfono">{c.phone || '—'}</td>
-                  <td data-label="Correo">{c.email || '—'}</td>
+                  <td data-label="Teléfono">
+                    <CellValue>{c.phone || '—'}</CellValue>
+                  </td>
+                  <td data-label="Correo">
+                    <CellValue>{c.email || '—'}</CellValue>
+                  </td>
                   <td data-label="Ubicación">
-                    {formatLocationLabel(c.department, c.city)}
+                    <CellValue>{formatLocationLabel(c.department, c.city)}</CellValue>
                   </td>
                   <td data-label="Estado" className="orders-td-estado">
                     <Badge

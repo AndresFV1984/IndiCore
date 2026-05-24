@@ -1,5 +1,6 @@
 import { TamanoPlancha } from '../../core/domain/entities/TamanoPlancha.js'
 import { ITamanoPlanchaRepository } from '../../core/ports/out/ITamanoPlanchaRepository.js'
+import { createTamanoPlanchaSeeds } from '../seeds/catalogSeeds.js'
 
 export class InMemoryTamanoPlanchaRepository implements ITamanoPlanchaRepository {
   private items: TamanoPlancha[] = []
@@ -30,11 +31,6 @@ export class InMemoryTamanoPlanchaRepository implements ITamanoPlanchaRepository
   }
 
   private seedData(): void {
-    this.items = [
-      new TamanoPlancha('tp1', 'Plancha estándar', '70', '100', 'cm', 185000, true),
-      new TamanoPlancha('tp2', 'Plancha media', '64', '90', 'cm', 152000, true),
-      new TamanoPlancha('tp3', 'Plancha pequeña', '50', '70', 'cm', 98000, true),
-      new TamanoPlancha('tp4', 'Plancha gran formato', '100', '140', 'cm', 265000, false),
-    ]
+    this.items = createTamanoPlanchaSeeds()
   }
 }

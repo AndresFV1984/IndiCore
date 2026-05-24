@@ -1,5 +1,6 @@
 import { DespiecePliego } from '../../core/domain/entities/DespiecePliego.js'
 import { IDespiecePliegoRepository } from '../../core/ports/out/IDespiecePliegoRepository.js'
+import { createDespiecePliegoSeeds } from '../seeds/catalogSeeds.js'
 
 export class InMemoryDespiecePliegoRepository implements IDespiecePliegoRepository {
   private items: DespiecePliego[] = []
@@ -30,11 +31,6 @@ export class InMemoryDespiecePliegoRepository implements IDespiecePliegoReposito
   }
 
   private seedData(): void {
-    this.items = [
-      new DespiecePliego('dp-1', 'Etiqueta', '10', '5', 'cm', 24, true),
-      new DespiecePliego('dp-2', 'Tarjeta', '9', '5', 'cm', 32, true),
-      new DespiecePliego('dp-3', 'Flyer', '21', '14.8', 'cm', 4, true),
-      new DespiecePliego('dp-4', 'Folder', '22', '28', 'cm', 2, false),
-    ]
+    this.items = createDespiecePliegoSeeds()
   }
 }

@@ -47,7 +47,26 @@ export const formatPiezasLabel = (piezas: number): string => {
 export const formatDespieceMedidaPiezas = (d: DespieceAsociado): string => {
   const med = formatMedidaDisplayFrom(d)
   const pzs = formatPiezasLabel(d.piezasPorPliego)
-  return `${pzs} — ${med}`
+  return `${med} · ${pzs}`
+}
+
+export const formatDespiecePliegoOptionLabel = (item: {
+  name: string
+  ancho: string
+  alto: string
+  unidadMedida: string
+  piezasPorPliego: number
+}): string => {
+  const name = item.name.trim()
+  const metrics = formatDespieceMedidaPiezas({
+    despieceId: '',
+    name: item.name,
+    ancho: item.ancho,
+    alto: item.alto,
+    unidadMedida: item.unidadMedida,
+    piezasPorPliego: item.piezasPorPliego,
+  })
+  return name ? `${name} · ${metrics}` : metrics
 }
 
 export const formatDespieceBadge = (d: DespieceAsociado): string => {

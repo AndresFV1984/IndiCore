@@ -14,6 +14,7 @@ import {
   resolveNumeroPlanchasItem,
   resolvePrecioPlanchaDisplay,
   sumValorTotalPlanchas,
+  syncColoresPlanchasCantidadFromOrder,
 } from './utils/coloresPlanchasUtils'
 
 const formatValor = (value: number) =>
@@ -106,6 +107,8 @@ interface PlanchasRegistrosTableProps {
   valorTotalPlanchas: number
   onCantidadChange: (id: string, value: string) => void
   onRemove: (id: string) => void
+  /** Sin cantidad en Detalle OP: solo visualización */
+  locked?: boolean
 }
 
 const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
@@ -113,8 +116,16 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
   valorTotalPlanchas,
   onCantidadChange,
   onRemove,
+  locked = false,
 }) => (
-  <div className="production-plancha-list">
+  <div
+    className={[
+      'production-plancha-list',
+      locked ? 'production-plancha-list--locked' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')}
+  >
   <div className="production-plancha-table-wrap">
     <table className="production-plancha-table">
       <thead>
@@ -170,6 +181,9 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
                 onKeyDown={blockNonDigitKey}
                 placeholder="Cantidad"
                 aria-label={`Cantidad — ${meta?.label ?? 'registro'}`}
+                readOnly={locked}
+                disabled={locked}
+                tabIndex={locked ? -1 : undefined}
               />
             </td>
             <td className="production-plancha-table__td" title={nombreMedida}>
@@ -196,6 +210,7 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
                 onClick={() => onRemove(item.id)}
                 title="Eliminar"
                 aria-label="Eliminar registro"
+                disabled={locked}
               >
                 <ActionIcon name="delete" size={14} />
               </button>
@@ -229,6 +244,7 @@ interface PlanchasRegistrosTableExistenteProps {
   onCantidadReposicionChange: (id: string, value: string) => void
   onObservacionChange: (id: string, value: string) => void
   onRemove: (id: string) => void
+  locked?: boolean
 }
 
 const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteProps> = ({
@@ -239,8 +255,16 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
   onCantidadReposicionChange,
   onObservacionChange,
   onRemove,
+  locked = false,
 }) => (
-  <div className="production-plancha-list">
+  <div
+    className={[
+      'production-plancha-list',
+      locked ? 'production-plancha-list--locked' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')}
+  >
     <div className="production-plancha-table-wrap production-plancha-table-wrap--existente">
       <table className="production-plancha-table production-plancha-table--existente">
         <thead>
@@ -318,6 +342,9 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                     onKeyDown={blockNonDigitKey}
                     placeholder="Cantidad"
                     aria-label={`Cantidad — ${meta?.label ?? 'registro'}`}
+                    readOnly={locked}
+                    disabled={locked}
+                    tabIndex={locked ? -1 : undefined}
                   />
                 </td>
                 <td className="production-plancha-table__td" title={nombreMedida}>
@@ -332,6 +359,7 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                         type="checkbox"
                         checked={Boolean(item.reposicionPlancha)}
                         onChange={e => onReposicionChange(item.id, e.target.checked)}
+                        disabled={locked}
                       />
                       <span>Reposición</span>
                     </label>
@@ -355,6 +383,9 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                       onKeyDown={blockNonDigitKey}
                       placeholder={esSieteOMas ? 'Mín. 7' : undefined}
                       aria-label={`Cantidad reposición — ${meta?.label ?? 'registro'}`}
+                      readOnly={locked}
+                      disabled={locked}
+                      tabIndex={locked ? -1 : undefined}
                     />
                   ) : (
                     <span className="production-plancha-table__muted">—</span>
@@ -380,6 +411,9 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                       onChange={e => onObservacionChange(item.id, e.target.value)}
                       placeholder="Motivo de la reposición…"
                       aria-label={`Observación — ${meta?.label ?? 'registro'}`}
+                      readOnly={locked}
+                      disabled={locked}
+                      tabIndex={locked ? -1 : undefined}
                     />
                   ) : (
                     <span className="production-plancha-table__muted">—</span>
@@ -392,6 +426,7 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                     onClick={() => onRemove(item.id)}
                     title="Eliminar"
                     aria-label="Eliminar registro"
+                    disabled={locked}
                   >
                     <ActionIcon name="delete" size={14} />
                   </button>
@@ -661,6 +696,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
 }) => {
   const usePlanchaPricing = isNewOrder
   const detalleOpCantidadLista = !usePlanchaPricing || orderQuantity > 0
+  const coloresListaEditable = detalleOpCantidadLista
 
   const [draftColor, setDraftColor] = useState<DisenoColoresOption | ''>('')
   const [draftPlanchaId, setDraftPlanchaId] = useState('')
@@ -711,6 +747,18 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       setPickerKey(k => k + 1)
     }
   }, [detalleOpCantidadLista])
+
+  useEffect(() => {
+    if (!usePlanchaPricing || orderQuantity <= 0) return
+    const synced = syncColoresPlanchasCantidadFromOrder(itemsRef.current, orderQuantity)
+    if (synced) onChange(synced)
+  }, [usePlanchaPricing, orderQuantity, onChange])
+
+  useEffect(() => {
+    if (!detalleOpCantidadLista || draftCantidad.trim()) return
+    const fromOp = defaultCantidadFromOp()
+    if (fromOp) setDraftCantidad(fromOp)
+  }, [detalleOpCantidadLista, orderQuantity, draftCantidad])
 
   useEffect(() => {
     if (!historialMode) return
@@ -893,12 +941,14 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   }
 
   const handleRemove = (id: string) => {
+    if (usePlanchaPricing && !coloresListaEditable) return
     preserveColoresPanelViewport(() => {
       onChange(items.filter(item => item.id !== id))
     })
   }
 
   const updateItem = (id: string, patch: Partial<DisenoColorPlanchaItem>) => {
+    if (usePlanchaPricing && !coloresListaEditable) return
     preserveColoresPanelViewport(() => {
       onChange(items.map(item => (item.id === id ? { ...item, ...patch } : item)))
     })
@@ -1041,10 +1091,12 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     >
       {usePlanchaPricing ? (
         <div className="production-plancha-workspace">
+          {!coloresListaEditable && (
+            <DetalleOpRequiredGate onGoToDetalleOpTab={onGoToDetalleOpTab} />
+          )}
+
+          {coloresListaEditable && (
           <section className="production-plancha-workspace__composer" aria-labelledby="diseno-colores-add-label">
-            {!detalleOpCantidadLista ? (
-              <DetalleOpRequiredGate onGoToDetalleOpTab={onGoToDetalleOpTab} />
-            ) : (
               <>
             <div
               className={[
@@ -1139,13 +1191,29 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               <p className="production-plancha-workspace__hint">Sin tipos de plancha activos.</p>
             )}
               </>
-            )}
           </section>
+          )}
 
           {items.length > 0 && (
-            <section className="production-plancha-workspace__list" aria-label="Registros">
+            <section
+              className={[
+                'production-plancha-workspace__list',
+                !coloresListaEditable ? 'production-plancha-workspace__list--locked' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-label="Registros"
+            >
+              {!coloresListaEditable && (
+                <p className="production-plancha-workspace__list-locked-hint" role="status">
+                  Los registros del diseño anterior están en solo lectura. Complete la{' '}
+                  <strong>Cantidad</strong> en Detalle OP para habilitar edición, reposiciones y
+                  nuevos registros.
+                </p>
+              )}
               {historialMode ? (
                 <PlanchasRegistrosTableExistente
+                  locked={!coloresListaEditable}
                   rows={items.map(item => {
                     const display = resolveDisplay(item)
                     return {
@@ -1165,6 +1233,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                 />
               ) : (
                 <PlanchasRegistrosTable
+                  locked={!coloresListaEditable}
                   rows={items.map(item => {
                     const display = resolveDisplay(item)
                     return {

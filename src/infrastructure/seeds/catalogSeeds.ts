@@ -1,0 +1,177 @@
+import { CortePapel, type DespieceAsociado } from '../../core/domain/entities/CortePapel.js'
+import { DespiecePliego } from '../../core/domain/entities/DespiecePliego.js'
+import { PrecioMontaje } from '../../core/domain/entities/PrecioMontaje.js'
+import { TamanoPlancha } from '../../core/domain/entities/TamanoPlancha.js'
+
+/** Registro de catálogo simple (Terminados / Operaciones). */
+export interface CatalogRecordSeed {
+  id: string
+  name: string
+  quickAccess?: boolean
+  cost?: string
+}
+
+export interface DespieceAsociadoSeed {
+  despieceId: string
+  name: string
+  ancho: string
+  alto: string
+  unidadMedida: string
+  piezasPorPliego: number
+}
+
+export interface CortePapelSeed {
+  id: string
+  name: string
+  ancho: string
+  alto: string,
+  unidadMedida: string
+  tipoPapelId: string
+  despieces: DespieceAsociadoSeed[]
+}
+
+export const TERMINADOS_SEED: CatalogRecordSeed[] = [
+  { id: 't1', name: 'Brillo UV', quickAccess: true, cost: '18.000' },
+  { id: 't2', name: 'Laminado mate', quickAccess: true, cost: '22.000' },
+  { id: 't3', name: 'Laminado brillante', quickAccess: true, cost: '24.000' },
+  { id: 't4', name: 'Estampado', quickAccess: true, cost: '35.000' },
+  { id: 't5', name: 'Reserva UV', quickAccess: true, cost: '28.000' },
+  { id: 't6', name: 'Encaucheteado', quickAccess: true, cost: '12.000' },
+  { id: 't7', name: 'Troquel existente', cost: '45.000' },
+  { id: 't8', name: 'Troquel nuevo', cost: '120.000' },
+  { id: 't9', name: 'Pretroquelado', cost: '55.000' },
+  { id: 't10', name: 'Grafado', cost: '15.000' },
+]
+
+export const OPERACIONES_SEED: CatalogRecordSeed[] = [
+  { id: 'o1', name: 'Levantar', cost: '3.500' },
+  { id: 'o2', name: 'Contar', cost: '2.800' },
+  { id: 'o3', name: 'Plegar', cost: '4.200' },
+  { id: 'o4', name: 'Embolcar', cost: '3.800' },
+  { id: 'o5', name: 'Sanduchar', cost: '5.500' },
+  { id: 'o6', name: 'Argollar', cost: '6.200' },
+  { id: 'o7', name: 'Coser', cost: '7.500' },
+  { id: 'o8', name: 'Despuntar', cost: '2.500' },
+  { id: 'o9', name: 'Perforar', cost: '4.800' },
+  { id: 'o10', name: 'Descolillar', cost: '3.200' },
+  { id: 'o11', name: 'Refile final', cost: '4.500' },
+  { id: 'o12', name: 'Empaque', cost: '5.000' },
+]
+
+export const DESPIECE_PLIEGO_SEED = [
+  { id: 'dp-1', name: 'Etiqueta', ancho: '10', alto: '5', unidadMedida: 'cm', piezasPorPliego: 24, active: true },
+  { id: 'dp-2', name: 'Tarjeta', ancho: '9', alto: '5', unidadMedida: 'cm', piezasPorPliego: 32, active: true },
+  { id: 'dp-3', name: 'Flyer', ancho: '21', alto: '14.8', unidadMedida: 'cm', piezasPorPliego: 4, active: true },
+  { id: 'dp-4', name: 'Folder', ancho: '22', alto: '28', unidadMedida: 'cm', piezasPorPliego: 2, active: false },
+] as const
+
+export const CORTE_PAPEL_SEED: CortePapelSeed[] = [
+  {
+    id: 'cp-1',
+    name: 'Corte etiqueta',
+    ancho: '70',
+    alto: '100',
+    unidadMedida: 'cm',
+    tipoPapelId: 'papel-1',
+    despieces: [
+      { despieceId: 'dp-1', name: 'Etiqueta', ancho: '10', alto: '5', unidadMedida: 'cm', piezasPorPliego: 24 },
+    ],
+  },
+  {
+    id: 'cp-2',
+    name: 'Corte tarjeta',
+    ancho: '77',
+    alto: '110',
+    unidadMedida: 'cm',
+    tipoPapelId: 'papel-3',
+    despieces: [
+      { despieceId: 'dp-2', name: 'Tarjeta', ancho: '9', alto: '5', unidadMedida: 'cm', piezasPorPliego: 32 },
+    ],
+  },
+  {
+    id: 'cp-3',
+    name: 'Corte flyer',
+    ancho: '70',
+    alto: '100',
+    unidadMedida: 'cm',
+    tipoPapelId: 'papel-1',
+    despieces: [
+      { despieceId: 'dp-3', name: 'Flyer', ancho: '21', alto: '14.8', unidadMedida: 'cm', piezasPorPliego: 4 },
+    ],
+  },
+  {
+    id: 'cp-4',
+    name: 'Corte invitación',
+    ancho: '64',
+    alto: '90',
+    unidadMedida: 'cm',
+    tipoPapelId: 'papel-2',
+    despieces: [
+      { despieceId: 'dp-2', name: 'Tarjeta', ancho: '9', alto: '5', unidadMedida: 'cm', piezasPorPliego: 32 },
+    ],
+  },
+  {
+    id: 'cp-5',
+    name: 'Corte packaging',
+    ancho: '77',
+    alto: '110',
+    unidadMedida: 'cm',
+    tipoPapelId: 'papel-3',
+    despieces: [
+      { despieceId: 'dp-1', name: 'Etiqueta', ancho: '10', alto: '5', unidadMedida: 'cm', piezasPorPliego: 24 },
+    ],
+  },
+]
+
+export const TAMANO_PLANCHA_SEED = [
+  { id: 'tp1', name: 'Plancha estándar', ancho: '70', alto: '100', unidadMedida: 'cm', valor: 185000, active: true },
+  { id: 'tp2', name: 'Plancha media', ancho: '64', alto: '90', unidadMedida: 'cm', valor: 152000, active: true },
+  { id: 'tp3', name: 'Plancha pequeña', ancho: '50', alto: '70', unidadMedida: 'cm', valor: 98000, active: true },
+  { id: 'tp4', name: 'Plancha gran formato', ancho: '100', alto: '140', unidadMedida: 'cm', valor: 265000, active: false },
+] as const
+
+export const PRECIO_MONTAJE_SEED = [
+  { id: 'pm-1', name: 'Montaje estándar 4 tintas', cost: 85000, state: true },
+  { id: 'pm-2', name: 'Montaje complejo 6 tintas', cost: 125000, state: true },
+  { id: 'pm-3', name: 'Montaje económico 2 tintas', cost: 55000, state: true },
+  { id: 'pm-4', name: 'Montaje especial laminado', cost: 158000, state: true },
+] as const
+
+const toDespieceAsociado = (d: DespieceAsociadoSeed): DespieceAsociado => ({ ...d })
+
+export const createDespiecePliegoSeeds = (): DespiecePliego[] =>
+  DESPIECE_PLIEGO_SEED.map(
+    s =>
+      new DespiecePliego(
+        s.id,
+        s.name,
+        s.ancho,
+        s.alto,
+        s.unidadMedida,
+        s.piezasPorPliego,
+        s.active
+      )
+  )
+
+export const createCortePapelSeeds = (): CortePapel[] =>
+  CORTE_PAPEL_SEED.map(
+    s =>
+      new CortePapel(
+        s.id,
+        s.name,
+        s.ancho,
+        s.alto,
+        s.unidadMedida,
+        s.despieces.map(toDespieceAsociado),
+        s.tipoPapelId
+      )
+  )
+
+export const createTamanoPlanchaSeeds = (): TamanoPlancha[] =>
+  TAMANO_PLANCHA_SEED.map(
+    s =>
+      new TamanoPlancha(s.id, s.name, s.ancho, s.alto, s.unidadMedida, s.valor, s.active)
+  )
+
+export const createPrecioMontajeSeeds = (): PrecioMontaje[] =>
+  PRECIO_MONTAJE_SEED.map(s => new PrecioMontaje(s.id, s.name, s.cost, s.state))
