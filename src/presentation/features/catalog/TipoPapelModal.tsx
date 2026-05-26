@@ -11,7 +11,7 @@ import MedidaFields, {
   medidaDimensionToForm,
   type MedidaFormValues,
 } from './MedidaFields'
-import { DespieceAsociadoPicker } from './DespieceAsociadoUI'
+import { DespieceAsociadoPicker, DespieceMetrics } from './DespieceAsociadoUI'
 import './Catalog.css'
 
 export interface TipoPapelFormValues {
@@ -53,6 +53,20 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
   const [selectedDespieces, setSelectedDespieces] = useState<DespieceAsociado[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [focusValorCorteId, setFocusValorCorteId] = useState<string | null>(null)
+
+  const updateDespieceValorCorte = (despieceId: string, value: string) => {
+    const next = value.replace(/[^\d]/g, '')
+    const parsed = next.trim() ? Number(next) : NaN
+    setSelectedDespieces(prev =>
+      prev.map(d =>
+        d.despieceId === despieceId
+          ? { ...d, valorCorte: Number.isNaN(parsed) ? undefined : parsed }
+          : d
+      )
+    )
+    if (error) setError(null)
+  }
 
   useEffect(() => {
     if (!isOpen) return
@@ -62,15 +76,34 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
             name: item.name,
             medida: medidaDimensionToForm(item.medidaDimension),
             valorHoja: String(item.valorHoja),
-            unidadEmpaque: item.unidadEmpaque,
+            unidadEmpaque: String(item.unidadEmpaque),
             active: item.active,
           }
         : defaultValues
     )
-    setSelectedDespieces(item?.despiecesPliego?.length ? [...item.despiecesPliego] : [])
+    setSelectedDespieces(
+      item?.despiecesPliego?.length
+        ? item.despiecesPliego.map(d => ({
+            ...d,
+            valorCorte: typeof d.valorCorte === 'number' ? d.valorCorte : undefined,
+          }))
+        : []
+    )
+    setFocusValorCorteId(null)
     setError(null)
     setSubmitting(false)
   }, [isOpen, item])
+
+  useEffect(() => {
+    if (!focusValorCorteId) return
+    const el = document.getElementById(`papel-despiece-valor-corte-${focusValorCorteId}`) as
+      | HTMLInputElement
+      | null
+    if (!el) return
+    el.focus()
+    el.select?.()
+    setFocusValorCorteId(null)
+  }, [focusValorCorteId])
 
   const handleChange = (field: keyof Omit<TipoPapelFormValues, 'medida'>) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -82,7 +115,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const name = values.name.trim()
-    const unidadEmpaque = values.unidadEmpaque.trim()
+    const unidadEmpaque = Number(values.unidadEmpaque)
     const valorHoja = Number(values.valorHoja)
     const medidaErr = validateMedidaDimension(values.medida)
 
@@ -94,8 +127,13 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
       setError(medidaErr)
       return
     }
-    if (!unidadEmpaque) {
-      setError('La unidad de empaque es obligatoria.')
+    if (
+      values.unidadEmpaque.trim() === '' ||
+      Number.isNaN(unidadEmpaque) ||
+      unidadEmpaque <= 0 ||
+      !Number.isInteger(unidadEmpaque)
+    ) {
+      setError('Ingrese unidad de empaque válida (número entero mayor a cero).')
       return
     }
     if (values.valorHoja.trim() === '' || Number.isNaN(valorHoja) || valorHoja < 0) {
@@ -104,6 +142,14 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
     }
     if (selectedDespieces.length === 0) {
       setError('Seleccione al menos un despiece por pliego asociado.')
+      return
+    }
+    if (
+      selectedDespieces.some(
+        d => typeof d.valorCorte !== 'number' || Number.isNaN(d.valorCorte) || d.valorCorte < 0
+      )
+    ) {
+      setError('Ingrese un valor corte válido (número mayor o igual a cero) para cada despiece.')
       return
     }
 
@@ -119,7 +165,10 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
         valorHoja,
         unidadEmpaque,
         active: values.active,
-        despiecesPliego: selectedDespieces,
+        despiecesPliego: selectedDespieces.map(d => ({
+          ...d,
+          valorCorte: d.valorCorte ?? 0,
+        })),
       })
       onClose()
     } catch {
@@ -176,14 +225,23 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
               placeholder="Ej. 1250"
             />
           </FormField>
-          <FormField id="papel-unidad" label="Unidad empaque" required fullWidth>
+          <FormField
+            id="papel-unidad"
+            label="Unidad empaque"
+            required
+            fullWidth
+            hint="Cantidad de hojas por unidad de empaque (solo números)."
+          >
             <input
               id="papel-unidad"
-              type="text"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
               className="record-form-input"
               value={values.unidadEmpaque}
               onChange={handleChange('unidadEmpaque')}
-              placeholder="Ej. Resma 250 hojas"
+              placeholder="Ej. 250"
             />
           </FormField>
           <FormField id="papel-estado" label="Estado" required fullWidth>
@@ -207,7 +265,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
             label="Despiece por pliego asociado"
             required
             fullWidth
-            hint="Seleccione del listado. Puede agregar varios; use × para quitar."
+            hint="Seleccione del listado. Puede agregar varios; use × para quitar. Para cada uno, defina el valor corte."
           >
             {loadingDespieces ? (
               <p className="catalog-corte-despiece-picker-empty">Cargando despieces…</p>
@@ -221,12 +279,60 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
                 catalog={despiecesCatalog}
                 selected={selectedDespieces}
                 onChange={next => {
-                  setSelectedDespieces(next)
+                  const prevIds = new Set(selectedDespieces.map(d => d.despieceId))
+                  const added = next.find(d => !prevIds.has(d.despieceId))?.despieceId ?? null
+                  setSelectedDespieces(
+                    next.map(d => ({
+                      ...d,
+                      valorCorte: typeof d.valorCorte === 'number' ? d.valorCorte : undefined,
+                    }))
+                  )
+                  if (added) setFocusValorCorteId(added)
                   if (error) setError(null)
                 }}
               />
             )}
           </FormField>
+
+          {selectedDespieces.length > 0 ? (
+            <div className="catalog-tipo-papel-despiece-valores">
+              {selectedDespieces.map(d => (
+                <div
+                  key={d.despieceId}
+                  className="catalog-tipo-papel-despiece-valores__row"
+                >
+                  <div className="catalog-tipo-papel-despiece-valores__metrics">
+                    <DespieceMetrics
+                      ancho={d.ancho}
+                      alto={d.alto}
+                      unidadMedida={d.unidadMedida}
+                      piezasPorPliego={d.piezasPorPliego}
+                      name={d.name}
+                      showName
+                    />
+                  </div>
+                  <div className="catalog-tipo-papel-despiece-valores__field">
+                    <label
+                      className="record-form-label"
+                      htmlFor={`papel-despiece-valor-corte-${d.despieceId}`}
+                    >
+                      Valor corte
+                    </label>
+                    <input
+                      id={`papel-despiece-valor-corte-${d.despieceId}`}
+                      type="number"
+                      min={0}
+                      step={1}
+                      className="record-form-input"
+                      value={typeof d.valorCorte === 'number' ? String(d.valorCorte) : ''}
+                      onChange={e => updateDespieceValorCorte(d.despieceId, e.target.value)}
+                      placeholder="Ej. 350"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </FormSection>
 
         {error && (

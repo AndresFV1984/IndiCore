@@ -1,5 +1,7 @@
-import React, { memo, useCallback, useEffect, useId, useRef, useState } from 'react'
+import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import DisenoPdfCanvasPreview from './DisenoPdfCanvasPreview'
 import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
+import { prefersPdfCanvasPreview } from './utils/pdfPreviewPlatform'
 
 const n = PREPRENSA_DISENO_COPY.nuevo
 const pdfCopy = PREPRENSA_DISENO_COPY.pdf
@@ -97,6 +99,8 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
     [onFileNameChange, revokePreview]
   )
 
+  const useCanvasPreview = useMemo(() => prefersPdfCanvasPreview(), [])
+
   const hasFile = Boolean(fileName)
   const showPreview = Boolean(previewUrl && fileName)
   const showHistorialHint = historialSinPreview && hasFile && !showPreview
@@ -153,12 +157,16 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
               {n.pdfQuitar}
             </button>
           </div>
-          <iframe
-            src={previewUrl!}
-            title={n.pdfPreview(fileName)}
-            className="production-diseno-pdf-preview__frame"
-            loading="lazy"
-          />
+          {useCanvasPreview ? (
+            <DisenoPdfCanvasPreview url={previewUrl!} fileName={fileName} />
+          ) : (
+            <iframe
+              src={previewUrl!}
+              title={n.pdfPreview(fileName)}
+              className="production-diseno-pdf-preview__frame"
+              loading="lazy"
+            />
+          )}
         </div>
       )}
     </>

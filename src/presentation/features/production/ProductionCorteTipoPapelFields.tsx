@@ -8,19 +8,24 @@ import {
   ProductionCatalogDetail,
   ProductionCatalogDetailGrid,
 } from './ProductionCatalogDetail'
+import { formatUnidadEmpaqueDisplay } from '../../../core/domain/value-objects/UnidadEmpaque'
 import {
   buildTipoPapelNameCounts,
   clearTipoPapelFromRow,
   despiecePliegoSelectOptionLabel,
   formatValorHojaDisplay,
+  listActiveTiposPapel,
   mergeDespiecePliegoIntoRow,
+  findDespieceInTipoPapel,
   mergeTipoPapelIntoRow,
+  normalizeTipoPapelList,
   tipoPapelSelectOptionLabel,
 } from './utils/tipoPapelDisplay'
 
 interface ProductionCorteTipoPapelFieldsProps {
   row: PaperRow
   tiposPapel: TipoPapel[]
+  loadingTiposPapel?: boolean
   onChange: (row: PaperRow) => void
   embedded?: boolean
 }
@@ -28,25 +33,27 @@ interface ProductionCorteTipoPapelFieldsProps {
 const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsProps> = ({
   row,
   tiposPapel,
+  loadingTiposPapel = false,
   onChange,
   embedded = false,
 }) => {
-  const activeTipos = useMemo(
-    () =>
-      [...tiposPapel.filter(t => t.active)].sort((a, b) =>
-        a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
-      ),
-    [tiposPapel]
-  )
+  const catalog = useMemo(() => normalizeTipoPapelList(tiposPapel), [tiposPapel])
+
+  const activeTipos = useMemo(() => listActiveTiposPapel(catalog), [catalog])
 
   const nameCounts = useMemo(() => buildTipoPapelNameCounts(activeTipos), [activeTipos])
 
   const selected = useMemo(
-    () => tiposPapel.find(t => t.id === row.tipoPapelId) ?? null,
-    [tiposPapel, row.tipoPapelId]
+    () => catalog.find(t => t.id === row.tipoPapelId) ?? null,
+    [catalog, row.tipoPapelId]
   )
 
   const selectedDespieceId = row.despiece?.despieceId ?? ''
+
+  const despieceCatalogo = useMemo(
+    () => findDespieceInTipoPapel(selected, selectedDespieceId) ?? row.despiece ?? null,
+    [selected, selectedDespieceId, row.despiece]
+  )
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value
@@ -54,7 +61,7 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
       onChange(clearTipoPapelFromRow(row))
       return
     }
-    const item = tiposPapel.find(t => t.id === id)
+    const item = catalog.find(t => t.id === id)
     if (item) onChange(mergeTipoPapelIntoRow(row, item))
   }
 
@@ -70,9 +77,14 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
 
   const body = (
     <>
-      {activeTipos.length === 0 ? (
+      {loadingTiposPapel ? (
+        <p className="production-diseno-cliente-hint" role="status">
+          Cargando tipos de papel del catálogo…
+        </p>
+      ) : activeTipos.length === 0 ? (
         <p className="production-diseno-cliente-hint">
-          No hay tipos de papel activos. Regístrelos en Catálogos › Tipo de papel.
+          No hay tipos de papel activos. Regístrelos en Catálogos › Tipo de papel y asocie al
+          menos un despiece por pliego.
         </p>
       ) : (
         <>
@@ -137,11 +149,24 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
               label="Valor hoja"
               value={formatValorHojaDisplay(selected.valorHoja)}
             />
-            <CatalogReadonlyField label="Unidad empaque" value={selected.unidadEmpaque} />
+            <CatalogReadonlyField
+              label="Unidad empaque"
+              value={formatUnidadEmpaqueDisplay(selected.unidadEmpaque)}
+            />
+            <CatalogReadonlyField
+              label="Valor corte"
+              value={
+                despieceCatalogo &&
+                typeof despieceCatalogo.valorCorte === 'number' &&
+                despieceCatalogo.valorCorte > 0
+                  ? formatValorHojaDisplay(despieceCatalogo.valorCorte)
+                  : '—'
+              }
+            />
           </ProductionCatalogDetailGrid>
 
-          {row.despiece ? (
-            <DespiecePliegoReadonlySection despiece={row.despiece} />
+          {despieceCatalogo ? (
+            <DespiecePliegoReadonlySection despiece={despieceCatalogo} />
           ) : selected.despiecesPliego.length > 0 ? (
             <p className="production-diseno-cliente-hint production-catalog-detail__note">
               Seleccione un despiece por pliego asociado al tipo de papel.

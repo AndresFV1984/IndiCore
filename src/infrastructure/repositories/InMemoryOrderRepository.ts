@@ -191,6 +191,7 @@ export class InMemoryOrderRepository implements IOrderRepository {
           paperRows: [{ type: 'Papel 1', size: '90x64', cut: 'Corte 1' }],
           quantity: Math.floor(Math.random() * 1000) + 100,
           cantidadHojas: 0,
+          margenRedondeo: 2,
           valorCorte: 0,
           mounting: Math.random() > 0.5,
           mountingValue: new Money(50000),

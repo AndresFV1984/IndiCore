@@ -15,6 +15,7 @@ import {
   performAction,
 } from '../../utils/actionFeedback'
 import { formatMedidaDisplayFrom } from './cortePapelUtils'
+import { formatUnidadEmpaqueDisplay } from '../../../core/domain/value-objects/UnidadEmpaque'
 import { DespieceAsociadoDirectoryList } from './DespieceAsociadoUI'
 import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import { countDirectoryStats } from '../../components/directory/directoryStats'
@@ -44,7 +45,7 @@ const CatalogTipoPapel: React.FC = () => {
         p =>
           p.name.toLowerCase().includes(q) ||
           p.medida.toLowerCase().includes(q) ||
-          p.unidadEmpaque.toLowerCase().includes(q) ||
+          String(p.unidadEmpaque).includes(q) ||
           String(p.valorHoja).includes(q) ||
           p.despiecesPliego.some(
             d =>
@@ -196,7 +197,9 @@ const CatalogTipoPapel: React.FC = () => {
                     </td>
                     <td data-label="Medida">{formatMedidaDisplayFrom(item)}</td>
                     <td data-label="Valor hoja">{formatValor(item.valorHoja)}</td>
-                    <td data-label="Unidad empaque">{item.unidadEmpaque}</td>
+                    <td data-label="Unidad empaque">
+                      {formatUnidadEmpaqueDisplay(item.unidadEmpaque)}
+                    </td>
                     <td data-label="Despiece pliego">
                       <DespieceAsociadoDirectoryList despieces={item.despiecesPliego} />
                     </td>

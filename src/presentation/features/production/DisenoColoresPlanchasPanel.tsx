@@ -14,8 +14,14 @@ import {
   resolveNumeroPlanchasItem,
   resolvePrecioPlanchaDisplay,
   sumValorTotalPlanchas,
+  applyTamanosBuenosToItem,
+  computeTamanosBuenos,
+  resolveTamanosBuenosValue,
   syncColoresPlanchasCantidadFromOrder,
 } from './utils/coloresPlanchasUtils'
+import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
+
+const coloresCopy = PREPRENSA_DISENO_COPY.coloresPlanchas
 
 const formatValor = (value: number) =>
   new Intl.NumberFormat('es-CO', {
@@ -27,6 +33,22 @@ const formatValor = (value: number) =>
 const parseDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
   return digits ? Number(digits) : 0
+}
+
+const blockNonDigitKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const allowed = [
+    'Backspace',
+    'Delete',
+    'Tab',
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+  ]
+  if (allowed.includes(e.key)) return
+  if (!/^\d$/.test(e.key)) e.preventDefault()
 }
 
 /** Evita que un clic en botón mueva el scroll al enfocar el control. */
@@ -102,10 +124,110 @@ interface PlanchaRegistroRow {
   valorTotal: number
 }
 
+const formatNumFieldValue = (n: number) => (n > 0 ? String(n) : '')
+
+const tamanosBuenosDisplayValue = (cantidad: number, numeroCavidades: number): string => {
+  const calc = computeTamanosBuenos(cantidad, numeroCavidades)
+  if (calc.ok) return calc.value.toLocaleString('es-CO')
+  return calc.reason === 'sin-cavidad' ? coloresCopy.faltaCavidad : coloresCopy.faltaCantidad
+}
+
+const TamanosBuenosReadonlyField: React.FC<{
+  cantidad: number
+  numeroCavidades: number
+}> = ({ cantidad, numeroCavidades }) => {
+  const calc = computeTamanosBuenos(cantidad, numeroCavidades)
+  return (
+    <div className="production-form-field">
+      <span className="production-form-label">Tamaños buenos</span>
+      <input
+        type="text"
+        className={[
+          'production-form-input',
+          'production-form-input--readonly',
+          !calc.ok ? 'production-form-input--pending' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        value={tamanosBuenosDisplayValue(cantidad, numeroCavidades)}
+        readOnly
+        tabIndex={-1}
+        title={coloresCopy.tamanosBuenosFormula}
+        aria-label="Tamaños buenos calculados"
+      />
+    </div>
+  )
+}
+
+const TamanosBuenosCell: React.FC<{
+  cantidad: number
+  numeroCavidades: number
+}> = ({ cantidad, numeroCavidades }) => {
+  const calc = computeTamanosBuenos(cantidad, numeroCavidades)
+  return (
+    <td className="production-plancha-table__td production-plancha-table__td--num production-plancha-table__td--calc">
+      {calc.ok ? (
+        <span className="production-plancha-table__calc-value" title={coloresCopy.tamanosBuenosFormula}>
+          {calc.value.toLocaleString('es-CO')}
+        </span>
+      ) : (
+        <span
+          className="production-plancha-table__calc-pending"
+          title={coloresCopy.tamanosBuenosFormula}
+          role="status"
+        >
+          {calc.reason === 'sin-cavidad'
+            ? coloresCopy.faltaCavidad
+            : coloresCopy.faltaCantidad}
+        </span>
+      )}
+    </td>
+  )
+}
+
+const PlanchaTableNumCell: React.FC<{
+  itemId: string
+  value: number
+  onChange: (id: string, raw: string) => void
+  label: string
+  placeholder: string
+  locked?: boolean
+  alwaysEditable?: boolean
+}> = ({
+  itemId,
+  value,
+  onChange,
+  label,
+  placeholder,
+  locked = false,
+  alwaysEditable = false,
+}) => {
+  const readOnly = !alwaysEditable && locked
+  return (
+    <td className="production-plancha-table__td production-plancha-table__td--num">
+      <input
+        type="text"
+        inputMode="numeric"
+        className="production-form-input production-plancha-table__input-num"
+        value={formatNumFieldValue(value)}
+        onChange={e => onChange(itemId, e.target.value)}
+        onKeyDown={blockNonDigitKey}
+        placeholder={placeholder}
+        aria-label={`${label} — registro`}
+        readOnly={readOnly}
+        disabled={readOnly}
+        tabIndex={readOnly ? -1 : undefined}
+      />
+    </td>
+  )
+}
+
 interface PlanchasRegistrosTableProps {
   rows: PlanchaRegistroRow[]
   valorTotalPlanchas: number
   onCantidadChange: (id: string, value: string) => void
+  onCavidadesChange: (id: string, value: string) => void
+  onSobranteChange: (id: string, value: string) => void
   onRemove: (id: string) => void
   /** Sin cantidad en Detalle OP: solo visualización */
   locked?: boolean
@@ -115,6 +237,8 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
   rows,
   valorTotalPlanchas,
   onCantidadChange,
+  onCavidadesChange,
+  onSobranteChange,
   onRemove,
   locked = false,
 }) => (
@@ -135,6 +259,15 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
           </th>
           <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
             Cantidad
+          </th>
+          <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+            Cavidades
+          </th>
+          <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+            Tamaños buenos
+          </th>
+          <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+            Sobrante
           </th>
           <th scope="col" className="production-plancha-table__th">
             Tipo plancha
@@ -171,21 +304,31 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
                 </span>
               )}
             </td>
-            <td className="production-plancha-table__td production-plancha-table__td--num">
-              <input
-                type="text"
-                inputMode="numeric"
-                className="production-form-input production-plancha-table__input-num"
-                value={item.cantidad > 0 ? String(item.cantidad) : ''}
-                onChange={e => onCantidadChange(item.id, e.target.value)}
-                onKeyDown={blockNonDigitKey}
-                placeholder="Cantidad"
-                aria-label={`Cantidad — ${meta?.label ?? 'registro'}`}
-                readOnly={locked}
-                disabled={locked}
-                tabIndex={locked ? -1 : undefined}
-              />
-            </td>
+            <PlanchaTableNumCell
+              itemId={item.id}
+              value={item.cantidad}
+              onChange={onCantidadChange}
+              label="Cantidad"
+              placeholder="Cantidad"
+              locked={locked}
+            />
+            <PlanchaTableNumCell
+              itemId={item.id}
+              value={item.numeroCavidades}
+              onChange={onCavidadesChange}
+              label="Cavidades"
+              placeholder="Cavidades"
+              alwaysEditable
+            />
+            <TamanosBuenosCell cantidad={item.cantidad} numeroCavidades={item.numeroCavidades} />
+            <PlanchaTableNumCell
+              itemId={item.id}
+              value={item.sobrante}
+              onChange={onSobranteChange}
+              label="Sobrante"
+              placeholder="Sobrante"
+              alwaysEditable
+            />
             <td className="production-plancha-table__td" title={nombreMedida}>
               <span className="production-plancha-table__truncate">{nombreMedida || '—'}</span>
             </td>
@@ -240,6 +383,8 @@ interface PlanchasRegistrosTableExistenteProps {
   rows: PlanchaRegistroRow[]
   valorTotalPlanchas: number
   onCantidadChange: (id: string, value: string) => void
+  onCavidadesChange: (id: string, value: string) => void
+  onSobranteChange: (id: string, value: string) => void
   onReposicionChange: (id: string, checked: boolean) => void
   onCantidadReposicionChange: (id: string, value: string) => void
   onObservacionChange: (id: string, value: string) => void
@@ -251,6 +396,8 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
   rows,
   valorTotalPlanchas,
   onCantidadChange,
+  onCavidadesChange,
+  onSobranteChange,
   onReposicionChange,
   onCantidadReposicionChange,
   onObservacionChange,
@@ -274,6 +421,15 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
             </th>
             <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
               Cantidad
+            </th>
+            <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+              Cavidades
+            </th>
+            <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+              Tamaños buenos
+            </th>
+            <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+              Sobrante
             </th>
             <th scope="col" className="production-plancha-table__th">
               Tipo plancha
@@ -332,21 +488,34 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                     </span>
                   )}
                 </td>
-                <td className="production-plancha-table__td production-plancha-table__td--num">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="production-form-input production-plancha-table__input-num"
-                    value={item.cantidad > 0 ? String(item.cantidad) : ''}
-                    onChange={e => onCantidadChange(item.id, e.target.value)}
-                    onKeyDown={blockNonDigitKey}
-                    placeholder="Cantidad"
-                    aria-label={`Cantidad — ${meta?.label ?? 'registro'}`}
-                    readOnly={locked}
-                    disabled={locked}
-                    tabIndex={locked ? -1 : undefined}
-                  />
-                </td>
+                <PlanchaTableNumCell
+                  itemId={item.id}
+                  value={item.cantidad}
+                  onChange={onCantidadChange}
+                  label="Cantidad"
+                  placeholder="Cantidad"
+                  locked={locked}
+                />
+                <PlanchaTableNumCell
+                  itemId={item.id}
+                  value={item.numeroCavidades}
+                  onChange={onCavidadesChange}
+                  label="Cavidades"
+                  placeholder="Cavidades"
+                  alwaysEditable
+                />
+                <TamanosBuenosCell
+                  cantidad={item.cantidad}
+                  numeroCavidades={item.numeroCavidades}
+                />
+                <PlanchaTableNumCell
+                  itemId={item.id}
+                  value={item.sobrante}
+                  onChange={onSobranteChange}
+                  label="Sobrante"
+                  placeholder="Sobrante"
+                  alwaysEditable
+                />
                 <td className="production-plancha-table__td" title={nombreMedida}>
                   <span className="production-plancha-table__truncate">{nombreMedida || '—'}</span>
                 </td>
@@ -458,6 +627,10 @@ interface RegistroOpComposerFormProps {
   meta: ReturnType<typeof getColoresOptionMeta>
   draftCantidad: string
   onCantidadChange: (value: string) => void
+  draftCavidades: string
+  onCavidadesChange: (value: string) => void
+  draftSobrante: string
+  onSobranteChange: (value: string) => void
   detalleOpCantidadLista: boolean
   draftPlanchaId: string
   activePlanchas: TamanoPlancha[]
@@ -480,6 +653,10 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   meta,
   draftCantidad,
   onCantidadChange,
+  draftCavidades,
+  onCavidadesChange,
+  draftSobrante,
+  onSobranteChange,
   detalleOpCantidadLista,
   draftPlanchaId,
   activePlanchas,
@@ -502,6 +679,11 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
     : draftNumeroPlanchas > 0
       ? String(draftNumeroPlanchas)
       : ''
+
+  const tamanosBuenosCalc = computeTamanosBuenos(
+    parseDigits(draftCantidad),
+    parseDigits(draftCavidades)
+  )
 
   return (
     <div className="production-plancha-draft">
@@ -557,6 +739,70 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
             <span className="production-plancha-draft__field-hint">
               Editable por registro; puede ajustarla en la tabla después de agregar
             </span>
+          </div>
+
+          <div className="production-plancha-draft__readonly">
+            <label className="production-form-label" htmlFor="diseno-add-cavidades-op">
+              Cavidades
+            </label>
+            <input
+              id="diseno-add-cavidades-op"
+              type="text"
+              inputMode="numeric"
+              className="production-form-input"
+              value={draftCavidades}
+              onChange={e => onCavidadesChange(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={blockNonDigitKey}
+              placeholder="Cavidades"
+              aria-label="Cavidades del registro"
+            />
+            <span className="production-plancha-draft__field-hint">
+              Editable en cualquier momento, también en la tabla de registros
+            </span>
+          </div>
+
+          <div className="production-plancha-draft__readonly">
+            <span className="production-form-label">Tamaños buenos</span>
+            <input
+              type="text"
+              className={[
+                'production-form-input',
+                'production-form-input--readonly',
+                !tamanosBuenosCalc.ok ? 'production-form-input--pending' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              value={
+                tamanosBuenosCalc.ok
+                  ? tamanosBuenosCalc.value.toLocaleString('es-CO')
+                  : tamanosBuenosCalc.reason === 'sin-cavidad'
+                    ? coloresCopy.faltaCavidad
+                    : coloresCopy.faltaCantidad
+              }
+              readOnly
+              tabIndex={-1}
+              aria-label="Tamaños buenos calculados"
+            />
+            <span className="production-plancha-draft__field-hint">
+              {coloresCopy.tamanosBuenosFormula}
+            </span>
+          </div>
+
+          <div className="production-plancha-draft__readonly">
+            <label className="production-form-label" htmlFor="diseno-add-sobrante">
+              Sobrante
+            </label>
+            <input
+              id="diseno-add-sobrante"
+              type="text"
+              inputMode="numeric"
+              className="production-form-input"
+              value={draftSobrante}
+              onChange={e => onSobranteChange(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={blockNonDigitKey}
+              placeholder="Sobrante"
+              aria-label="Sobrante del registro"
+            />
           </div>
 
           <div className="production-plancha-draft__readonly">
@@ -656,22 +902,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   )
 }
 
-const blockNonDigitKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  const allowed = [
-    'Backspace',
-    'Delete',
-    'Tab',
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowUp',
-    'ArrowDown',
-    'Home',
-    'End',
-  ]
-  if (allowed.includes(e.key)) return
-  if (!/^\d$/.test(e.key)) e.preventDefault()
-}
-
 interface DisenoColoresPlanchasPanelProps {
   items: DisenoColorPlanchaItem[]
   planchas: TamanoPlancha[]
@@ -704,6 +934,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   const [draftCantidad, setDraftCantidad] = useState('')
   const [draftDescripcion, setDraftDescripcion] = useState('')
   const [draftCavidades, setDraftCavidades] = useState('')
+  const [draftSobrante, setDraftSobrante] = useState('')
   const [draftDetalle, setDraftDetalle] = useState('')
   const [draftError, setDraftError] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
@@ -743,6 +974,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       setDraftDescripcion('')
       setDraftNumeroPlanchasManual('')
       setDraftCantidad('')
+      setDraftCavidades('')
+      setDraftSobrante('')
       setDraftError(null)
       setPickerKey(k => k + 1)
     }
@@ -808,6 +1041,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     setDraftDescripcion('')
     setDraftNumeroPlanchasManual('')
     setDraftCantidad('')
+    setDraftCavidades('')
+    setDraftSobrante('')
     setDraftError(null)
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
@@ -821,6 +1056,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     setDraftNumeroPlanchasManual('')
     setDraftCantidad('')
     setDraftCavidades('')
+    setDraftSobrante('')
     setDraftDetalle('')
     setDraftError(null)
     setPickerKey(k => k + 1)
@@ -832,6 +1068,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     setDraftDescripcion('')
     setDraftNumeroPlanchasManual('')
     setDraftCantidad('')
+    setDraftCavidades('')
+    setDraftSobrante('')
     setDraftError(null)
     setPickerKey(k => k + 1)
   }
@@ -887,23 +1125,26 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
         return
       }
       const valorTotal = computeRegistroValorTotal(numeroPlanchas, plancha.valor)
+      const numeroCavidades = parseDigits(draftCavidades)
+      const sobrante = parseDigits(draftSobrante)
       preserveColoresPanelViewport(() => {
         onChange([
           ...itemsRef.current,
-          {
+          applyTamanosBuenosToItem({
             id: createId(),
             colores: draftColor,
             cantidad,
             numeroPlanchas,
             valorTotal,
-            numeroCavidades: 0,
+            numeroCavidades,
+            sobrante,
             detalle: descripcion,
             observacion: '',
             reposicionPlancha: false,
             cantidadReposicion: 0,
             registroManual: historialMode,
             ...snapshot,
-          },
+          }),
         ])
         resetDraftAfterAdd()
       })
@@ -921,17 +1162,18 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       preserveColoresPanelViewport(() => {
         onChange([
           ...itemsRef.current,
-          {
+          applyTamanosBuenosToItem({
             id: createId(),
             colores: draftColor,
             cantidad: 0,
             numeroPlanchas: 0,
             valorTotal: 0,
             numeroCavidades,
+            sobrante: parseDigits(draftSobrante),
             detalle,
             observacion: '',
             ...snapshot,
-          },
+          }),
         ])
         resetDraft()
       })
@@ -997,9 +1239,39 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   }
 
   const handleCantidadItemChange = (id: string, raw: string) => {
+    if (usePlanchaPricing && !coloresListaEditable) return
     const digits = raw.replace(/\D/g, '')
     const cantidad = digits ? Number(digits) : 0
-    updateItem(id, { cantidad })
+    preserveColoresPanelViewport(() => {
+      onChange(
+        itemsRef.current.map(item =>
+          item.id === id ? applyTamanosBuenosToItem({ ...item, cantidad }) : item
+        )
+      )
+    })
+  }
+
+  const patchItemFieldAlways = (
+    id: string,
+    patch: Pick<DisenoColorPlanchaItem, 'numeroCavidades' | 'sobrante'>
+  ) => {
+    preserveColoresPanelViewport(() => {
+      onChange(
+        itemsRef.current.map(item =>
+          item.id === id ? applyTamanosBuenosToItem({ ...item, ...patch }) : item
+        )
+      )
+    })
+  }
+
+  const handleCavidadesItemChange = (id: string, raw: string) => {
+    const digits = raw.replace(/\D/g, '')
+    patchItemFieldAlways(id, { numeroCavidades: digits ? Number(digits) : 0 })
+  }
+
+  const handleSobranteItemChange = (id: string, raw: string) => {
+    const digits = raw.replace(/\D/g, '')
+    patchItemFieldAlways(id, { sobrante: digits ? Number(digits) : 0 })
   }
 
   const handleCantidadReposicionChange = (id: string, raw: string) => {
@@ -1158,6 +1430,16 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                       setDraftCantidad(value)
                       if (draftError) setDraftError(null)
                     }}
+                    draftCavidades={draftCavidades}
+                    onCavidadesChange={value => {
+                      setDraftCavidades(value)
+                      if (draftError) setDraftError(null)
+                    }}
+                    draftSobrante={draftSobrante}
+                    onSobranteChange={value => {
+                      setDraftSobrante(value)
+                      if (draftError) setDraftError(null)
+                    }}
                     detalleOpCantidadLista={detalleOpCantidadLista}
                     draftPlanchaId={draftPlanchaId}
                     activePlanchas={activePlanchas}
@@ -1226,6 +1508,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                   })}
                   valorTotalPlanchas={valorTotalPlanchas}
                   onCantidadChange={handleCantidadItemChange}
+                  onCavidadesChange={handleCavidadesItemChange}
+                  onSobranteChange={handleSobranteItemChange}
                   onReposicionChange={handleReposicionChange}
                   onCantidadReposicionChange={handleCantidadReposicionChange}
                   onObservacionChange={handleHistorialObservacionChange}
@@ -1246,6 +1530,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                   })}
                   valorTotalPlanchas={valorTotalPlanchas}
                   onCantidadChange={handleCantidadItemChange}
+                  onCavidadesChange={handleCavidadesItemChange}
+                  onSobranteChange={handleSobranteItemChange}
                   onRemove={handleRemove}
                 />
               )}
@@ -1300,7 +1586,30 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                       placeholder="0"
                     />
                   </div>
-                  <div className="production-form-field production-form-field--span-2">
+                  <TamanosBuenosReadonlyField
+                    cantidad={parseDigits(draftCantidad)}
+                    numeroCavidades={parseDigits(draftCavidades)}
+                  />
+                  <div className="production-form-field">
+                    <label className="production-form-label" htmlFor="diseno-add-sobrante-legacy">
+                      Sobrante
+                    </label>
+                    <input
+                      id="diseno-add-sobrante-legacy"
+                      type="text"
+                      inputMode="numeric"
+                      className="production-form-input"
+                      value={draftSobrante}
+                      onChange={e => {
+                        setDraftSobrante(e.target.value.replace(/\D/g, ''))
+                        if (draftError) setDraftError(null)
+                      }}
+                      onKeyDown={blockNonDigitKey}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="production-form-field production-form-field--full">
                     <label className="production-form-label" htmlFor="diseno-add-plancha-legacy">
                       Tipo plancha
                     </label>
@@ -1321,7 +1630,6 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                         </option>
                       ))}
                     </select>
-                  </div>
                 </div>
                 <div className="production-form-field production-form-field--full">
                   <label className="production-form-label" htmlFor="diseno-add-detalle">
@@ -1362,8 +1670,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
           </div>
         ) : (
           <p className="production-diseno-cliente-hint">
-            Seleccione la cantidad de colores en el desplegable. Luego complete cavidades, tipo de
-            plancha y detalle.
+            Seleccione la cantidad de colores en el desplegable. Luego complete cavidades, tamaños
+            buenos, sobrante, tipo de plancha y detalle.
           </p>
         )}
 
@@ -1459,12 +1767,45 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                         {historialMode ? (
                       <>
                         <div className="production-form-field">
-                          <span className="production-form-label">Cavidades</span>
+                          <label
+                            className="production-form-label"
+                            htmlFor={`diseno-hist-cavidades-${item.id}`}
+                          >
+                            Cavidades
+                          </label>
                           <input
+                            id={`diseno-hist-cavidades-${item.id}`}
                             type="text"
-                            className="production-form-input production-form-input--readonly"
+                            inputMode="numeric"
+                            className="production-form-input"
                             value={item.numeroCavidades > 0 ? String(item.numeroCavidades) : ''}
-                            readOnly
+                            onChange={e =>
+                              handleCavidadesItemChange(item.id, e.target.value)
+                            }
+                            onKeyDown={blockNonDigitKey}
+                            placeholder="Cavidades"
+                          />
+                        </div>
+                        <TamanosBuenosReadonlyField
+                          cantidad={item.cantidad}
+                          numeroCavidades={item.numeroCavidades}
+                        />
+                        <div className="production-form-field">
+                          <label
+                            className="production-form-label"
+                            htmlFor={`diseno-hist-sobrante-${item.id}`}
+                          >
+                            Sobrante
+                          </label>
+                          <input
+                            id={`diseno-hist-sobrante-${item.id}`}
+                            type="text"
+                            inputMode="numeric"
+                            className="production-form-input"
+                            value={item.sobrante > 0 ? String(item.sobrante) : ''}
+                            onChange={e => handleSobranteItemChange(item.id, e.target.value)}
+                            onKeyDown={blockNonDigitKey}
+                            placeholder="Sobrante"
                           />
                         </div>
                         <div className="production-form-field production-form-field--span-2">
@@ -1555,12 +1896,45 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                     ) : (
                       <>
                         <div className="production-form-field">
-                          <span className="production-form-label">Cavidades</span>
+                          <label
+                            className="production-form-label"
+                            htmlFor={`diseno-legacy-cavidades-${item.id}`}
+                          >
+                            Cavidades
+                          </label>
                           <input
+                            id={`diseno-legacy-cavidades-${item.id}`}
                             type="text"
-                            className="production-form-input production-form-input--readonly"
+                            inputMode="numeric"
+                            className="production-form-input"
                             value={item.numeroCavidades > 0 ? String(item.numeroCavidades) : ''}
-                            readOnly
+                            onChange={e =>
+                              handleCavidadesItemChange(item.id, e.target.value)
+                            }
+                            onKeyDown={blockNonDigitKey}
+                            placeholder="Cavidades"
+                          />
+                        </div>
+                        <TamanosBuenosReadonlyField
+                          cantidad={item.cantidad}
+                          numeroCavidades={item.numeroCavidades}
+                        />
+                        <div className="production-form-field">
+                          <label
+                            className="production-form-label"
+                            htmlFor={`diseno-legacy-sobrante-${item.id}`}
+                          >
+                            Sobrante
+                          </label>
+                          <input
+                            id={`diseno-legacy-sobrante-${item.id}`}
+                            type="text"
+                            inputMode="numeric"
+                            className="production-form-input"
+                            value={item.sobrante > 0 ? String(item.sobrante) : ''}
+                            onChange={e => handleSobranteItemChange(item.id, e.target.value)}
+                            onKeyDown={blockNonDigitKey}
+                            placeholder="Sobrante"
                           />
                         </div>
                         <div className="production-form-field">

@@ -3,6 +3,7 @@ import { TipoPapel } from '../../core/domain/entities/TipoPapel'
 import { DespiecePliego } from '../../core/domain/entities/DespiecePliego'
 import { CortePapel } from '../../core/domain/entities/CortePapel'
 import { formatDespieceBadge, formatDespieceMedidaPiezas, formatMedidaDisplay } from '../features/catalog/cortePapelUtils'
+import { formatUnidadEmpaqueDisplay } from '../../core/domain/value-objects/UnidadEmpaque'
 import { PrecioMontaje } from '../../core/domain/entities/PrecioMontaje'
 import type { CatalogRecord } from '../features/catalog/catalogRecord'
 import { displayCatalogUnitCost } from '../features/catalog/catalogRecord'
@@ -63,7 +64,7 @@ const tipoPapelFields: ExportField<TipoPapel>[] = [
         : '—',
   },
   { label: 'Valor hoja', value: r => formatCop(r.valorHoja) },
-  { label: 'Unidad empaque', value: r => r.unidadEmpaque },
+  { label: 'Unidad empaque', value: r => formatUnidadEmpaqueDisplay(r.unidadEmpaque) },
   { label: 'Estado', value: r => estadoLabel(r.active) },
 ]
 

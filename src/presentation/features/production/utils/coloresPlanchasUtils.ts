@@ -26,6 +26,73 @@ export const resolveNumeroPlanchasItem = (item: DisenoColorPlanchaItem): number 
 export const resolveCantidadReposicionCobro = (item: DisenoColorPlanchaItem): number =>
   item.cantidadReposicion ?? 0
 
+export type TamanosBuenosCalcResult =
+  | { ok: true; value: number }
+  | { ok: false; reason: 'sin-cavidad' | 'sin-cantidad' }
+
+/** Redondeo matemático al entero más cercano (valores positivos). */
+export const roundToInteger = (value: number): number => {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.round(value)
+}
+
+/** Cociente con redondeo matemático estándar (p. ej. 3850 ÷ 24 → 160). */
+export const roundDivision = (dividend: number, divisor: number): number => {
+  if (dividend <= 0 || divisor <= 0) return 0
+  return roundToInteger(dividend / divisor)
+}
+
+/** Tamaños buenos = cantidad ÷ cavidades, redondeado al entero más cercano. */
+export const computeTamanosBuenos = (
+  cantidad: number,
+  numeroCavidades: number
+): TamanosBuenosCalcResult => {
+  if (numeroCavidades <= 0) return { ok: false, reason: 'sin-cavidad' }
+  if (cantidad <= 0) return { ok: false, reason: 'sin-cantidad' }
+  return { ok: true, value: roundDivision(cantidad, numeroCavidades) }
+}
+
+/** Tamaños buenos vigentes de un registro (siempre desde cantidad y cavidades). */
+export const resolveTamanosBuenosForItem = (item: DisenoColorPlanchaItem): number =>
+  resolveTamanosBuenosValue(item.cantidad, item.numeroCavidades)
+
+export const resolveTamanosBuenosValue = (
+  cantidad: number,
+  numeroCavidades: number
+): number => {
+  const result = computeTamanosBuenos(cantidad, numeroCavidades)
+  return result.ok ? result.value : 0
+}
+
+export const applyTamanosBuenosToItem = (
+  item: DisenoColorPlanchaItem
+): DisenoColorPlanchaItem => ({
+  ...item,
+  tamanosBuenos: resolveTamanosBuenosValue(item.cantidad, item.numeroCavidades),
+})
+
+/** Suma de tamaños buenos (recalculados) + sobrante en Preprensa › Especificaciones técnicas. */
+export const sumTamanosBuenosYSobrante = (items: DisenoColorPlanchaItem[]): number =>
+  items.reduce(
+    (sum, item) => sum + resolveTamanosBuenosForItem(item) + (item.sobrante ?? 0),
+    0
+  )
+
+/**
+ * Corte de papel › Cantidad hojas =
+ * Σ (tamaños buenos + sobrante) ÷ piezas por pliego (despiece en Tipo de papel),
+ * con redondeo matemático al entero más cercano.
+ */
+export const deriveCantidadHojas = (
+  items: DisenoColorPlanchaItem[],
+  piezasPorPliego: number
+): number => roundDivision(sumTamanosBuenosYSobrante(items), piezasPorPliego)
+
+/** @deprecated Usar deriveCantidadHojas con piezas por pliego del despiece seleccionado. */
+export const deriveCantidadHojasFromColoresPlanchas = (
+  items: DisenoColorPlanchaItem[]
+): number => deriveCantidadHojas(items, 1)
+
 /** @deprecated Usar getColoresCount */
 export const getColoresInkNumber = getColoresCount
 
@@ -167,6 +234,11 @@ const migrateItem = (
     numeroPlanchas,
     valorTotal,
     numeroCavidades: item.numeroCavidades ?? fallbackCavidades,
+    tamanosBuenos: resolveTamanosBuenosValue(
+      cantidad,
+      item.numeroCavidades ?? fallbackCavidades
+    ),
+    sobrante: item.sobrante ?? 0,
     detalle: item.detalle ?? '',
     observacion: item.observacion ?? '',
     reposicionPlancha: Boolean(item.reposicionPlancha),
@@ -194,7 +266,7 @@ export const syncColoresPlanchasCantidadFromOrder = (
   const next = items.map(item => {
     if (item.registroManual || item.cantidad > 0) return item
     changed = true
-    return { ...item, cantidad: orderQuantity }
+    return applyTamanosBuenosToItem({ ...item, cantidad: orderQuantity })
   })
   return changed ? next : null
 }
@@ -213,7 +285,7 @@ export const applyColoresPlanchasForHistorialReuse = (
       ? `${catalogPlancha.name} — ${catalogPlancha.medida}`
       : item.planchaNombreMedida
 
-    return {
+    return applyTamanosBuenosToItem({
       ...item,
       planchaId: catalogPlancha?.id ?? item.planchaId,
       planchaNombreMedida: nombreMedida,
@@ -225,7 +297,7 @@ export const applyColoresPlanchasForHistorialReuse = (
       planchaValor: 0,
       valorTotal: 0,
       observacion: '',
-    }
+    })
   })
 
 /** Migra plancha única legacy → lista por cantidad de colores. */
@@ -256,6 +328,8 @@ export const normalizeColoresPlanchas = (
         numeroPlanchas: 0,
         valorTotal: 0,
         numeroCavidades: fallbackCavidades,
+        tamanosBuenos: 0,
+        sobrante: 0,
         detalle: '',
         observacion: '',
         reposicionPlancha: false,
@@ -276,6 +350,8 @@ export const normalizeColoresPlanchas = (
         numeroPlanchas: 0,
         valorTotal: 0,
         numeroCavidades: fallbackCavidades,
+        tamanosBuenos: 0,
+        sobrante: 0,
         detalle: '',
         observacion: '',
         reposicionPlancha: false,

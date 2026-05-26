@@ -50,6 +50,15 @@ export const formatDespieceMedidaPiezas = (d: DespieceAsociado): string => {
   return `${med} · ${pzs}`
 }
 
+export const formatValorCorteDisplay = (value: number | undefined): string => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '—'
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 export const formatDespiecePliegoOptionLabel = (item: {
   name: string
   ancho: string

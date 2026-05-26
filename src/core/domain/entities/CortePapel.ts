@@ -11,6 +11,8 @@ export interface DespieceAsociado {
   alto: string
   unidadMedida: string
   piezasPorPliego: number
+  /** Valor corte configurado cuando se asocia a un Tipo de papel (opcional para compatibilidad). */
+  valorCorte?: number
 }
 
 export function despieceAsociadoMedida(d: DespieceAsociado): string {

@@ -7,6 +7,7 @@ import {
   formatMedidaDisplayFrom,
   formatPiezasLabel,
   formatDespieceMedidaPiezas,
+  formatValorCorteDisplay,
   parseMedidaParts,
 } from './cortePapelUtils'
 
@@ -149,7 +150,9 @@ const DESPIECE_INLINE_MAX = 1
 const formatDespieceDirectoryLine = (d: DespieceAsociado): string => {
   const name = d.name?.trim()
   const metrics = formatDespieceMedidaPiezas(d)
-  return name ? `${name} · ${metrics}` : metrics
+  const valor = formatValorCorteDisplay(d.valorCorte)
+  const base = `${metrics} · ${valor}`
+  return name ? `${name} · ${base}` : base
 }
 
 const formatDespieceNamesPreview = (despieces: DespieceAsociado[], maxNames = 2): string => {
@@ -168,6 +171,7 @@ const formatDespieceNamesPreview = (despieces: DespieceAsociado[], maxNames = 2)
 const DespieceDirectoryCompactLine: React.FC<{ despiece: DespieceAsociado }> = ({ despiece }) => {
   const name = despiece.name?.trim()
   const metrics = formatDespieceMedidaPiezas(despiece)
+  const valorLabel = formatValorCorteDisplay(despiece.valorCorte)
 
   return (
     <span className="catalog-tipo-papel-despiece-line" title={formatDespieceDirectoryLine(despiece)}>
@@ -180,6 +184,10 @@ const DespieceDirectoryCompactLine: React.FC<{ despiece: DespieceAsociado }> = (
         </>
       ) : null}
       <span className="catalog-tipo-papel-despiece-line__metrics">{metrics}</span>
+      <span className="catalog-tipo-papel-despiece-line__sep" aria-hidden>
+        ·
+      </span>
+      <span className="catalog-tipo-papel-despiece-line__valor">{valorLabel}</span>
     </span>
   )
 }
@@ -247,6 +255,7 @@ const toAsociado = (item: DespiecePliego): DespieceAsociado => ({
   alto: item.alto,
   unidadMedida: item.unidadMedida,
   piezasPorPliego: item.piezasPorPliego,
+  valorCorte: undefined,
 })
 
 
@@ -306,18 +315,6 @@ export const DespieceAsociadoPicker: React.FC<DespieceAsociadoPickerProps> = ({
 
   return (
     <div className="catalog-despiece-select-picker">
-      {!single && selected.length > 0 ? (
-        <div className="catalog-despiece-select-picker__selected">
-          <span className="catalog-corte-despiece-picker-summary-label">
-            {selected.length} asociado{selected.length === 1 ? '' : 's'}
-          </span>
-          <DespieceAsociadoChips
-            despieces={selected}
-            onRemove={id => onChange(selected.filter(s => s.despieceId !== id))}
-          />
-        </div>
-      ) : null}
-
       <select
         id={selectId}
         className="record-form-input"
@@ -338,6 +335,18 @@ export const DespieceAsociadoPicker: React.FC<DespieceAsociadoPickerProps> = ({
         <p className="catalog-despiece-select-picker__note">
           Todos los despieces disponibles ya están asociados.
         </p>
+      ) : null}
+
+      {!single && selected.length > 0 ? (
+        <div className="catalog-despiece-select-picker__selected">
+          <span className="catalog-corte-despiece-picker-summary-label">
+            {selected.length} asociado{selected.length === 1 ? '' : 's'}
+          </span>
+          <DespieceAsociadoChips
+            despieces={selected}
+            onRemove={id => onChange(selected.filter(s => s.despieceId !== id))}
+          />
+        </div>
       ) : null}
     </div>
   )

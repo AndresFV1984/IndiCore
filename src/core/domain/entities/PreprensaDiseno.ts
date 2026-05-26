@@ -22,12 +22,16 @@ export interface DisenoColorPlanchaItem {
   planchaValor: number
   /** Orden nueva: cantidad de trabajo */
   cantidad: number
+  /** Cavidades del registro (editable en cualquier momento) */
+  numeroCavidades: number
+  /** Tamaños buenos: cantidad ÷ cavidades, redondeo al entero más cercano */
+  tamanosBuenos: number
+  /** Sobrante del registro */
+  sobrante: number
   /** Orden nueva: número de planchas */
   numeroPlanchas: number
   /** Orden nueva: precio plancha × número planchas */
   valorTotal: number
-  /** Historial / legacy */
-  numeroCavidades: number
   detalle: string
   /** Observación al modificar un registro cargado desde historial */
   observacion: string

@@ -3664,6 +3664,26 @@ button.orders-link {
   border-radius: 4px;
 }
 
+.production-plancha-table__td--calc {
+  min-width: 6.5rem;
+}
+
+.production-plancha-table__calc-value {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.production-plancha-table__calc-pending {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.production-form-input--pending {
+  color: #b45309;
+  font-weight: 600;
+}
+
 .production-plancha-table__input-num,
 .production-plancha-table__input-obs {
   width: 100%;
@@ -4093,6 +4113,74 @@ button.orders-link {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: #f8fafc;
+}
+
+.production-diseno-pdf-preview__viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+}
+
+.production-diseno-pdf-preview__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(420px, 55vh);
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 8%);
+}
+
+.production-diseno-pdf-preview__canvas--hidden {
+  display: none;
+}
+
+.production-diseno-pdf-preview__status {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--txt-2);
+  text-align: center;
+}
+
+.production-diseno-pdf-preview__pages-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--txt-2);
+  text-align: center;
+}
+
+.production-diseno-pdf-preview__fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.production-diseno-pdf-preview__open-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--corp-primary);
+  text-decoration: none;
+  border: 1px solid var(--corp-primary);
+  border-radius: 6px;
+  background: #fff;
+  word-break: break-all;
+  text-align: center;
+}
+
+.production-diseno-pdf-preview__open-link--secondary {
+  align-self: center;
+  max-width: 100%;
 }
 
 .production-diseno-dropzone__action {

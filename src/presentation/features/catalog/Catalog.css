@@ -537,6 +537,11 @@
   color: var(--txt-2);
 }
 
+.catalog-tipo-papel-despiece-line__valor {
+  font-weight: 600;
+  color: var(--clients, #2563eb);
+}
+
 .catalog-tipo-papel-despiece-compact {
   list-style: none;
   margin: 0;

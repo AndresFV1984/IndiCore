@@ -147,8 +147,10 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
     () => disenosCliente.find(d => d.sourceOrderId === diseno.disenoExistenteId) ?? null,
     [disenosCliente, diseno.disenoExistenteId]
   )
-  const showDatosDisenoNuevo =
+  const showFormularioDisenoCompleto =
     diseno.designNuevo === 'si' || detalleDesdeTrabajoAnterior
+  const showEspecificacionesExistente =
+    showDetalleExistente && !detalleDesdeTrabajoAnterior
 
   const handleClienteDisenoSelect = (option: ClienteDisenoOption | null) => {
     if (!option) {
@@ -201,6 +203,33 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
 
   const n = copy.nuevo
 
+  const especificacionesTecnicasSection = (historialMode: boolean, subtitle?: string) => (
+    <DisenoSection
+      title={n.specsTitulo}
+      subtitle={subtitle}
+      tone="especificaciones"
+    >
+      <div
+        className={[
+          'production-diseno-specs-grid',
+          isNewOrder ? 'production-diseno-specs-grid--colores' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <DisenoColoresPlanchasPanel
+          items={diseno.coloresPlanchas}
+          planchas={planchas}
+          onChange={handleColoresPlanchasChange}
+          isNewOrder={isNewOrder}
+          orderQuantity={orderQuantity}
+          historialMode={historialMode}
+          onGoToDetalleOpTab={onGoToDetalleOpTab}
+        />
+      </div>
+    </DisenoSection>
+  )
+
   return (
     <div className="production-diseno-form">
       {showDetalleExistente && (
@@ -229,10 +258,13 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
               onGoToClienteTab={onGoToClienteTab}
             />
           </DisenoSection>
+
+          {showEspecificacionesExistente &&
+            especificacionesTecnicasSection(false, copy.existente.specsSubtitle)}
         </section>
       )}
 
-      {showDatosDisenoNuevo && (
+      {showFormularioDisenoCompleto && (
         <section
           className="production-diseno-detail production-diseno-detail--nuevo"
           aria-label={n.ariaNuevo}
@@ -313,30 +345,10 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
             />
           </DisenoSection>
 
-          <DisenoSection
-            title={n.specsTitulo}
-            subtitle={detalleDesdeTrabajoAnterior ? n.specsSubHistorial : undefined}
-            tone="especificaciones"
-          >
-            <div
-              className={[
-                'production-diseno-specs-grid',
-                isNewOrder ? 'production-diseno-specs-grid--colores' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              <DisenoColoresPlanchasPanel
-                items={diseno.coloresPlanchas}
-                planchas={planchas}
-                onChange={handleColoresPlanchasChange}
-                isNewOrder={isNewOrder}
-                orderQuantity={orderQuantity}
-                historialMode={detalleDesdeTrabajoAnterior}
-                onGoToDetalleOpTab={onGoToDetalleOpTab}
-              />
-            </div>
-          </DisenoSection>
+          {especificacionesTecnicasSection(
+            detalleDesdeTrabajoAnterior,
+            detalleDesdeTrabajoAnterior ? n.specsSubHistorial : undefined
+          )}
 
           <DisenoSection
             title={n.acabadosTitulo}

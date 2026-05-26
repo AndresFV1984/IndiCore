@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ProductionWorkflowNav from './ProductionWorkflowNav'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useOrdersHook } from '../../hooks/useOrders'
 import { Container } from '../../../di/container'
 import { Money } from '../../../core/domain/value-objects/Money'
-import { CreateOrderDTO, OrderSpecs } from '../../../core/domain/entities/Order'
+import { CreateOrderDTO, OrderSpecs, type PaperRow } from '../../../core/domain/entities/Order'
 import { ROUTES } from '../../../config/appRoutes'
 import { formatProductionOrderId } from '../../../core/domain/value-objects/ProductionOrderId'
 import {
@@ -27,10 +27,14 @@ import { CortePapelSubTabId } from './productionCortePapelSubTabs'
 import { Client } from '../../../core/domain/entities/Client'
 import { Vendedor } from '../../../core/domain/entities/Vendedor'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
+import { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import { PrecioMontaje } from '../../../core/domain/entities/PrecioMontaje'
 import { emptyPreprensaDiseno, PreprensaDisenoSpecs } from '../../../core/domain/entities/PreprensaDiseno'
 import { buildPreprensaFromHistorial, clearPreprensaHistorialSelection, normalizePreprensaSnapshot } from './utils/applyPreprensaFromHistorial'
-import { applyColoresPlanchasForHistorialReuse, buildColoresPlanchasPatch } from './utils/coloresPlanchasUtils'
+import {
+  applyColoresPlanchasForHistorialReuse,
+  buildColoresPlanchasPatch,
+} from './utils/coloresPlanchasUtils'
 import { ClienteDisenoOption } from './utils/buildClienteDisenos'
 import ProductionPreprensaDiseno from './ProductionPreprensaDiseno'
 import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
@@ -39,7 +43,12 @@ import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import ProductionCortePapelForm from './ProductionCortePapelForm'
-import { emptyPaperRow } from './utils/tipoPapelDisplay'
+import { emptyPaperRow, normalizeTipoPapelList } from './utils/tipoPapelDisplay'
+import {
+  computeCortePapelValores,
+  DEFAULT_MARGEN_REDONDEO,
+  normalizeMargenRedondeo,
+} from './utils/cortePapelCalculations'
 
 const parseQuantityDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
@@ -70,6 +79,7 @@ const emptySpecs = (): OrderSpecs => ({
   paperRows: [emptyPaperRow()],
   quantity: 0,
   cantidadHojas: 0,
+  margenRedondeo: DEFAULT_MARGEN_REDONDEO,
   valorCorte: 0,
   mounting: false,
   mountingValue: new Money(0),
@@ -90,7 +100,16 @@ const ProductionOrderWorkspace: React.FC = () => {
   const navigate = useNavigate()
   const isNew = orderId === 'new'
   const { orders, loading: ordersLoading, createOrder } = useOrdersHook()
-  const { items: tiposPapel } = useTipoPapelHook()
+  const { items: tiposPapelStore, loading: loadingTiposPapel } = useTipoPapelHook()
+  const [tiposPapelCatalog, setTiposPapelCatalog] = useState<TipoPapel[]>([])
+
+  const tiposPapel = useMemo(
+    () =>
+      normalizeTipoPapelList(
+        tiposPapelCatalog.length > 0 ? tiposPapelCatalog : tiposPapelStore
+      ),
+    [tiposPapelCatalog, tiposPapelStore]
+  )
 
   const [activeTab, setActiveTab] = useState<ProductionWorkflowTabId>('especificaciones')
   const [specsSubTab, setSpecsSubTab] = useState<SpecsSubTabId>('cliente')
@@ -137,6 +156,11 @@ const ProductionOrderWorkspace: React.FC = () => {
       .getPreciosMontaje()
       .then(setPreciosMontaje)
       .catch(() => setPreciosMontaje([]))
+    container
+      .getTipoPapelUseCases()
+      .getTiposPapel()
+      .then(list => setTiposPapelCatalog(normalizeTipoPapelList(list)))
+      .catch(() => setTiposPapelCatalog([]))
   }, [])
 
   useEffect(() => {
@@ -151,20 +175,57 @@ const ProductionOrderWorkspace: React.FC = () => {
     }
   }, [orderId, isNew])
 
+  const resolveCortePapelMetrics = useCallback(
+    (
+      coloresPlanchas: PreprensaDisenoSpecs['coloresPlanchas'],
+      row: PaperRow,
+      margenRedondeo = DEFAULT_MARGEN_REDONDEO
+    ) => {
+      const tipo = row.tipoPapelId ? tiposPapel.find(t => t.id === row.tipoPapelId) : null
+      const valores = computeCortePapelValores({
+        coloresPlanchas,
+        row,
+        tipoPapel: tipo ?? null,
+        margenRedondeo,
+      })
+      return {
+        cantidadHojas: valores.cantidadHojas,
+        valorCorte: valores.valorCorte,
+      }
+    },
+    [tiposPapel]
+  )
+
+  const handleCorteMetricsChange = useCallback(
+    (metrics: { cantidadHojas: number; valorCorte: number }) => {
+      setSpecs(prev =>
+        prev.cantidadHojas === metrics.cantidadHojas && prev.valorCorte === metrics.valorCorte
+          ? prev
+          : { ...prev, ...metrics }
+      )
+    },
+    []
+  )
+
   useEffect(() => {
     if (isNew || !existingOrder) return
     setClientId(existingOrder.clientId)
     setVendedorId(existingOrder.vendedorId ?? '')
     setWorkName(existingOrder.workName)
     const legacyRow = existingOrder.specs.paperRows[0]
+    const preprensaDiseno = normalizePreprensaSnapshot(existingOrder.specs.preprensaDiseno)
+    const row = legacyRow ?? emptyPaperRow()
     setSpecs({
       ...existingOrder.specs,
-      cantidadHojas:
-        existingOrder.specs.cantidadHojas ?? legacyRow?.cantidadHojas ?? 0,
-      valorCorte: existingOrder.specs.valorCorte ?? legacyRow?.valorCorte ?? 0,
-      preprensaDiseno: normalizePreprensaSnapshot(existingOrder.specs.preprensaDiseno),
+      margenRedondeo: normalizeMargenRedondeo(existingOrder.specs.margenRedondeo),
+      preprensaDiseno,
+      ...resolveCortePapelMetrics(
+        preprensaDiseno.coloresPlanchas,
+        row,
+        normalizeMargenRedondeo(existingOrder.specs.margenRedondeo)
+      ),
     })
-  }, [isNew, existingOrder])
+  }, [isNew, existingOrder, resolveCortePapelMetrics])
 
   const clientName = clients.find(c => c.id === clientId)?.name ?? clientId
 
@@ -185,10 +246,16 @@ const ProductionOrderWorkspace: React.FC = () => {
   const updatePreprensaDiseno = (patch: Partial<PreprensaDisenoSpecs>) => {
     setSpecs(prev => {
       const next = { ...prev.preprensaDiseno, ...patch }
+      const row = prev.paperRows[0] ?? emptyPaperRow()
       return {
         ...prev,
         preprensaDiseno: next,
         design: next.designNuevo === 'si',
+        ...resolveCortePapelMetrics(
+          next.coloresPlanchas,
+          row,
+          normalizeMargenRedondeo(prev.margenRedondeo)
+        ),
       }
     })
   }
@@ -206,16 +273,29 @@ const ProductionOrderWorkspace: React.FC = () => {
       ...prev,
       design: false,
       preprensaDiseno,
+      ...resolveCortePapelMetrics(
+        preprensaDiseno.coloresPlanchas,
+        prev.paperRows[0] ?? emptyPaperRow(),
+        normalizeMargenRedondeo(prev.margenRedondeo)
+      ),
     }))
   }
 
   const paperRow = specs.paperRows[0] ?? emptyPaperRow()
 
-  const setPaperRow = (row: typeof paperRow) => {
+  const setPaperRow = (row: PaperRow) => {
     setSpecs(prev => {
       const rows = [...prev.paperRows]
       rows[0] = row
-      return { ...prev, paperRows: rows.length > 0 ? rows : [row] }
+      return {
+        ...prev,
+        paperRows: rows.length > 0 ? rows : [row],
+        ...resolveCortePapelMetrics(
+          prev.preprensaDiseno.coloresPlanchas,
+          row,
+          normalizeMargenRedondeo(prev.margenRedondeo)
+        ),
+      }
     })
   }
 
@@ -600,11 +680,22 @@ const ProductionOrderWorkspace: React.FC = () => {
                       <ProductionCortePapelForm
                         row={paperRow}
                         tiposPapel={tiposPapel}
-                        cantidadHojas={specs.cantidadHojas}
-                        valorCorte={specs.valorCorte}
+                        coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
+                        margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
+                        loadingTiposPapel={loadingTiposPapel && tiposPapel.length === 0}
                         onPaperRowChange={setPaperRow}
-                        onCantidadHojasChange={value => updateSpecs('cantidadHojas', value)}
-                        onValorCorteChange={value => updateSpecs('valorCorte', value)}
+                        onMargenRedondeoChange={value =>
+                          setSpecs(prev => ({
+                            ...prev,
+                            margenRedondeo: normalizeMargenRedondeo(value),
+                            ...resolveCortePapelMetrics(
+                              prev.preprensaDiseno.coloresPlanchas,
+                              prev.paperRows[0] ?? emptyPaperRow(),
+                              normalizeMargenRedondeo(value)
+                            ),
+                          }))
+                        }
+                        onCorteMetricsChange={handleCorteMetricsChange}
                       />
                     </div>
                   )}

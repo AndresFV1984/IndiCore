@@ -3,6 +3,7 @@ import {
   resolveMedidaInput,
   type MedidaDimension,
 } from '../value-objects/MedidaDimensions.js'
+import { normalizeUnidadEmpaque } from '../value-objects/UnidadEmpaque.js'
 import type { DespieceAsociado } from './CortePapel.js'
 
 export class TipoPapel {
@@ -13,7 +14,9 @@ export class TipoPapel {
     public readonly alto: string,
     public readonly unidadMedida: string,
     public readonly valorHoja: number,
-    public readonly unidadEmpaque: string,
+    /** Cantidad de hojas por unidad de empaque. */
+    public readonly unidadEmpaque: number,
+    public readonly valorCorte: number = 0,
     public readonly active: boolean = true,
     public readonly despiecesPliego: DespieceAsociado[] = []
   ) {}
@@ -35,7 +38,8 @@ export class TipoPapel {
       dim.alto,
       dim.unidadMedida,
       dto.valorHoja ?? 0,
-      dto.unidadEmpaque,
+      normalizeUnidadEmpaque(dto.unidadEmpaque),
+      dto.valorCorte ?? 0,
       dto.active ?? true,
       dto.despiecesPliego ?? []
     )
@@ -51,7 +55,8 @@ export interface CreateTipoPapelDTO {
   alto?: string
   unidadMedida?: string
   valorHoja?: number
-  unidadEmpaque: string
+  unidadEmpaque: number
+  valorCorte?: number
   active?: boolean
   despiecesPliego?: DespieceAsociado[]
 }

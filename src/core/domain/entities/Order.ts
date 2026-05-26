@@ -8,6 +8,8 @@ export interface OrderSpecs {
   paperRows: PaperRow[];
   quantity: number;
   cantidadHojas: number;
+  /** Hojas adicionales sumadas a la cantidad calculada (por defecto 2). */
+  margenRedondeo: number;
   valorCorte: number;
   mounting: boolean;
   mountingValue?: Money;
@@ -29,7 +31,10 @@ export interface PaperRow {
   type: string;
   size: string;
   valorHoja?: number;
-  unidadEmpaque?: string;
+  /** Cantidad de hojas por unidad de empaque (del tipo de papel). */
+  unidadEmpaque?: number;
+  /** Valor corte unitario del tipo de papel seleccionado (catálogo) */
+  valorCorteUnitario?: number;
   /** Id en catálogo Corte de papel */
   cortePapelId?: string;
   /** Nombre del corte (catálogo) */

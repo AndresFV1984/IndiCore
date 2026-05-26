@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: bayronindicore/indicore:v1.2.0
+    image: bayronindicore/indicore:v1.2.3
     ports:
       - "5173:5173"
     restart: unless-stopped

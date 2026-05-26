@@ -11,8 +11,6 @@ export const useTipoPapelHook = () => {
     useTipoPapelStore()
 
   useEffect(() => {
-    if (useTipoPapelStore.getState().items.length > 0) return
-
     let cancelled = false
     setLoading(true)
     dedupedFetch('store:tipo-papel', () => container.getTipoPapelUseCases().getTiposPapel())

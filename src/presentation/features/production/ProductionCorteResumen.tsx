@@ -14,12 +14,14 @@ const formatValor = (value: number) =>
 interface ProductionCorteResumenProps {
   row: PaperRow
   cantidadHojas: number
+  valorPapel: number
   valorCorte: number
 }
 
 const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
   row,
   cantidadHojas,
+  valorPapel,
   valorCorte,
 }) => {
   const filas = useMemo(
@@ -49,8 +51,14 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
         value: cantidadHojas > 0 ? cantidadHojas.toLocaleString('es-CO') : copy.resumen.empty,
         inactive: cantidadHojas <= 0,
       },
+      {
+        label: copy.resumen.valorPapelLabel,
+        value: valorPapel > 0 ? formatValor(valorPapel) : copy.resumen.empty,
+        inactive: valorPapel <= 0,
+        hint: copy.resumen.valorPapelHint,
+      },
     ],
-    [row, cantidadHojas]
+    [row, cantidadHojas, valorPapel]
   )
 
   return (
@@ -73,7 +81,12 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
               .join(' ')}
           >
             <span className="production-diseno-resumen__row-label">{rowItem.label}</span>
-            <span className="production-diseno-resumen__row-value">{rowItem.value}</span>
+            <span
+              className="production-diseno-resumen__row-value"
+              title={'hint' in rowItem ? rowItem.hint : undefined}
+            >
+              {rowItem.value}
+            </span>
           </li>
         ))}
       </ul>

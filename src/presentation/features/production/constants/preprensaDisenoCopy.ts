@@ -21,6 +21,8 @@ export const PREPRENSA_DISENO_COPY = {
     trabajoTitle: 'Trabajo ya realizado',
     trabajoSubtitle:
       'Seleccione una orden anterior de este cliente para reutilizar su informaci\u00F3n',
+    specsSubtitle:
+      'Colores, planchas y registros t\u00E9cnicos (igual que en dise\u00F1o nuevo). Opcionalmente importe un trabajo anterior arriba.',
   },
   nuevo: {
     ariaHistorial: 'Informaci\u00F3n del trabajo ya realizado',
@@ -58,8 +60,19 @@ export const PREPRENSA_DISENO_COPY = {
     montajeTitulo: 'Precio de montaje',
     montajeSub: 'Seleccione la tarifa que aplica a esta orden',
   },
+  coloresPlanchas: {
+    tamanosBuenosFormula: 'Cantidad ÷ Cavidades (redondeo al entero más cercano)',
+    faltaCavidad: 'Falta cavidades',
+    faltaCantidad: 'Falta cantidad',
+  },
   pdf: {
     soloPdf: 'Solo se permiten archivos PDF.',
     maxSize: (maxMb: number) => `El archivo no debe superar ${maxMb} MB.`,
+    previewLoading: 'Generando vista previa…',
+    previewError:
+      'No se pudo mostrar la vista previa en este dispositivo. Puede abrir el archivo con el enlace.',
+    previewOpen: (fileName: string) => `Abrir ${fileName}`,
+    previewPagesHint: (total: number) =>
+      `Vista previa: página 1 de ${total}. Use «Abrir» para ver el documento completo.`,
   },
 } as const
