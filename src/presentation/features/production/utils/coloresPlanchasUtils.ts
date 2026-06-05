@@ -1,7 +1,9 @@
+import type { PaperRow } from '../../../../core/domain/entities/Order'
 import {
   DisenoColorPlanchaItem,
   DisenoColoresOption,
   PreprensaDisenoSpecs,
+  YesNoChoice,
 } from '../../../../core/domain/entities/PreprensaDiseno'
 import { createId } from '../../../../core/utils/createId'
 import { TamanoPlancha } from '../../../../core/domain/entities/TamanoPlancha'
@@ -71,6 +73,28 @@ export const applyTamanosBuenosToItem = (
   tamanosBuenos: resolveTamanosBuenosValue(item.cantidad, item.numeroCavidades),
 })
 
+/** Normaliza descripción/detalle para comparar duplicados (sin distinguir mayúsculas). */
+export const normalizeRegistroDetalle = (detalle: string): string =>
+  detalle.trim().toLocaleLowerCase('es-CO')
+
+/** Mismo tipo de plancha y misma descripción/detalle en la lista de especificaciones técnicas. */
+export const hasDuplicateColoresPlanchaRegistro = (
+  items: DisenoColorPlanchaItem[],
+  planchaId: string,
+  detalle: string,
+  excludeId?: string
+): boolean => {
+  const normalizedPlanchaId = planchaId.trim()
+  const normalizedDetalle = normalizeRegistroDetalle(detalle)
+  if (!normalizedPlanchaId || !normalizedDetalle) return false
+  return items.some(
+    item =>
+      item.id !== excludeId &&
+      item.planchaId === normalizedPlanchaId &&
+      normalizeRegistroDetalle(item.detalle) === normalizedDetalle
+  )
+}
+
 /** Suma de tamaños buenos (recalculados) + sobrante en Preprensa › Especificaciones técnicas. */
 export const sumTamanosBuenosYSobrante = (items: DisenoColorPlanchaItem[]): number =>
   items.reduce(
@@ -88,6 +112,19 @@ export const deriveCantidadHojas = (
   piezasPorPliego: number
 ): number => roundDivision(sumTamanosBuenosYSobrante(items), piezasPorPliego)
 
+/** Alcance de colores/planchas para un registro de corte (uno o todos). */
+export const resolveColoresPlanchaForRow = (
+  coloresPlanchas: DisenoColorPlanchaItem[],
+  row: PaperRow
+): DisenoColorPlanchaItem[] => {
+  const registroId = row.colorPlanchaId ?? row.faltanteDeColorPlanchaId
+  if (registroId) {
+    const item = coloresPlanchas.find(c => c.id === registroId)
+    return item ? [item] : []
+  }
+  return coloresPlanchas
+}
+
 /** @deprecated Usar deriveCantidadHojas con piezas por pliego del despiece seleccionado. */
 export const deriveCantidadHojasFromColoresPlanchas = (
   items: DisenoColorPlanchaItem[]
@@ -101,18 +138,46 @@ export const computeRegistroValorTotal = (
   precioPlancha: number
 ): number => Math.round(numeroPlanchas * precioPlancha)
 
+export const isClienteSuministraPlanchas = (
+  clienteSuministraPlanchas: YesNoChoice | undefined
+): boolean => (clienteSuministraPlanchas ?? 'no') === 'si'
+
+export type ColoresPlanchasPricingContext = {
+  historialMode?: boolean
+  clienteSuministraPlanchas?: YesNoChoice
+}
+
 /** Diseño existente: precio solo si hay reposición o registro manual de esta orden. */
 export const itemAplicaPrecioPlancha = (
   item: DisenoColorPlanchaItem,
-  historialMode: boolean
-): boolean =>
-  !historialMode || Boolean(item.registroManual) || Boolean(item.reposicionPlancha)
+  context?: ColoresPlanchasPricingContext | boolean
+): boolean => {
+  const historialMode =
+    typeof context === 'boolean' ? context : Boolean(context?.historialMode)
+  const clienteSuministra =
+    typeof context === 'boolean'
+      ? false
+      : isClienteSuministraPlanchas(context?.clienteSuministraPlanchas)
+  if (clienteSuministra) return false
+  return !historialMode || Boolean(item.registroManual) || Boolean(item.reposicionPlancha)
+}
+
+export const clearColoresPlanchasPrecios = (
+  items: DisenoColorPlanchaItem[]
+): DisenoColorPlanchaItem[] =>
+  items.map(item => ({
+    ...item,
+    planchaValor: 0,
+    valorTotal: 0,
+    reposicionPlancha: false,
+    cantidadReposicion: 0,
+  }))
 
 export const resolveItemValorTotal = (
   item: DisenoColorPlanchaItem,
-  options?: { historialMode?: boolean }
+  options?: ColoresPlanchasPricingContext
 ): number => {
-  if (options?.historialMode && !itemAplicaPrecioPlancha(item, true)) return 0
+  if (!itemAplicaPrecioPlancha(item, options)) return 0
   if (item.reposicionPlancha) {
     const cantidadCobro = resolveCantidadReposicionCobro(item)
     if (cantidadCobro > 0 && item.planchaValor > 0) {
@@ -129,32 +194,37 @@ export const resolveItemValorTotal = (
 
 export const sumValorTotalPlanchas = (
   items: DisenoColorPlanchaItem[],
-  historialMode = false
+  context: ColoresPlanchasPricingContext = {}
 ): number =>
-  items.reduce(
-    (sum, item) => sum + resolveItemValorTotal(item, { historialMode }),
-    0
-  )
+  items.reduce((sum, item) => sum + resolveItemValorTotal(item, context), 0)
 
 export const resolvePrecioPlanchaDisplay = (
   item: DisenoColorPlanchaItem,
   catalogValor: number | undefined,
-  historialMode: boolean
+  context: ColoresPlanchasPricingContext
 ): number => {
-  if (!itemAplicaPrecioPlancha(item, historialMode)) return 0
+  if (!itemAplicaPrecioPlancha(item, context)) return 0
   return catalogValor ?? item.planchaValor ?? 0
 }
 
 export const buildPrecioPatchFromCatalog = (
   item: DisenoColorPlanchaItem,
   plancha: TamanoPlancha | undefined,
-  cantidadCobro: number
+  cantidadCobro: number,
+  context: ColoresPlanchasPricingContext = {}
 ): Pick<
   DisenoColorPlanchaItem,
   'planchaId' | 'planchaNombreMedida' | 'planchaValor' | 'valorTotal'
 > => {
   if (!plancha) {
     return { planchaValor: 0, valorTotal: 0 }
+  }
+  if (!itemAplicaPrecioPlancha(item, context)) {
+    return {
+      ...snapshotFromPlancha(plancha),
+      planchaValor: 0,
+      valorTotal: 0,
+    }
   }
   const planchaValor = plancha.valor
   return {
@@ -364,7 +434,8 @@ export const normalizeColoresPlanchas = (
 }
 
 export const buildColoresPlanchasPatch = (
-  items: DisenoColorPlanchaItem[]
+  items: DisenoColorPlanchaItem[],
+  context: ColoresPlanchasPricingContext = {}
 ): Pick<
   PreprensaDisenoSpecs,
   | 'coloresPlanchas'
@@ -378,6 +449,6 @@ export const buildColoresPlanchasPatch = (
   coloresPlanchas: items,
   colores: deriveColoresSummary(items),
   numeroCavidades: deriveCavidadesSummary(items),
-  valorTotalPlanchas: sumValorTotalPlanchas(items),
+  valorTotalPlanchas: sumValorTotalPlanchas(items, context),
   ...legacyPlanchaFromList(items),
 })

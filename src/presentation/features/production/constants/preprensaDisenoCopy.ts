@@ -62,8 +62,67 @@ export const PREPRENSA_DISENO_COPY = {
   },
   coloresPlanchas: {
     tamanosBuenosFormula: 'Cantidad ÷ Cavidades (redondeo al entero más cercano)',
+    tamanosBuenosNeedCavidades: 'Indique las cavidades para calcular los tamaños buenos.',
+    tamanosBuenosNeedCantidad: 'Indique la cantidad para calcular los tamaños buenos.',
     faltaCavidad: 'Falta cavidades',
     faltaCantidad: 'Falta cantidad',
+    validationTitle: 'Revise el registro',
+    legacyIntro:
+      'Elija la cantidad de colores. Cada tarjeta muestra las tintas incluidas (CMYK, secundarios y Pantone).',
+    colorPickerPlaceholder: 'Seleccione cuántos colores lleva la plancha',
+    colorPickerHint: 'Pulse una tarjeta de 1-Color a 7-Colores o más',
+    colorPickerEditHint:
+      'Cambie la cantidad de colores eligiendo otra tarjeta en el formulario de edición.',
+    sinPlanchasActivas: 'Sin tipos de plancha activos en el catálogo.',
+    pasos: {
+      tipoPlancha: 'Seleccione el tipo de plancha del catálogo vigente.',
+      descripcion: 'Describa el registro (tinta, acabado, observación técnica, etc.).',
+      detalle: 'Detalle técnico del registro (obligatorio).',
+    },
+    registro: {
+      editing: 'Editando registro',
+      edit: 'Editar registro',
+      editIntro:
+        'Cambie la cantidad de colores en el desplegable y actualice los demás datos. Pulse «Guardar cambios» al terminar.',
+      saveEdit: 'Guardar cambios',
+    },
+    validation: {
+      selectColor: 'Seleccione un color de la lista.',
+      selectPlancha: 'Seleccione el tipo de plancha.',
+      detalleOpCantidad:
+        'Registre la cantidad en Especificaciones › Detalle OP antes de agregar planchas.',
+      numeroPlanchasSiete: 'Ingrese el número de planchas (7 o más).',
+      numeroPlanchasColores: 'Seleccione la cantidad de colores de la lista.',
+      numeroPlanchasMinimo: 'El número de planchas debe ser 7 o mayor.',
+      cantidadRegistro: 'Ingrese la cantidad del registro.',
+      descripcionRegistro: 'Ingrese la descripción del registro.',
+      cavidadesRegistro: 'Ingrese el número de cavidades (mayor a cero).',
+      detalleRegistro: 'Ingrese el detalle del registro.',
+      registroDuplicado:
+        'Ya existe un registro con el mismo tipo de plancha y la misma descripción o detalle.',
+      historialSinPlancha: 'Seleccione el tipo de plancha del catálogo actual.',
+      historialPlanchaInactiva: 'El tipo de plancha seleccionado ya no está activo en el catálogo.',
+      historialSinObservacion: 'Ingrese una observación al actualizar este registro.',
+    },
+  },
+  planchaSuministro: {
+    ariaLabel: 'Quién suministra las planchas',
+    tag: 'Suministro',
+    title: 'Suministro de planchas',
+    subtitle: 'Indique si las planchas las provee la empresa o el cliente',
+    avisoCliente:
+      'El cliente entrega las planchas: en este registro no se cobra precio de plancha.',
+    precioNoAplica: 'No aplica (cliente suministra)',
+    opciones: {
+      empresa: {
+        title: 'Litografía suministra planchas',
+        description: 'La empresa provee las planchas según catálogo y Preprensa',
+      },
+      cliente: {
+        title: 'Cliente suministra planchas',
+        description: 'El cliente entrega las planchas; no se cobra precio de plancha',
+      },
+    },
   },
   pdf: {
     soloPdf: 'Solo se permiten archivos PDF.',

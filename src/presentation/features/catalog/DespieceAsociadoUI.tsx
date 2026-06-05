@@ -81,6 +81,8 @@ interface DespieceAsociadoChipsProps {
   emptyLabel?: string
   showName?: boolean
   piezasFirst?: boolean
+  /** Solo nombre (sin medida/piezas); útil cuando las métricas aparecen en otra sección. */
+  compact?: boolean
 }
 
 export const DespieceAsociadoChips: React.FC<DespieceAsociadoChipsProps> = ({
@@ -89,6 +91,7 @@ export const DespieceAsociadoChips: React.FC<DespieceAsociadoChipsProps> = ({
   emptyLabel = '—',
   showName = true,
   piezasFirst = false,
+  compact = false,
 }) => {
   if (despieces.length === 0) {
     return <span className="catalog-corte-despiece-none">{emptyLabel}</span>
@@ -114,18 +117,32 @@ export const DespieceAsociadoChips: React.FC<DespieceAsociadoChipsProps> = ({
   }
 
   return (
-    <ul className="catalog-corte-despiece-chips">
+    <ul
+      className={`catalog-corte-despiece-chips${compact ? ' catalog-corte-despiece-chips--compact' : ''}`}
+    >
       {despieces.map(d => (
-        <li key={d.despieceId} className="catalog-corte-despiece-chip">
-          <DespieceMetrics
-            ancho={d.ancho}
-            alto={d.alto}
-            unidadMedida={d.unidadMedida}
-            piezasPorPliego={d.piezasPorPliego}
-            name={d.name}
-            showName={showName}
-            piezasFirst={piezasFirst}
-          />
+        <li
+          key={d.despieceId}
+          className={`catalog-corte-despiece-chip${compact ? ' catalog-corte-despiece-chip--compact' : ''}`}
+        >
+          {compact ? (
+            <span
+              className="catalog-corte-despiece-chip__name"
+              title={formatDespieceMedidaPiezas(d)}
+            >
+              {d.name?.trim() || formatMedidaDisplayFrom(d)}
+            </span>
+          ) : (
+            <DespieceMetrics
+              ancho={d.ancho}
+              alto={d.alto}
+              unidadMedida={d.unidadMedida}
+              piezasPorPliego={d.piezasPorPliego}
+              name={d.name}
+              showName={showName}
+              piezasFirst={piezasFirst}
+            />
+          )}
           <button
             type="button"
             className="catalog-corte-despiece-chip__remove"
@@ -246,6 +263,14 @@ interface DespieceAsociadoPickerProps {
   onChange: (next: DespieceAsociado[]) => void
   single?: boolean
   selectId?: string
+  /** Chips con solo nombre; las métricas se muestran aparte (p. ej. valor corte). */
+  chipsCompact?: boolean
+}
+
+interface DespieceValorCorteFieldsProps {
+  despieces: DespieceAsociado[]
+  onValorChange: (despieceId: string, value: string) => void
+  idPrefix?: string
 }
 
 const toAsociado = (item: DespiecePliego): DespieceAsociado => ({
@@ -268,12 +293,73 @@ const sortDespiecesCatalog = (items: DespiecePliego[]): DespiecePliego[] =>
     })
   })
 
+/** Tabla compacta: una fila por despiece y un único campo de valor corte. */
+export const DespieceValorCorteFields: React.FC<DespieceValorCorteFieldsProps> = ({
+  despieces,
+  onValorChange,
+  idPrefix = 'papel-despiece-valor-corte',
+}) => {
+  if (despieces.length === 0) return null
+
+  return (
+    <div
+      className="catalog-tipo-papel-despiece-valores"
+      role="group"
+      aria-labelledby={`${idPrefix}-title`}
+    >
+      <p id={`${idPrefix}-title`} className="catalog-tipo-papel-despiece-valores__title">
+        Valor corte por despiece
+      </p>
+      <div className="catalog-tipo-papel-despiece-valores__table">
+        <div className="catalog-tipo-papel-despiece-valores__head">
+          <span>Despiece</span>
+          <span>Valor corte</span>
+        </div>
+        <ul className="catalog-tipo-papel-despiece-valores__body">
+          {despieces.map(d => {
+            const name = d.name?.trim()
+            const meta = formatDespieceMedidaPiezas(d)
+            const label = name ? `${name} · ${meta}` : meta
+            const inputId = `${idPrefix}-${d.despieceId}`
+
+            return (
+              <li key={d.despieceId} className="catalog-tipo-papel-despiece-valores__row">
+                <div className="catalog-tipo-papel-despiece-valores__desc" title={label}>
+                  {name ? (
+                    <span className="catalog-tipo-papel-despiece-valores__name">{name}</span>
+                  ) : null}
+                  <span className="catalog-tipo-papel-despiece-valores__meta">{meta}</span>
+                </div>
+                <div className="catalog-tipo-papel-despiece-valores__field">
+                  <input
+                    id={inputId}
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    className="record-form-input catalog-tipo-papel-despiece-valores__input"
+                    value={typeof d.valorCorte === 'number' ? String(d.valorCorte) : ''}
+                    onChange={e => onValorChange(d.despieceId, e.target.value)}
+                    placeholder="0"
+                    aria-label={`Valor corte — ${label}`}
+                  />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 export const DespieceAsociadoPicker: React.FC<DespieceAsociadoPickerProps> = ({
   catalog,
   selected,
   onChange,
   single = false,
   selectId = 'catalog-despiece-select',
+  chipsCompact = false,
 }) => {
   const sortedCatalog = useMemo(() => sortDespiecesCatalog(catalog), [catalog])
   const selectedIds = useMemo(() => new Set(selected.map(s => s.despieceId)), [selected])
@@ -345,6 +431,7 @@ export const DespieceAsociadoPicker: React.FC<DespieceAsociadoPickerProps> = ({
           <DespieceAsociadoChips
             despieces={selected}
             onRemove={id => onChange(selected.filter(s => s.despieceId !== id))}
+            compact={chipsCompact}
           />
         </div>
       ) : null}

@@ -64,7 +64,8 @@ export const listActiveTiposPapel = (items: TipoPapel[]): TipoPapel[] =>
     .filter(t => t.active)
     .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
 
-export const emptyPaperRow = (): PaperRow => ({
+export const emptyPaperRow = (colorPlanchaId = ''): PaperRow => ({
+  colorPlanchaId: colorPlanchaId || undefined,
   tipoPapelId: '',
   type: '',
   size: '',
@@ -75,6 +76,10 @@ export const emptyPaperRow = (): PaperRow => ({
   corteAncho: '',
   corteAlto: '',
   corteUnidadMedida: '',
+  papelCortado: 'si',
+  hojasEntregadasCliente: 0,
+  tamanosBuenosManual: 0,
+  sobranteManual: 0,
 })
 
 export const clearTipoPapelFromRow = (row: PaperRow): PaperRow => ({
@@ -96,18 +101,13 @@ export const findDespieceInTipoPapel = (
   return tipoPapel.despiecesPliego.find(d => d.despieceId === despieceId)
 }
 
-/** Siempre devuelve el despiece del catálogo (incluye valorCorte actualizado). */
+/** Despiece del catálogo solo si ya fue elegido en el select (sin auto-selección). */
 export const resolveDespieceForTipoPapel = (
   current: DespieceAsociado | undefined,
   tipoPapel: TipoPapel
 ): DespieceAsociado | undefined => {
-  const options = tipoPapel.despiecesPliego
-  if (options.length === 0) return undefined
-  if (current) {
-    const fromCatalog = findDespieceInTipoPapel(tipoPapel, current.despieceId)
-    if (fromCatalog) return fromCatalog
-  }
-  return options[0]
+  if (!current?.despieceId) return undefined
+  return findDespieceInTipoPapel(tipoPapel, current.despieceId)
 }
 
 /** Sincroniza fila de corte con datos vigentes del catálogo (despiece y valor corte). */

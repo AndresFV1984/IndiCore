@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
@@ -32,10 +33,24 @@ const formatValor = (value: number) =>
 
 const CatalogTipoPapel: React.FC = () => {
   const { items, loading, error, createTipoPapel, updateTipoPapel } = useTipoPapelHook()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<TipoPapel | null>(null)
+  const openedEditFromUrl = useRef(false)
   const activeItems = useMemo(() => items.filter(p => p.active), [items])
+
+  useEffect(() => {
+    if (loading || openedEditFromUrl.current) return
+    const editId = searchParams.get('edit')?.trim()
+    if (!editId) return
+    const item = items.find(p => p.id === editId)
+    if (!item) return
+    openedEditFromUrl.current = true
+    setIsNewOpen(false)
+    setEditingItem(item)
+    setSearchParams({}, { replace: true })
+  }, [items, loading, searchParams, setSearchParams])
 
   const filtered = useMemo(() => {
     let result = activeItems

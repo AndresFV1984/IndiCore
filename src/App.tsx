@@ -24,6 +24,7 @@ const TamanoPlancha = lazy(() => import('./presentation/features/catalog/Catalog
 const TipoPapel = lazy(() => import('./presentation/features/catalog/CatalogTipoPapel'))
 const DespiecePliego = lazy(() => import('./presentation/features/catalog/CatalogDespiecePliego'))
 const PrecioMontaje = lazy(() => import('./presentation/features/precio-montaje/PrecioMontaje'))
+const TarifasMillar = lazy(() => import('./presentation/features/tarifas-millar/TarifasMillar'))
 
 function App() {
   useLayoutMedia()
@@ -66,6 +67,7 @@ function App() {
             <Route path={ROUTES.catalogDespiecePliego.path} element={<DespiecePliego />} />
             <Route path={ROUTES.catalogTamanoPlancha.path} element={<TamanoPlancha />} />
             <Route path={ROUTES.precioMontaje.path} element={<PrecioMontaje />} />
+            <Route path={ROUTES.tarifasMillar.path} element={<TarifasMillar />} />
             <Route path={ROUTES.reports.path} element={<ComingSoonPage route={ROUTES.reports} />} />
             <Route path={ROUTES.settings.path} element={<ComingSoonPage route={ROUTES.settings} />} />
           </Routes>

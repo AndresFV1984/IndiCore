@@ -5,8 +5,14 @@ import { CortePapel } from '../../core/domain/entities/CortePapel'
 import { formatDespieceBadge, formatDespieceMedidaPiezas, formatMedidaDisplay } from '../features/catalog/cortePapelUtils'
 import { formatUnidadEmpaqueDisplay } from '../../core/domain/value-objects/UnidadEmpaque'
 import { PrecioMontaje } from '../../core/domain/entities/PrecioMontaje'
+import { TarifaMillar } from '../../core/domain/entities/TarifaMillar'
 import type { CatalogRecord } from '../features/catalog/catalogRecord'
-import { displayCatalogUnitCost } from '../features/catalog/catalogRecord'
+import {
+  CATALOG_COSTO_MINIMO_LABEL,
+  CATALOG_VALOR_CM2_LABEL,
+  displayCatalogUnitCost,
+  displayCatalogValorCmCuadrado,
+} from '../features/catalog/catalogRecord'
 import type { ExportField } from './exportFields'
 import { slugifyFilename, todayExportSuffix } from './exportFields'
 import { downloadCsv } from './exportCsv'
@@ -83,12 +89,25 @@ const precioMontajeFields: ExportField<PrecioMontaje>[] = [
   { label: 'Estado', value: r => estadoLabel(r.state) },
 ]
 
+const tarifasMillarFields: ExportField<TarifaMillar>[] = [
+  { label: 'ID', value: r => r.id },
+  { label: 'Nombre', value: r => r.name, width: 32 },
+  { label: 'Unidad millar', value: r => String(r.unidadMedida) },
+  { label: 'Precio', value: r => formatCop(r.precio) },
+  { label: 'Categoría', value: r => r.categoria },
+  { label: 'Descripción', value: r => r.descripcion || '—', width: 36 },
+  { label: 'Estado', value: r => estadoLabel(r.state) },
+]
+
 const catalogRecordFields: ExportField<CatalogRecord>[] = [
   { label: 'ID', value: r => r.id },
   { label: 'Nombre', value: r => r.name, width: 32 },
-  { label: 'Costo unitario', value: r => displayCatalogUnitCost(r.cost) },
+  { label: CATALOG_COSTO_MINIMO_LABEL, value: r => displayCatalogUnitCost(r.cost) },
+  { label: CATALOG_VALOR_CM2_LABEL, value: r => displayCatalogValorCmCuadrado(r.valorCmCuadrado) },
   { label: 'Acceso rápido', value: r => (r.quickAccess ? 'Sí' : 'No') },
 ]
+
+const catalogTerminadosFields = catalogRecordFields
 
 export function exportTamanoPlancha(rows: TamanoPlancha[], scope: 'listado' | string): Promise<void> {
   return exportRows('tipo-plancha', 'Tipo de plancha', tamanoPlanchaFields, rows, scope, r => r.name)
@@ -106,8 +125,12 @@ export function exportPrecioMontaje(rows: PrecioMontaje[], scope: 'listado' | st
   return exportRows('precio-montaje', 'Precio de montaje', precioMontajeFields, rows, scope, r => r.name)
 }
 
+export function exportTarifasMillar(rows: TarifaMillar[], scope: 'listado' | string): Promise<void> {
+  return exportRows('tarifas-millar', 'Tarifa por millar', tarifasMillarFields, rows, scope, r => r.name)
+}
+
 export function exportCatalogTerminados(rows: CatalogRecord[], scope: 'listado' | string): Promise<void> {
-  return exportRows('terminados', 'Terminado', catalogRecordFields, rows, scope, r => r.name)
+  return exportRows('terminados', 'Terminado', catalogTerminadosFields, rows, scope, r => r.name)
 }
 
 export function exportCatalogOperaciones(rows: CatalogRecord[], scope: 'listado' | string): Promise<void> {

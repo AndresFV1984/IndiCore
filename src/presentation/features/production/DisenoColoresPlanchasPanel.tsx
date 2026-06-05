@@ -10,6 +10,8 @@ import {
   computeRegistroValorTotal,
   getColoresCount,
   getColoresOptionMeta,
+  hasDuplicateColoresPlanchaRegistro,
+  isClienteSuministraPlanchas,
   resolveItemValorTotal,
   resolveNumeroPlanchasItem,
   resolvePrecioPlanchaDisplay,
@@ -18,10 +20,14 @@ import {
   computeTamanosBuenos,
   resolveTamanosBuenosValue,
   syncColoresPlanchasCantidadFromOrder,
+  type ColoresPlanchasPricingContext,
 } from './utils/coloresPlanchasUtils'
 import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
+import { PreprensaFieldNotice, PreprensaValidationNotice } from './PreprensaFieldNotice'
+import type { YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 
 const coloresCopy = PREPRENSA_DISENO_COPY.coloresPlanchas
+const planchaSuministroCopy = PREPRENSA_DISENO_COPY.planchaSuministro
 
 const formatValor = (value: number) =>
   new Intl.NumberFormat('es-CO', {
@@ -126,10 +132,17 @@ interface PlanchaRegistroRow {
 
 const formatNumFieldValue = (n: number) => (n > 0 ? String(n) : '')
 
+const validationCopy = coloresCopy.validation
+
+const tamanosBuenosPendingMessage = (reason: 'sin-cavidad' | 'sin-cantidad'): string =>
+  reason === 'sin-cavidad'
+    ? coloresCopy.tamanosBuenosNeedCavidades
+    : coloresCopy.tamanosBuenosNeedCantidad
+
 const tamanosBuenosDisplayValue = (cantidad: number, numeroCavidades: number): string => {
   const calc = computeTamanosBuenos(cantidad, numeroCavidades)
   if (calc.ok) return calc.value.toLocaleString('es-CO')
-  return calc.reason === 'sin-cavidad' ? coloresCopy.faltaCavidad : coloresCopy.faltaCantidad
+  return '—'
 }
 
 const TamanosBuenosReadonlyField: React.FC<{
@@ -137,6 +150,7 @@ const TamanosBuenosReadonlyField: React.FC<{
   numeroCavidades: number
 }> = ({ cantidad, numeroCavidades }) => {
   const calc = computeTamanosBuenos(cantidad, numeroCavidades)
+  const pendingId = 'diseno-tamanos-buenos-pending-hint'
   return (
     <div className="production-form-field">
       <span className="production-form-label">Tamaños buenos</span>
@@ -145,7 +159,7 @@ const TamanosBuenosReadonlyField: React.FC<{
         className={[
           'production-form-input',
           'production-form-input--readonly',
-          !calc.ok ? 'production-form-input--pending' : '',
+          !calc.ok ? 'production-form-input--awaiting' : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -154,7 +168,14 @@ const TamanosBuenosReadonlyField: React.FC<{
         tabIndex={-1}
         title={coloresCopy.tamanosBuenosFormula}
         aria-label="Tamaños buenos calculados"
+        aria-describedby={!calc.ok ? pendingId : undefined}
       />
+      <span className="production-plancha-draft__field-hint">{coloresCopy.tamanosBuenosFormula}</span>
+      {!calc.ok ? (
+        <PreprensaFieldNotice id={pendingId} variant="warning">
+          {tamanosBuenosPendingMessage(calc.reason)}
+        </PreprensaFieldNotice>
+      ) : null}
     </div>
   )
 }
@@ -173,12 +194,10 @@ const TamanosBuenosCell: React.FC<{
       ) : (
         <span
           className="production-plancha-table__calc-pending"
-          title={coloresCopy.tamanosBuenosFormula}
+          title={tamanosBuenosPendingMessage(calc.reason)}
           role="status"
         >
-          {calc.reason === 'sin-cavidad'
-            ? coloresCopy.faltaCavidad
-            : coloresCopy.faltaCantidad}
+          —
         </span>
       )}
     </td>
@@ -225,9 +244,11 @@ const PlanchaTableNumCell: React.FC<{
 interface PlanchasRegistrosTableProps {
   rows: PlanchaRegistroRow[]
   valorTotalPlanchas: number
+  editingItemId?: string | null
   onCantidadChange: (id: string, value: string) => void
   onCavidadesChange: (id: string, value: string) => void
   onSobranteChange: (id: string, value: string) => void
+  onEdit?: (id: string) => void
   onRemove: (id: string) => void
   /** Sin cantidad en Detalle OP: solo visualización */
   locked?: boolean
@@ -236,9 +257,11 @@ interface PlanchasRegistrosTableProps {
 const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
   rows,
   valorTotalPlanchas,
+  editingItemId = null,
   onCantidadChange,
   onCavidadesChange,
   onSobranteChange,
+  onEdit,
   onRemove,
   locked = false,
 }) => (
@@ -285,13 +308,23 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
             Descripción
           </th>
           <th scope="col" className="production-plancha-table__th production-plancha-table__th--act">
-            <span className="sr-only">Eliminar</span>
+            <span className="sr-only">Acciones</span>
           </th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(({ item, meta, nombreMedida, precioPlancha, valorTotal }) => (
-          <tr key={item.id} className="production-plancha-table__row">
+        {rows.map(({ item, meta, nombreMedida, precioPlancha, valorTotal }) => {
+          const isEditing = editingItemId === item.id
+          return (
+          <tr
+            key={item.id}
+            className={[
+              'production-plancha-table__row',
+              isEditing ? 'production-plancha-table__row--editing' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
             <td className="production-plancha-table__td production-plancha-table__td--color">
               {meta && (
                 <span className="production-plancha-table__color" title={meta.label}>
@@ -347,19 +380,40 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
               </span>
             </td>
             <td className="production-plancha-table__td production-plancha-table__td--act">
-              <button
-                type="button"
-                className="action-icon-button action-icon-delete production-plancha-table__remove"
-                onClick={() => onRemove(item.id)}
-                title="Eliminar"
-                aria-label="Eliminar registro"
-                disabled={locked}
-              >
-                <ActionIcon name="delete" size={14} />
-              </button>
+              <div className="production-plancha-table__actions">
+                {onEdit ? (
+                  <button
+                    type="button"
+                    className={[
+                      'action-icon-button action-icon-edit production-plancha-table__edit',
+                      isEditing ? 'production-plancha-table__edit--active' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onClick={() => onEdit(item.id)}
+                    title={isEditing ? coloresCopy.registro.editing : coloresCopy.registro.edit}
+                    aria-label={isEditing ? coloresCopy.registro.editing : coloresCopy.registro.edit}
+                    aria-pressed={isEditing}
+                    disabled={locked}
+                  >
+                    <ActionIcon name="edit" size={14} />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-delete production-plancha-table__remove"
+                  onClick={() => onRemove(item.id)}
+                  title="Eliminar"
+                  aria-label="Eliminar registro"
+                  disabled={locked}
+                >
+                  <ActionIcon name="delete" size={14} />
+                </button>
+              </div>
             </td>
           </tr>
-        ))}
+          )
+        })}
       </tbody>
     </table>
   </div>
@@ -625,6 +679,10 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
 
 interface RegistroOpComposerFormProps {
   meta: ReturnType<typeof getColoresOptionMeta>
+  draftColor: DisenoColoresOption | ''
+  onDraftColorChange: (value: DisenoColoresOption) => void
+  onDraftColorReset?: () => void
+  colorPickerPlaceholder: string
   draftCantidad: string
   onCantidadChange: (value: string) => void
   draftCavidades: string
@@ -636,6 +694,7 @@ interface RegistroOpComposerFormProps {
   activePlanchas: TamanoPlancha[]
   onPlanchaChange: (id: string) => void
   draftPrecioPlancha: number
+  clienteSuministraPlanchas: boolean
   draftNumeroPlanchas: number
   isSieteOMasColores: boolean
   draftNumeroPlanchasManual: string
@@ -647,10 +706,15 @@ interface RegistroOpComposerFormProps {
   onCancel: () => void
   onAdd: () => void
   canAdd: boolean
+  isEditing?: boolean
 }
 
 const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   meta,
+  draftColor,
+  onDraftColorChange,
+  onDraftColorReset,
+  colorPickerPlaceholder,
   draftCantidad,
   onCantidadChange,
   draftCavidades,
@@ -662,6 +726,7 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   activePlanchas,
   onPlanchaChange,
   draftPrecioPlancha,
+  clienteSuministraPlanchas,
   draftNumeroPlanchas,
   isSieteOMasColores,
   draftNumeroPlanchasManual,
@@ -673,6 +738,7 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   onCancel,
   onAdd,
   canAdd,
+  isEditing = false,
 }) => {
   const numeroPlanchasDisplay = isSieteOMasColores
     ? draftNumeroPlanchasManual
@@ -688,14 +754,58 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   return (
     <div className="production-plancha-draft">
       <header className="production-plancha-draft__head">
-        <span className="production-plancha-workspace__zone-label">2. Datos del registro</span>
+        <span className="production-plancha-workspace__zone-label">
+          {isEditing ? coloresCopy.registro.editing : '2. Datos del registro'}
+        </span>
       </header>
 
       <p className="production-plancha-draft__intro">
-        Elija el tipo de plancha, revise el total calculado y agregue una descripción.
+        {isEditing
+          ? coloresCopy.registro.editIntro
+          : 'Elija el tipo de plancha, revise el total calculado y agregue una descripción.'}
       </p>
 
+      {draftError ? (
+        <PreprensaValidationNotice title={coloresCopy.validationTitle} message={draftError} />
+      ) : null}
+
       <div className="production-plancha-draft__fields">
+        <div className="production-form-field production-form-field--full">
+          <label className="production-form-label" id="diseno-draft-colores-label">
+            Cantidad de colores
+          </label>
+          {isEditing ? (
+            <DisenoColoresPicker
+              id="diseno-draft-colores"
+              labelId="diseno-draft-colores-label"
+              placeholder=""
+              value={draftColor}
+              disabled={!detalleOpCantidadLista}
+              onChange={onDraftColorChange}
+            />
+          ) : meta ? (
+            <div className="production-plancha-draft__color-selected">
+              <span className="production-plancha-draft__color-selected-value">
+                <ColoresCountIcons
+                  count={meta.count}
+                  size="md"
+                  showPlusSuffix={meta.value === '7-colores-o-mas'}
+                />
+                <span className="production-plancha-draft__color-selected-label">{meta.label}</span>
+              </span>
+              {onDraftColorReset ? (
+                <button
+                  type="button"
+                  className="production-plancha-draft__color-change"
+                  onClick={onDraftColorReset}
+                >
+                  Cambiar colores
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
         <div className="production-form-field production-form-field--full">
           <label className="production-form-label" htmlFor="diseno-add-plancha">
             Tipo plancha
@@ -714,9 +824,9 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
               </option>
             ))}
           </select>
-          {!draftPlanchaId && (
-            <span className="production-plancha-draft__field-hint">Paso 1 — obligatorio</span>
-          )}
+          {!draftPlanchaId ? (
+            <PreprensaFieldNotice variant="info">{coloresCopy.pasos.tipoPlancha}</PreprensaFieldNotice>
+          ) : null}
         </div>
 
         <div className="production-plancha-draft__readonly-grid">
@@ -768,24 +878,30 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
               className={[
                 'production-form-input',
                 'production-form-input--readonly',
-                !tamanosBuenosCalc.ok ? 'production-form-input--pending' : '',
+                !tamanosBuenosCalc.ok ? 'production-form-input--awaiting' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               value={
                 tamanosBuenosCalc.ok
                   ? tamanosBuenosCalc.value.toLocaleString('es-CO')
-                  : tamanosBuenosCalc.reason === 'sin-cavidad'
-                    ? coloresCopy.faltaCavidad
-                    : coloresCopy.faltaCantidad
+                  : '—'
               }
               readOnly
               tabIndex={-1}
               aria-label="Tamaños buenos calculados"
+              aria-describedby={
+                !tamanosBuenosCalc.ok ? 'diseno-add-tamanos-buenos-hint' : undefined
+              }
             />
             <span className="production-plancha-draft__field-hint">
               {coloresCopy.tamanosBuenosFormula}
             </span>
+            {!tamanosBuenosCalc.ok ? (
+              <PreprensaFieldNotice id="diseno-add-tamanos-buenos-hint" variant="warning">
+                {tamanosBuenosPendingMessage(tamanosBuenosCalc.reason)}
+              </PreprensaFieldNotice>
+            ) : null}
           </div>
 
           <div className="production-plancha-draft__readonly">
@@ -842,10 +958,22 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
             <input
               type="text"
               className="production-form-input production-form-input--readonly"
-              value={draftPrecioPlancha > 0 ? formatValor(draftPrecioPlancha) : ''}
+              value={
+                clienteSuministraPlanchas
+                  ? planchaSuministroCopy.precioNoAplica
+                  : draftPrecioPlancha > 0
+                    ? formatValor(draftPrecioPlancha)
+                    : ''
+              }
               readOnly
               tabIndex={-1}
-              placeholder={draftPlanchaId ? '—' : 'Seleccione plancha…'}
+              placeholder={
+                clienteSuministraPlanchas
+                  ? planchaSuministroCopy.precioNoAplica
+                  : draftPlanchaId
+                    ? '—'
+                    : 'Seleccione plancha…'
+              }
             />
           </div>
         </div>
@@ -873,11 +1001,9 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
             onChange={e => onDescripcionChange(e.target.value)}
             placeholder="Ej. Tinta Pantone, acabado…"
           />
-          <span className="production-plancha-draft__field-hint">Paso 2 — obligatorio</span>
+          <PreprensaFieldNotice variant="info">{coloresCopy.pasos.descripcion}</PreprensaFieldNotice>
         </div>
       </div>
-
-      {draftError && <p className="production-form-error">{draftError}</p>}
 
       <footer className="production-plancha-draft__footer">
         <button
@@ -895,7 +1021,7 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
           onClick={onAdd}
           disabled={!canAdd}
         >
-          Agregar registro
+          {isEditing ? coloresCopy.registro.saveEdit : 'Agregar registro'}
         </button>
       </footer>
     </div>
@@ -912,6 +1038,7 @@ interface DisenoColoresPlanchasPanelProps {
   orderQuantity?: number
   /** Trabajo anterior: valores de plancha en cero y registros editables con observación */
   historialMode?: boolean
+  clienteSuministraPlanchas?: YesNoChoice
   onGoToDetalleOpTab?: () => void
 }
 
@@ -922,9 +1049,18 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   isNewOrder = false,
   orderQuantity = 0,
   historialMode = false,
+  clienteSuministraPlanchas: clienteSuministraPlanchasChoice = 'no',
   onGoToDetalleOpTab,
 }) => {
   const usePlanchaPricing = isNewOrder
+  const clienteSuministraPlanchas = isClienteSuministraPlanchas(clienteSuministraPlanchasChoice)
+  const pricingContext: ColoresPlanchasPricingContext = useMemo(
+    () => ({
+      historialMode,
+      clienteSuministraPlanchas: clienteSuministraPlanchasChoice,
+    }),
+    [historialMode, clienteSuministraPlanchasChoice]
+  )
   const detalleOpCantidadLista = !usePlanchaPricing || orderQuantity > 0
   const coloresListaEditable = detalleOpCantidadLista
 
@@ -938,10 +1074,11 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   const [draftDetalle, setDraftDetalle] = useState('')
   const [draftError, setDraftError] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
-  const [pickerKey, setPickerKey] = useState(0)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const itemsRef = useRef(items)
   itemsRef.current = items
   const coloresPanelRef = useRef<HTMLDivElement>(null)
+  const draftZoneRef = useRef<HTMLDivElement>(null)
 
   const preserveColoresPanelViewport = (mutate: () => void) => {
     preserveViewportAroundAnchor(coloresPanelRef.current, mutate)
@@ -952,7 +1089,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     () => activePlanchas.find(p => p.id === draftPlanchaId),
     [activePlanchas, draftPlanchaId]
   )
-  const draftPrecioPlancha = draftPlancha?.valor ?? 0
+  const draftPrecioPlancha = clienteSuministraPlanchas ? 0 : (draftPlancha?.valor ?? 0)
   const isSieteOMasColores = draftColor === '7-colores-o-mas'
   const draftNumeroPlanchas = isSieteOMasColores
     ? parseDigits(draftNumeroPlanchasManual)
@@ -963,8 +1100,8 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   }, [draftNumeroPlanchas, draftPrecioPlancha])
 
   const valorTotalPlanchas = useMemo(
-    () => sumValorTotalPlanchas(items, historialMode),
-    [items, historialMode]
+    () => sumValorTotalPlanchas(items, pricingContext),
+    [items, pricingContext]
   )
 
   useEffect(() => {
@@ -977,7 +1114,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       setDraftCavidades('')
       setDraftSobrante('')
       setDraftError(null)
-      setPickerKey(k => k + 1)
+      setEditingItemId(null)
     }
   }, [detalleOpCantidadLista])
 
@@ -1015,14 +1152,10 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   const resolveDisplay = (item: DisenoColorPlanchaItem) => {
     const catalog = planchas.find(p => p.id === item.planchaId && p.active)
     const meta = getColoresOptionMeta(item.colores)
-    const precioPlancha = resolvePrecioPlanchaDisplay(
-      item,
-      catalog?.valor,
-      historialMode
-    )
+    const precioPlancha = resolvePrecioPlanchaDisplay(item, catalog?.valor, pricingContext)
     const valorTotal = resolveItemValorTotal(
       { ...item, planchaValor: precioPlancha },
-      { historialMode }
+      pricingContext
     )
     return {
       meta,
@@ -1044,6 +1177,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     setDraftCavidades('')
     setDraftSobrante('')
     setDraftError(null)
+    setEditingItemId(null)
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
@@ -1059,33 +1193,61 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     setDraftSobrante('')
     setDraftDetalle('')
     setDraftError(null)
-    setPickerKey(k => k + 1)
-  }
-
-  const resetColorOnly = () => {
-    setDraftColor('')
-    setDraftPlanchaId('')
-    setDraftDescripcion('')
-    setDraftNumeroPlanchasManual('')
-    setDraftCantidad('')
-    setDraftCavidades('')
-    setDraftSobrante('')
-    setDraftError(null)
-    setPickerKey(k => k + 1)
+    setEditingItemId(null)
   }
 
   const defaultCantidadFromOp = () =>
     orderQuantity > 0 ? String(orderQuantity) : ''
 
+  const loadItemIntoDraft = (item: DisenoColorPlanchaItem) => {
+    setDraftColor(item.colores)
+    setDraftPlanchaId(item.planchaId)
+    setDraftDescripcion(item.detalle)
+    setDraftCantidad(item.cantidad > 0 ? String(item.cantidad) : defaultCantidadFromOp())
+    setDraftCavidades(item.numeroCavidades > 0 ? String(item.numeroCavidades) : '')
+    setDraftSobrante(item.sobrante > 0 ? String(item.sobrante) : '')
+    setDraftNumeroPlanchasManual(
+      item.colores === '7-colores-o-mas' && item.numeroPlanchas >= 7
+        ? String(item.numeroPlanchas)
+        : item.colores === '7-colores-o-mas'
+          ? '7'
+          : ''
+    )
+    setDraftError(null)
+  }
+
+  const handleDraftColorChange = (value: DisenoColoresOption) => {
+    setDraftColor(value)
+    setDraftCantidad(defaultCantidadFromOp())
+    if (value === '7-colores-o-mas') {
+      setDraftNumeroPlanchasManual(prev =>
+        prev && parseDigits(prev) >= 7 ? prev : '7'
+      )
+    } else {
+      setDraftNumeroPlanchasManual('')
+    }
+    setDraftError(null)
+  }
+
+  const handleEditRegistro = (id: string) => {
+    const item = itemsRef.current.find(entry => entry.id === id)
+    if (!item) return
+    setEditingItemId(id)
+    loadItemIntoDraft(item)
+    requestAnimationFrame(() => {
+      draftZoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   const draftMeta = draftColor ? getColoresOptionMeta(draftColor) : null
 
   const handleAddRegistro = () => {
     if (!draftColor) {
-      setDraftError('Seleccione un color de la lista.')
+      setDraftError(validationCopy.selectColor)
       return
     }
     if (!draftPlanchaId) {
-      setDraftError('Seleccione el tipo de plancha.')
+      setDraftError(validationCopy.selectPlancha)
       return
     }
     const plancha = planchas.find(p => p.id === draftPlanchaId)
@@ -1094,9 +1256,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
 
     if (usePlanchaPricing) {
       if (orderQuantity <= 0) {
-        setDraftError(
-          'Registre la cantidad en Especificaciones › Detalle OP antes de agregar planchas.'
-        )
+        setDraftError(validationCopy.detalleOpCantidad)
         return
       }
       const numeroPlanchas = isSieteOMasColores
@@ -1105,58 +1265,89 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       if (numeroPlanchas <= 0) {
         setDraftError(
           isSieteOMasColores
-            ? 'Ingrese el número de planchas (7 o más).'
-            : 'Seleccione la cantidad de colores de la lista.'
+            ? validationCopy.numeroPlanchasSiete
+            : validationCopy.numeroPlanchasColores
         )
         return
       }
       if (isSieteOMasColores && numeroPlanchas < 7) {
-        setDraftError('El número de planchas debe ser 7 o mayor.')
+        setDraftError(validationCopy.numeroPlanchasMinimo)
         return
       }
       const cantidad = parseDigits(draftCantidad)
       if (cantidad <= 0) {
-        setDraftError('Ingrese la cantidad del registro.')
+        setDraftError(validationCopy.cantidadRegistro)
         return
       }
       const descripcion = draftDescripcion.trim()
       if (!descripcion) {
-        setDraftError('Ingrese la descripción del registro.')
+        setDraftError(validationCopy.descripcionRegistro)
         return
       }
-      const valorTotal = computeRegistroValorTotal(numeroPlanchas, plancha.valor)
+      if (hasDuplicateColoresPlanchaRegistro(
+        itemsRef.current,
+        draftPlanchaId,
+        descripcion,
+        editingItemId ?? undefined
+      )) {
+        setDraftError(validationCopy.registroDuplicado)
+        return
+      }
+      const valorTotal = clienteSuministraPlanchas
+        ? 0
+        : computeRegistroValorTotal(numeroPlanchas, plancha.valor)
       const numeroCavidades = parseDigits(draftCavidades)
       const sobrante = parseDigits(draftSobrante)
+      const existing = editingItemId
+        ? itemsRef.current.find(item => item.id === editingItemId)
+        : null
+      if (editingItemId && !existing) {
+        setEditingItemId(null)
+        return
+      }
       preserveColoresPanelViewport(() => {
-        onChange([
-          ...itemsRef.current,
-          applyTamanosBuenosToItem({
-            id: createId(),
-            colores: draftColor,
-            cantidad,
-            numeroPlanchas,
-            valorTotal,
-            numeroCavidades,
-            sobrante,
-            detalle: descripcion,
-            observacion: '',
-            reposicionPlancha: false,
-            cantidadReposicion: 0,
-            registroManual: historialMode,
-            ...snapshot,
-          }),
-        ])
+        const nextItem = applyTamanosBuenosToItem({
+          ...(existing ?? {}),
+          id: editingItemId ?? createId(),
+          colores: draftColor,
+          cantidad,
+          numeroPlanchas,
+          valorTotal,
+          numeroCavidades,
+          sobrante,
+          detalle: descripcion,
+          observacion: existing?.observacion ?? '',
+          reposicionPlancha: existing?.reposicionPlancha ?? false,
+          cantidadReposicion: existing?.cantidadReposicion ?? 0,
+          registroManual: existing?.registroManual ?? historialMode,
+          ...snapshot,
+          planchaValor: clienteSuministraPlanchas ? 0 : snapshot.planchaValor,
+        })
+        onChange(
+          editingItemId
+            ? itemsRef.current.map(item => (item.id === editingItemId ? nextItem : item))
+            : [...itemsRef.current, nextItem]
+        )
         resetDraftAfterAdd()
       })
     } else {
       const numeroCavidades = parseDigits(draftCavidades)
       if (numeroCavidades <= 0) {
-        setDraftError('Ingrese el número de cavidades (mayor a cero).')
+        setDraftError(validationCopy.cavidadesRegistro)
         return
       }
       const detalle = draftDetalle.trim()
       if (!detalle) {
-        setDraftError('Ingrese el detalle del registro.')
+        setDraftError(validationCopy.detalleRegistro)
+        return
+      }
+      if (hasDuplicateColoresPlanchaRegistro(
+        itemsRef.current,
+        draftPlanchaId,
+        detalle,
+        editingItemId ?? undefined
+      )) {
+        setDraftError(validationCopy.registroDuplicado)
         return
       }
       preserveColoresPanelViewport(() => {
@@ -1187,6 +1378,9 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     preserveColoresPanelViewport(() => {
       onChange(items.filter(item => item.id !== id))
     })
+    if (editingItemId === id) {
+      resetDraft()
+    }
   }
 
   const updateItem = (id: string, patch: Partial<DisenoColorPlanchaItem>) => {
@@ -1234,7 +1428,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       reposicionPlancha: true,
       numeroPlanchas: getColoresCount(item.colores),
       cantidadReposicion,
-      ...buildPrecioPatchFromCatalog(item, catalog, cantidadReposicion),
+      ...buildPrecioPatchFromCatalog(item, catalog, cantidadReposicion, pricingContext),
     })
   }
 
@@ -1292,7 +1486,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     const catalog = activePlanchas.find(p => p.id === item.planchaId)
     updateItem(id, {
       cantidadReposicion,
-      ...buildPrecioPatchFromCatalog(item, catalog, cantidadReposicion),
+      ...buildPrecioPatchFromCatalog(item, catalog, cantidadReposicion, pricingContext),
     })
   }
 
@@ -1325,29 +1519,27 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     clearRowError(item.id)
     const observacion = item.observacion.trim()
     if (!item.planchaId) {
-      setRowError(item.id, 'Seleccione el tipo de plancha del catálogo actual.')
+      setRowError(item.id, validationCopy.historialSinPlancha)
       return
     }
     const plancha = activePlanchas.find(p => p.id === item.planchaId)
     if (!plancha) {
-      setRowError(
-        item.id,
-        'El tipo de plancha debe estar activo en Catálogos › Tipo Plancha.'
-      )
+      setRowError(item.id, validationCopy.historialPlanchaInactiva)
       return
     }
     if (!observacion) {
-      setRowError(item.id, 'Ingrese una observación al actualizar este registro.')
+      setRowError(item.id, validationCopy.historialSinObservacion)
       return
     }
     const numeroPlanchas =
       item.numeroPlanchas > 0 ? item.numeroPlanchas : getColoresCount(item.colores)
     const valorTotal =
-      numeroPlanchas > 0
+      !clienteSuministraPlanchas && numeroPlanchas > 0
         ? computeRegistroValorTotal(numeroPlanchas, plancha.valor)
         : 0
     updateItem(item.id, {
       ...buildTipoPlanchaSnapshot(plancha),
+      planchaValor: clienteSuministraPlanchas ? 0 : plancha.valor,
       numeroPlanchas,
       valorTotal,
       observacion,
@@ -1370,6 +1562,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
           {coloresListaEditable && (
           <section className="production-plancha-workspace__composer" aria-labelledby="diseno-colores-add-label">
               <>
+            {!editingItemId ? (
             <div
               className={[
                 'production-plancha-workspace__picker-zone',
@@ -1379,52 +1572,36 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                 .join(' ')}
             >
               <span className="production-plancha-workspace__zone-label" id="diseno-colores-add-label">
-                1. Color
+                1. Cantidad de colores
               </span>
-              {showDraftForm && draftMeta ? (
-                <div className="production-plancha-workspace__picker-done">
-                  <ColoresCountIcons
-                    count={draftMeta.count}
-                    size="sm"
-                    showPlusSuffix={draftMeta.value === '7-colores-o-mas'}
-                  />
-                  <span className="production-plancha-workspace__picker-done-label">{draftMeta.label}</span>
-                  <button
-                    type="button"
-                    className="production-plancha-workspace__picker-done-change"
-                    onClick={resetColorOnly}
-                  >
-                    Cambiar
-                  </button>
-                </div>
-              ) : (
-                <DisenoColoresPicker
-                  key={pickerKey}
-                  id="diseno-colores-add"
-                  labelId="diseno-colores-add-label"
-                  placeholder="Seleccione cantidad de colores…"
-                  value={draftColor}
-                  disabled={!detalleOpCantidadLista}
-                  onChange={value => {
-                    setDraftColor(value)
-                    setDraftCantidad(defaultCantidadFromOp())
-                    if (value === '7-colores-o-mas') {
-                      setDraftNumeroPlanchasManual(prev =>
-                        prev && parseDigits(prev) >= 7 ? prev : '7'
-                      )
-                    } else {
-                      setDraftNumeroPlanchasManual('')
-                    }
-                    setDraftError(null)
-                  }}
-                />
-              )}
+              <DisenoColoresPicker
+                id="diseno-colores-add"
+                labelId="diseno-colores-add-label"
+                placeholder={coloresCopy.colorPickerPlaceholder}
+                value={draftColor}
+                disabled={!detalleOpCantidadLista}
+                onChange={handleDraftColorChange}
+              />
+              <p className="production-diseno-colores-add__hint">{coloresCopy.colorPickerHint}</p>
             </div>
+            ) : null}
 
             {showDraftForm && draftMeta && (
-              <div className="production-plancha-workspace__draft-zone">
+              <div
+                ref={draftZoneRef}
+                className={[
+                  'production-plancha-workspace__draft-zone',
+                  editingItemId ? 'production-plancha-workspace__draft-zone--editing' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
                 <RegistroOpComposerForm
                     meta={draftMeta}
+                    draftColor={draftColor}
+                    onDraftColorChange={handleDraftColorChange}
+                    onDraftColorReset={editingItemId ? undefined : () => setDraftColor('')}
+                    colorPickerPlaceholder={coloresCopy.colorPickerPlaceholder}
                     draftCantidad={draftCantidad}
                     onCantidadChange={value => {
                       setDraftCantidad(value)
@@ -1448,6 +1625,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                       if (draftError) setDraftError(null)
                     }}
                     draftPrecioPlancha={draftPrecioPlancha}
+                    clienteSuministraPlanchas={clienteSuministraPlanchas}
                     draftNumeroPlanchas={draftNumeroPlanchas}
                     isSieteOMasColores={isSieteOMasColores}
                     draftNumeroPlanchasManual={draftNumeroPlanchasManual}
@@ -1465,6 +1643,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                     onCancel={resetDraft}
                     onAdd={handleAddRegistro}
                     canAdd={detalleOpCantidadLista && activePlanchas.length > 0}
+                    isEditing={Boolean(editingItemId)}
                   />
               </div>
             )}
@@ -1518,6 +1697,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               ) : (
                 <PlanchasRegistrosTable
                   locked={!coloresListaEditable}
+                  editingItemId={editingItemId}
                   rows={items.map(item => {
                     const display = resolveDisplay(item)
                     return {
@@ -1532,6 +1712,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                   onCantidadChange={handleCantidadItemChange}
                   onCavidadesChange={handleCavidadesItemChange}
                   onSobranteChange={handleSobranteItemChange}
+                  onEdit={handleEditRegistro}
                   onRemove={handleRemove}
                 />
               )}
@@ -1544,20 +1725,18 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
           <span className="production-form-label" id="diseno-colores-add-label">
             Colores
           </span>
-          <p className="production-diseno-colores-add__hint">
-            Elija la cantidad en el desplegable. Cada opción muestra iconos de tinta (Cian, Magenta,
-            Amarillo, Negro, Rojo, Azul Pantone, Verde Pantone).
-          </p>
+          <p className="production-diseno-colores-add__hint">{coloresCopy.legacyIntro}</p>
           <DisenoColoresPicker
-            key={pickerKey}
-            id="diseno-colores-add"
+            id="diseno-colores-add-legacy"
             labelId="diseno-colores-add-label"
+            placeholder={coloresCopy.colorPickerPlaceholder}
             value={draftColor}
             onChange={value => {
               setDraftColor(value)
               setDraftError(null)
             }}
           />
+          <p className="production-diseno-colores-add__hint">{coloresCopy.colorPickerHint}</p>
         </div>
 
         {showDraftForm ? (
@@ -1566,6 +1745,12 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               Complete los datos para{' '}
               <strong>{getColoresOptionMeta(draftColor)?.label}</strong>
             </p>
+            {draftError ? (
+              <PreprensaValidationNotice
+                title={coloresCopy.validationTitle}
+                message={draftError}
+              />
+            ) : null}
             <>
                 <div className="production-diseno-color-plancha-item__grid production-diseno-color-plancha-item__grid--3">
                   <div className="production-form-field">
@@ -1630,6 +1815,11 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                         </option>
                       ))}
                     </select>
+                    {!draftPlanchaId ? (
+                      <PreprensaFieldNotice variant="info">
+                        {coloresCopy.pasos.tipoPlancha}
+                      </PreprensaFieldNotice>
+                    ) : null}
                 </div>
                 <div className="production-form-field production-form-field--full">
                   <label className="production-form-label" htmlFor="diseno-add-detalle">
@@ -1646,9 +1836,9 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                     }}
                     placeholder="Ej. Tinta pantone, observaciones…"
                   />
+                  <PreprensaFieldNotice variant="info">{coloresCopy.pasos.detalle}</PreprensaFieldNotice>
                 </div>
               </>
-            {draftError && <p className="production-form-error">{draftError}</p>}
             <div className="production-diseno-colores-add__actions">
               <button
                 type="button"
@@ -1669,17 +1859,12 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
             </div>
           </div>
         ) : (
-          <p className="production-diseno-cliente-hint">
-            Seleccione la cantidad de colores en el desplegable. Luego complete cavidades, tamaños
-            buenos, sobrante, tipo de plancha y detalle.
-          </p>
+          <PreprensaFieldNotice variant="info">{coloresCopy.legacyIntro}</PreprensaFieldNotice>
         )}
 
-        {activePlanchas.length === 0 && (
-          <p className="production-diseno-cliente-hint">
-            No hay tipos de plancha activos. Regístrelos en Catálogos › Tipo Plancha.
-          </p>
-        )}
+        {activePlanchas.length === 0 ? (
+          <PreprensaFieldNotice variant="warning">{coloresCopy.sinPlanchasActivas}</PreprensaFieldNotice>
+        ) : null}
       </div>
       )}
 
@@ -1879,7 +2064,12 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                           />
                         </div>
                         <div className="production-diseno-colores-registro__actions production-form-field--full">
-                          {rowError && <p className="production-form-error">{rowError}</p>}
+                          {rowError ? (
+                            <PreprensaValidationNotice
+                              title={coloresCopy.validationTitle}
+                              message={rowError}
+                            />
+                          ) : null}
                           <button
                             type="button"
                             className="production-diseno-colores-registro__update-btn"

@@ -103,7 +103,7 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
     )
   }
 
-  /** Corte de papel — tintas y miles */
+  /** Impresión — tintas y miles */
   if (id === 'tintas') {
     return (
       <svg {...props}>
@@ -117,6 +117,16 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
           strokeWidth={1.5}
           opacity={0.7}
         />
+      </svg>
+    )
+  }
+
+  /** Impresión — salida de máquina y acabados en línea */
+  if (id === 'maquina') {
+    return (
+      <svg {...props}>
+        <rect x="6" y="7" width="12" height="10" rx="1.5" {...s} />
+        <path d="M8 5h8v2H8V5zM9 14h6" {...s} strokeWidth={1.5} />
       </svg>
     )
   }

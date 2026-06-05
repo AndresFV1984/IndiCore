@@ -15,6 +15,7 @@ export const routePrefetchers: Record<string, () => Promise<unknown>> = {
   [ROUTES.catalogDespiecePliego.path]: () => import('../features/catalog/CatalogDespiecePliego'),
   [ROUTES.catalogTamanoPlancha.path]: () => import('../features/catalog/CatalogTamanoPlancha'),
   [ROUTES.precioMontaje.path]: () => import('../features/precio-montaje/PrecioMontaje'),
+  [ROUTES.tarifasMillar.path]: () => import('../features/tarifas-millar/TarifasMillar'),
 }
 
 export function prefetchRoute(path: string): void {

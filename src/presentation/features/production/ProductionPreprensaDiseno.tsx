@@ -163,7 +163,12 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
   }
 
   const handleColoresPlanchasChange = (coloresPlanchas: DisenoColorPlanchaItem[]) => {
-    onChange(buildColoresPlanchasPatch(coloresPlanchas))
+    onChange(
+      buildColoresPlanchasPatch(coloresPlanchas, {
+        historialMode: detalleDesdeTrabajoAnterior,
+        clienteSuministraPlanchas: diseno.clienteSuministraPlanchas,
+      })
+    )
   }
 
   const costoIncluirValue: YesNoChoice = diseno.aplicaCostoDiseno ? 'si' : 'no'
@@ -224,6 +229,7 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
           isNewOrder={isNewOrder}
           orderQuantity={orderQuantity}
           historialMode={historialMode}
+          clienteSuministraPlanchas={diseno.clienteSuministraPlanchas}
           onGoToDetalleOpTab={onGoToDetalleOpTab}
         />
       </div>

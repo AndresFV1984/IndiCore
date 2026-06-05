@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import type { PaperRow } from '../../../core/domain/entities/Order'
+import type { YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
 import { formatValorHojaDisplay, despiecePliegoSelectOptionLabel } from './utils/tipoPapelDisplay'
@@ -16,6 +17,8 @@ interface ProductionCorteResumenProps {
   cantidadHojas: number
   valorPapel: number
   valorCorte: number
+  clienteSuministraPapel?: YesNoChoice
+  registroLabel?: string
 }
 
 const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
@@ -23,13 +26,19 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
   cantidadHojas,
   valorPapel,
   valorCorte,
+  clienteSuministraPapel = 'no',
+  registroLabel,
 }) => {
+  const clienteSuministra = clienteSuministraPapel === 'si'
+
   const filas = useMemo(
     () => [
       {
         label: 'Tipo de papel',
-        value: row.type?.trim() || copy.resumen.empty,
-        inactive: !row.tipoPapelId,
+        value: clienteSuministra
+          ? copy.suministro.opciones.cliente.title
+          : row.type?.trim() || copy.resumen.empty,
+        inactive: !clienteSuministra && !row.tipoPapelId,
       },
       {
         label: 'Despiece por pliego',
@@ -53,12 +62,16 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
       },
       {
         label: copy.resumen.valorPapelLabel,
-        value: valorPapel > 0 ? formatValor(valorPapel) : copy.resumen.empty,
-        inactive: valorPapel <= 0,
-        hint: copy.resumen.valorPapelHint,
+        value: clienteSuministra
+          ? copy.resumen.valorPapelClienteSuministra
+          : valorPapel > 0
+            ? formatValor(valorPapel)
+            : copy.resumen.empty,
+        inactive: !clienteSuministra && valorPapel <= 0,
+        hint: clienteSuministra ? undefined : copy.resumen.valorPapelHint,
       },
     ],
-    [row, cantidadHojas, valorPapel]
+    [row, cantidadHojas, valorPapel, clienteSuministra]
   )
 
   return (
@@ -66,8 +79,12 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
       className="production-diseno-resumen"
       tag={copy.sectionTags.resumen}
       title={copy.resumen.title}
-      subtitle={copy.resumen.subtitle}
-      tone={2}
+      subtitle={
+        registroLabel
+          ? `${copy.resumen.subtitle} · ${registroLabel}`
+          : copy.resumen.subtitle
+      }
+      tone={0}
     >
       <ul className="production-diseno-resumen__rows">
         {filas.map(rowItem => (

@@ -5,7 +5,12 @@ import { usePagination } from '../../hooks/usePagination'
 import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import CatalogRecordModal from './CatalogRecordModal'
 import type { CatalogRecord, CatalogRecordFormValues } from './catalogRecord'
-import { normalizeCatalogUnitCost } from './catalogRecord'
+import {
+  buildCatalogRecordFromFormValues,
+  CATALOG_VALOR_CM2_LABEL,
+  displayCatalogValorCmCuadrado,
+  normalizeCatalogRecordList,
+} from './catalogRecord'
 import { OPERACIONES_SEED } from './catalogSeeds'
 import CatalogRecordCost from './CatalogRecordCost'
 import {
@@ -19,13 +24,7 @@ import '../remissions/Remissions.css'
 import '../clients/Clients.css'
 
 function toRecord(values: CatalogRecordFormValues, id?: string): CatalogRecord {
-  const cost = normalizeCatalogUnitCost(values.cost)
-  return {
-    id: id ?? `o-${crypto.randomUUID()}`,
-    name: values.name.trim(),
-    ...(values.quickAccess ? { quickAccess: true } : {}),
-    cost: cost || '—',
-  }
+  return buildCatalogRecordFromFormValues(values, 'o', id)
 }
 
 interface OperationCardProps {
@@ -42,6 +41,12 @@ const OperationCard: React.FC<OperationCardProps> = ({ item, onEdit, onExport, o
       <div className="catalog-card-info">
         <h3 className="catalog-card-name">{item.name}</h3>
         <CatalogRecordCost cost={item.cost} variant="purple" />
+        <div className="catalog-card-cost catalog-card-cost--purple">
+          <span className="catalog-card-cost__label">{CATALOG_VALOR_CM2_LABEL}</span>
+          <span className="catalog-card-cost__value">
+            {displayCatalogValorCmCuadrado(item.valorCmCuadrado)}
+          </span>
+        </div>
         {item.quickAccess ? (
           <span className="catalog-quick-access-badge catalog-quick-access-badge--purple">
             <span className="catalog-quick-access-badge__icon" aria-hidden>
@@ -88,7 +93,7 @@ const OperationCard: React.FC<OperationCardProps> = ({ item, onEdit, onExport, o
 )
 
 const OperationsCatalog: React.FC = () => {
-  const [items, setItems] = useState<CatalogRecord[]>(OPERACIONES_SEED)
+  const [items, setItems] = useState<CatalogRecord[]>(() => normalizeCatalogRecordList(OPERACIONES_SEED))
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CatalogRecord | null>(null)
 

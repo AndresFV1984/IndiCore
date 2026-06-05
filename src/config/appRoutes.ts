@@ -111,6 +111,13 @@ export const ROUTES = {
     label: 'Precio Montaje',
     purpose: 'Catálogo de precios de montaje: nombre, costo y estado activo/inactivo.',
   },
+  tarifasMillar: {
+    id: 'THOUSAND_RATE',
+    path: '/tarifas-millar',
+    label: 'Tarifas por millar',
+    purpose:
+      'Catálogo de tarifas por millar: nombre, unidad, precio, categoría, descripción y estado.',
+  },
   reports: {
     id: 'REPORTS',
     path: '/reports',

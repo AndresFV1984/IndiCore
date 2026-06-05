@@ -9,11 +9,13 @@ import { IRemissionUseCases } from '../core/ports/in/IRemissionUseCases.js';
 import { IUserUseCases } from '../core/ports/in/IUserUseCases.js';
 import { IVendedorUseCases } from '../core/ports/in/IVendedorUseCases.js';
 import { IPrecioMontajeUseCases } from '../core/ports/in/IPrecioMontajeUseCases.js';
+import { ITarifaMillarUseCases } from '../core/ports/in/ITarifaMillarUseCases.js';
 import { ITamanoPlanchaUseCases } from '../core/ports/in/ITamanoPlanchaUseCases.js';
 import { ITipoPapelUseCases } from '../core/ports/in/ITipoPapelUseCases.js';
 import { IDespiecePliegoUseCases } from '../core/ports/in/IDespiecePliegoUseCases.js';
 import { ICortePapelUseCases } from '../core/ports/in/ICortePapelUseCases.js';
 import { IPrecioMontajeRepository } from '../core/ports/out/IPrecioMontajeRepository.js';
+import { ITarifaMillarRepository } from '../core/ports/out/ITarifaMillarRepository.js';
 
 import { InMemoryOrderRepository } from '../infrastructure/repositories/InMemoryOrderRepository.js';
 import { InMemoryClientRepository } from '../infrastructure/repositories/InMemoryClientRepository.js';
@@ -27,8 +29,10 @@ import { InMemoryUserRepository } from '../infrastructure/repositories/InMemoryU
 import { CreateVendedorUseCase } from '../core/use-cases/vendedores/CreateVendedorUseCase.js';
 import { InMemoryVendedorRepository } from '../infrastructure/repositories/InMemoryVendedorRepository.js';
 import { CreatePrecioMontajeUseCase } from '../core/use-cases/precio-montaje/CreatePrecioMontajeUseCase.js';
+import { CreateTarifaMillarUseCase } from '../core/use-cases/tarifa-millar/CreateTarifaMillarUseCase.js';
 import { CreateTamanoPlanchaUseCase } from '../core/use-cases/tamano-plancha/CreateTamanoPlanchaUseCase.js';
 import { InMemoryPrecioMontajeRepository } from '../infrastructure/repositories/InMemoryPrecioMontajeRepository.js';
+import { InMemoryTarifaMillarRepository } from '../infrastructure/repositories/InMemoryTarifaMillarRepository.js';
 import { ITamanoPlanchaRepository } from '../core/ports/out/ITamanoPlanchaRepository.js';
 import { InMemoryTamanoPlanchaRepository } from '../infrastructure/repositories/InMemoryTamanoPlanchaRepository.js';
 import { ITipoPapelRepository } from '../core/ports/out/ITipoPapelRepository.js';
@@ -148,6 +152,33 @@ class VendedorUseCases implements IVendedorUseCases {
 
   async deleteVendedor(id: string): Promise<void> {
     return this.vendedorRepository.delete(id);
+  }
+}
+
+class TarifaMillarUseCases implements ITarifaMillarUseCases {
+  constructor(
+    private readonly createTarifaMillarUseCase: CreateTarifaMillarUseCase,
+    private readonly tarifaMillarRepository: ITarifaMillarRepository
+  ) {}
+
+  async createTarifaMillar(dto: any): Promise<any> {
+    return this.createTarifaMillarUseCase.execute(dto);
+  }
+
+  async getTarifasMillar(): Promise<any[]> {
+    return this.tarifaMillarRepository.findAll();
+  }
+
+  async getTarifaMillarById(id: string): Promise<any | null> {
+    return this.tarifaMillarRepository.findById(id);
+  }
+
+  async updateTarifaMillar(item: any): Promise<void> {
+    return this.tarifaMillarRepository.update(item);
+  }
+
+  async deleteTarifaMillar(id: string): Promise<void> {
+    return this.tarifaMillarRepository.delete(id);
   }
 }
 
@@ -321,6 +352,7 @@ export class Container {
   private userRepository: IUserRepository;
   private vendedorRepository: IVendedorRepository;
   private precioMontajeRepository: IPrecioMontajeRepository;
+  private tarifaMillarRepository: ITarifaMillarRepository;
   private tamanoPlanchaRepository: ITamanoPlanchaRepository;
   private tipoPapelRepository: ITipoPapelRepository;
   private despiecePliegoRepository: IDespiecePliegoRepository;
@@ -332,6 +364,7 @@ export class Container {
   private userUseCases: IUserUseCases;
   private vendedorUseCases: IVendedorUseCases;
   private precioMontajeUseCases: IPrecioMontajeUseCases;
+  private tarifaMillarUseCases: ITarifaMillarUseCases;
   private tamanoPlanchaUseCases: ITamanoPlanchaUseCases;
   private tipoPapelUseCases: ITipoPapelUseCases;
   private despiecePliegoUseCases: IDespiecePliegoUseCases;
@@ -344,6 +377,7 @@ export class Container {
     this.userRepository = new InMemoryUserRepository();
     this.vendedorRepository = new InMemoryVendedorRepository();
     this.precioMontajeRepository = new InMemoryPrecioMontajeRepository();
+    this.tarifaMillarRepository = new InMemoryTarifaMillarRepository();
     this.tamanoPlanchaRepository = new InMemoryTamanoPlanchaRepository();
     this.tipoPapelRepository = new InMemoryTipoPapelRepository();
     this.despiecePliegoRepository = new InMemoryDespiecePliegoRepository();
@@ -375,6 +409,11 @@ export class Container {
     this.precioMontajeUseCases = new PrecioMontajeUseCases(
       new CreatePrecioMontajeUseCase(this.precioMontajeRepository),
       this.precioMontajeRepository
+    );
+
+    this.tarifaMillarUseCases = new TarifaMillarUseCases(
+      new CreateTarifaMillarUseCase(this.tarifaMillarRepository),
+      this.tarifaMillarRepository
     );
 
     this.tamanoPlanchaUseCases = new TamanoPlanchaUseCases(
@@ -427,6 +466,10 @@ export class Container {
 
   getPrecioMontajeUseCases(): IPrecioMontajeUseCases {
     return this.precioMontajeUseCases;
+  }
+
+  getTarifaMillarUseCases(): ITarifaMillarUseCases {
+    return this.tarifaMillarUseCases;
   }
 
   getTamanoPlanchaRepository(): ITamanoPlanchaRepository {

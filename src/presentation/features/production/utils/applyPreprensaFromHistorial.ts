@@ -16,9 +16,13 @@ export const normalizePreprensaSnapshot = (
     ...raw,
   }
   const coloresPlanchas = normalizeColoresPlanchas(base)
+  const clienteSuministraPlanchas = base.clienteSuministraPlanchas ?? 'no'
   return {
     ...base,
-    ...buildColoresPlanchasPatch(coloresPlanchas),
+    clienteSuministraPlanchas,
+    ...buildColoresPlanchasPatch(coloresPlanchas, {
+      clienteSuministraPlanchas,
+    }),
   }
 }
 

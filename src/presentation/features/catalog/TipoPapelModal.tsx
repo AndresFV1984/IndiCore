@@ -11,7 +11,7 @@ import MedidaFields, {
   medidaDimensionToForm,
   type MedidaFormValues,
 } from './MedidaFields'
-import { DespieceAsociadoPicker, DespieceMetrics } from './DespieceAsociadoUI'
+import { DespieceAsociadoPicker, DespieceValorCorteFields } from './DespieceAsociadoUI'
 import './Catalog.css'
 
 export interface TipoPapelFormValues {
@@ -265,7 +265,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
             label="Despiece por pliego asociado"
             required
             fullWidth
-            hint="Seleccione del listado. Puede agregar varios; use × para quitar. Para cada uno, defina el valor corte."
+            hint="Agregue despieces del listado y complete el valor corte en la tabla inferior."
           >
             {loadingDespieces ? (
               <p className="catalog-corte-despiece-picker-empty">Cargando despieces…</p>
@@ -278,6 +278,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
                 selectId="papel-despiece"
                 catalog={despiecesCatalog}
                 selected={selectedDespieces}
+                chipsCompact
                 onChange={next => {
                   const prevIds = new Set(selectedDespieces.map(d => d.despieceId))
                   const added = next.find(d => !prevIds.has(d.despieceId))?.despieceId ?? null
@@ -294,45 +295,10 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
             )}
           </FormField>
 
-          {selectedDespieces.length > 0 ? (
-            <div className="catalog-tipo-papel-despiece-valores">
-              {selectedDespieces.map(d => (
-                <div
-                  key={d.despieceId}
-                  className="catalog-tipo-papel-despiece-valores__row"
-                >
-                  <div className="catalog-tipo-papel-despiece-valores__metrics">
-                    <DespieceMetrics
-                      ancho={d.ancho}
-                      alto={d.alto}
-                      unidadMedida={d.unidadMedida}
-                      piezasPorPliego={d.piezasPorPliego}
-                      name={d.name}
-                      showName
-                    />
-                  </div>
-                  <div className="catalog-tipo-papel-despiece-valores__field">
-                    <label
-                      className="record-form-label"
-                      htmlFor={`papel-despiece-valor-corte-${d.despieceId}`}
-                    >
-                      Valor corte
-                    </label>
-                    <input
-                      id={`papel-despiece-valor-corte-${d.despieceId}`}
-                      type="number"
-                      min={0}
-                      step={1}
-                      className="record-form-input"
-                      value={typeof d.valorCorte === 'number' ? String(d.valorCorte) : ''}
-                      onChange={e => updateDespieceValorCorte(d.despieceId, e.target.value)}
-                      placeholder="Ej. 350"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          <DespieceValorCorteFields
+            despieces={selectedDespieces}
+            onValorChange={updateDespieceValorCorte}
+          />
         </FormSection>
 
         {error && (

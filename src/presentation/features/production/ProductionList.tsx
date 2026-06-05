@@ -12,15 +12,21 @@ import { formatProductionOrderId } from '../../../core/domain/value-objects/Prod
 import { formatPurchaseOrderNumber } from '../../../core/domain/value-objects/PurchaseOrderId'
 import '../remissions/Remissions.css'
 import '../orders/Orders.css'
+import './Production.css'
 import ProductionKpiGrid from './ProductionKpiGrid'
 import RecordCell from '../../components/directory/RecordCell'
-import { confirmExport } from '../../utils/actionFeedback'
+import { confirmAction, confirmExport } from '../../utils/actionFeedback'
+import { productionDraftHasContent } from './utils/productionNewOrderDraft'
+import { useProductionNewOrderDraftStore } from '../../stores/productionNewOrderDraftStore'
 
 const ProductionList: React.FC = () => {
   const navigate = useNavigate()
   const { orders, loading } = useOrdersHook()
   const { clients } = useClientsHook()
+  const draft = useProductionNewOrderDraftStore(s => s.draft)
+  const clearDraft = useProductionNewOrderDraftStore(s => s.clearDraft)
   const [searchQuery, setSearchQuery] = useState('')
+  const hasDraft = Boolean(draft && productionDraftHasContent(draft))
 
   const clientsMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -57,6 +63,22 @@ const ProductionList: React.FC = () => {
 
   const handleNewOrder = () => {
     navigate(`${ROUTES.production.path}/new`)
+  }
+
+  const handleContinueDraft = () => {
+    navigate(`${ROUTES.production.path}/new`)
+  }
+
+  const handleDiscardDraft = async () => {
+    if (
+      !(await confirmAction(
+        '¿Eliminar el borrador de la orden en curso? Se perderá toda la información no guardada.',
+        { variant: 'danger', confirmLabel: 'Eliminar borrador', title: 'Eliminar borrador' }
+      ))
+    ) {
+      return
+    }
+    clearDraft()
   }
 
   const handleOpenOrder = (id: string) => {
@@ -102,6 +124,31 @@ const ProductionList: React.FC = () => {
       </div>
 
       <ProductionKpiGrid orders={orders} />
+
+      {hasDraft && (
+        <div className="production-draft-banner" role="status">
+          <div className="production-draft-banner__text">
+            <strong>Orden en borrador</strong>
+            <p className="production-draft-banner__desc">
+              {draft?.workName?.trim()
+                ? `«${draft.workName.trim()}» — puede continuar donde la dejó.`
+                : 'Tiene una orden sin guardar. Puede continuar donde la dejó.'}
+            </p>
+          </div>
+          <div className="production-draft-banner__actions">
+            <button type="button" className="orders-btn-new" onClick={handleContinueDraft}>
+              Continuar borrador
+            </button>
+            <button
+              type="button"
+              className="production-btn-secondary production-btn-secondary--danger"
+              onClick={handleDiscardDraft}
+            >
+              Eliminar borrador
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="orders-section">
         <div className="orders-section-header">

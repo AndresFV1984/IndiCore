@@ -1,11 +1,72 @@
 import type { PaperRow } from '../../../core/domain/entities/Order'
-import type { DisenoColorPlanchaItem } from '../../../core/domain/entities/PreprensaDiseno'
+import type { DisenoColorPlanchaItem, YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 import type { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import {
   formatUnidadEmpaqueDisplay,
   normalizeUnidadEmpaque,
 } from '../../../../core/domain/value-objects/UnidadEmpaque'
-import { deriveCantidadHojas, roundToInteger } from './coloresPlanchasUtils'
+import {
+  deriveCantidadHojas,
+  resolveColoresPlanchaForRow,
+  roundDivision,
+  roundToInteger,
+} from './coloresPlanchasUtils'
+
+const isFaltanteLitografiaRow = (row: PaperRow): boolean => row.esFaltanteLitografia === true
+
+/** Papel marcado sin cortar en la fila (independiente del modo de suministro). */
+export const isPapelSinCortar = (row: PaperRow): boolean => (row.papelCortado ?? 'si') === 'no'
+
+export const isClienteSuministraPapel = (
+  clienteSuministraPapel: YesNoChoice | undefined
+): boolean => (clienteSuministraPapel ?? 'no') === 'si'
+
+/** Cliente suministra: cantidad hojas desde tamaños buenos y sobrante manuales. */
+export const usesManualCantidadClienteSuministro = (
+  clienteSuministraPapel: YesNoChoice | undefined
+): boolean => isClienteSuministraPapel(clienteSuministraPapel)
+
+/** Cliente suministra y el papel llega sin cortar (cobro de servicio de corte). */
+export const isPapelSinCortarClienteSuministro = (
+  clienteSuministraPapel: YesNoChoice | undefined,
+  row: PaperRow
+): boolean => isClienteSuministraPapel(clienteSuministraPapel) && isPapelSinCortar(row)
+
+/** Cantidad hojas = (Tamaños buenos + Sobrante) ÷ Piezas por pliego. */
+export const deriveCantidadHojasFromManualSuministro = (
+  tamanosBuenos: number,
+  sobrante: number,
+  piezasPorPliego: number
+): number => roundDivision(Math.max(0, tamanosBuenos) + Math.max(0, sobrante), piezasPorPliego)
+
+export const resolveCantidadHojasForCorte = ({
+  coloresPlanchas,
+  row,
+  clienteSuministraPapel = 'no',
+}: {
+  coloresPlanchas: DisenoColorPlanchaItem[]
+  row: PaperRow
+  clienteSuministraPapel?: YesNoChoice
+}): number => {
+  const piezasPorPliego = row.despiece?.piezasPorPliego ?? 0
+  if (isFaltanteLitografiaRow(row)) {
+    const manual = deriveCantidadHojasFromManualSuministro(
+      row.tamanosBuenosManual ?? 0,
+      row.sobranteManual ?? 0,
+      piezasPorPliego
+    )
+    if (manual > 0) return manual
+    return Math.max(0, row.hojasFaltanteCantidad ?? 0)
+  }
+  if (usesManualCantidadClienteSuministro(clienteSuministraPapel)) {
+    return deriveCantidadHojasFromManualSuministro(
+      row.tamanosBuenosManual ?? 0,
+      row.sobranteManual ?? 0,
+      piezasPorPliego
+    )
+  }
+  return deriveCantidadHojas(resolveColoresPlanchaForRow(coloresPlanchas, row), piezasPorPliego)
+}
 
 export const DEFAULT_MARGEN_REDONDEO = 2
 
@@ -123,6 +184,7 @@ export interface CortePapelValoresInput {
   row: PaperRow
   tipoPapel?: TipoPapel | null
   margenRedondeo?: number
+  clienteSuministraPapel?: YesNoChoice
 }
 
 export interface CortePapelValores {
@@ -143,38 +205,50 @@ export const computeCortePapelValores = ({
   row,
   tipoPapel = null,
   margenRedondeo,
+  clienteSuministraPapel = 'no',
 }: CortePapelValoresInput): CortePapelValores => {
+  const esFaltanteLitografia = isFaltanteLitografiaRow(row)
+  const clienteSuministra = isClienteSuministraPapel(clienteSuministraPapel) && !esFaltanteLitografia
+  const papelCortadoCliente = clienteSuministra && !isPapelSinCortar(row)
   const margen = normalizeMargenRedondeo(margenRedondeo)
-  const cantidadHojas = deriveCantidadHojas(
+  const tieneDespieceSeleccionado = Boolean(row.despiece?.despieceId)
+  const cantidadHojas = resolveCantidadHojasForCorte({
     coloresPlanchas,
-    row.despiece?.piezasPorPliego ?? 0
-  )
-  const unidadEmpaqueCantidad =
-    resolveUnidadEmpaqueCantidad(row.unidadEmpaque) ||
-    resolveUnidadEmpaqueCantidad(tipoPapel?.unidadEmpaque)
+    row,
+    clienteSuministraPapel,
+  })
+  const unidadEmpaqueCantidad = tieneDespieceSeleccionado
+    ? resolveUnidadEmpaqueCantidad(row.unidadEmpaque) ||
+      resolveUnidadEmpaqueCantidad(tipoPapel?.unidadEmpaque)
+    : 0
   const unidadEmpaqueLabel = formatUnidadEmpaqueDisplay(unidadEmpaqueCantidad)
   const despieceCatalogo =
-    tipoPapel && row.despiece?.despieceId
+    tipoPapel && tieneDespieceSeleccionado
       ? tipoPapel.despiecesPliego.find(d => d.despieceId === row.despiece!.despieceId)
       : undefined
-  const valorCorteUnitario =
-    row.valorCorteUnitario ??
-    despieceCatalogo?.valorCorte ??
-    row.despiece?.valorCorte ??
-    0
+  const valorCorteUnitario = tieneDespieceSeleccionado
+    ? row.valorCorteUnitario ??
+      despieceCatalogo?.valorCorte ??
+      row.despiece?.valorCorte ??
+      0
+    : 0
   const valorHoja = row.valorHoja ?? tipoPapel?.valorHoja ?? 0
   const cocienteHojasPorEmpaque = applyMargenRedondeoToHojasPorEmpaque(
     cantidadHojas,
     unidadEmpaqueCantidad,
     margen
   )
-  const valorCorte = deriveValorCorteFromCantidades(
-    cantidadHojas,
-    unidadEmpaqueCantidad,
-    valorCorteUnitario,
-    margen
-  )
-  const valorPapel = deriveValorPapel(cantidadHojas, valorHoja)
+  const cobraCorte = esFaltanteLitografia || !papelCortadoCliente
+  let valorCorte = cobraCorte
+    ? deriveValorCorteFromCantidades(
+        cantidadHojas,
+        unidadEmpaqueCantidad,
+        valorCorteUnitario,
+        margen
+      )
+    : 0
+  const valorPapel =
+    clienteSuministra && !esFaltanteLitografia ? 0 : deriveValorPapel(cantidadHojas, valorHoja)
   return {
     cantidadHojas,
     margenRedondeo: margen,

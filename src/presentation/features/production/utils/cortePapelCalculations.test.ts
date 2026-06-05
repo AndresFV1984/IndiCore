@@ -119,4 +119,133 @@ describe('computeCortePapelValores', () => {
     expect(result.cocienteHojasPorEmpaque).toBe(1)
     expect(result.valorCorte).toBe(420)
   })
+
+  it('cliente suministra sin cortar: valor papel 0 y valor corte según manual', () => {
+    const result = computeCortePapelValores({
+      coloresPlanchas: coloresBase(),
+      row: {
+        tipoPapelId: 'p1',
+        type: 'Couché',
+        size: '70×100 cm',
+        unidadEmpaque: 250,
+        valorHoja: 890,
+        valorCorteUnitario: 420,
+        papelCortado: 'no',
+        tamanosBuenosManual: 5000,
+        sobranteManual: 100,
+        despiece: {
+          despieceId: 'dp-1',
+          name: 'Etiqueta',
+          ancho: '10',
+          alto: '5',
+          unidadMedida: 'cm',
+          piezasPorPliego: 10,
+          valorCorte: 420,
+        },
+        cut: '',
+      },
+      margenRedondeo: 2,
+      clienteSuministraPapel: 'si',
+    })
+    expect(result.cantidadHojas).toBe(510)
+    expect(result.valorPapel).toBe(0)
+    expect(result.valorCorte).toBeGreaterThan(0)
+  })
+
+  it('cliente suministra papel cortado: no cobra valor corte ni valor papel', () => {
+    const result = computeCortePapelValores({
+      coloresPlanchas: coloresBase(),
+      row: {
+        tipoPapelId: 'p1',
+        type: 'Couché',
+        size: '70×100 cm',
+        unidadEmpaque: 250,
+        valorHoja: 890,
+        valorCorteUnitario: 420,
+        papelCortado: 'si',
+        hojasEntregadasCliente: 500,
+        tamanosBuenosManual: 5000,
+        sobranteManual: 100,
+        despiece: {
+          despieceId: 'dp-1',
+          name: 'Etiqueta',
+          ancho: '10',
+          alto: '5',
+          unidadMedida: 'cm',
+          piezasPorPliego: 10,
+          valorCorte: 420,
+        },
+        cut: '',
+      },
+      margenRedondeo: 2,
+      clienteSuministraPapel: 'si',
+    })
+    expect(result.cantidadHojas).toBe(510)
+    expect(result.valorCorte).toBe(0)
+    expect(result.valorPapel).toBe(0)
+  })
+
+  it('cliente suministra papel cortado: cantidad hojas desde tamaños buenos, no hojas entregadas', () => {
+    const result = computeCortePapelValores({
+      coloresPlanchas: coloresBase(),
+      row: {
+        tipoPapelId: 'p1',
+        type: 'Couché',
+        size: '70×100 cm',
+        unidadEmpaque: 250,
+        valorHoja: 890,
+        valorCorteUnitario: 420,
+        papelCortado: 'si',
+        hojasEntregadasCliente: 750,
+        tamanosBuenosManual: 5000,
+        sobranteManual: 100,
+        despiece: {
+          despieceId: 'dp-1',
+          name: 'Etiqueta',
+          ancho: '10',
+          alto: '5',
+          unidadMedida: 'cm',
+          piezasPorPliego: 10,
+          valorCorte: 420,
+        },
+        cut: '',
+      },
+      margenRedondeo: 2,
+      clienteSuministraPapel: 'si',
+    })
+    expect(result.cantidadHojas).toBe(510)
+  })
+
+  it('faltante litografía: cantidad desde tamaños buenos y cobra valor papel y corte', () => {
+    const result = computeCortePapelValores({
+      coloresPlanchas: coloresBase(),
+      row: {
+        esFaltanteLitografia: true,
+        hojasFaltanteCantidad: 60,
+        tamanosBuenosManual: 1200,
+        sobranteManual: 0,
+        tipoPapelId: 'p1',
+        type: 'Couché',
+        size: '70×100 cm',
+        unidadEmpaque: 250,
+        valorHoja: 890,
+        valorCorteUnitario: 420,
+        despiece: {
+          despieceId: 'dp-1',
+          name: 'Etiqueta',
+          ancho: '10',
+          alto: '5',
+          unidadMedida: 'cm',
+          piezasPorPliego: 20,
+          valorCorte: 420,
+        },
+        cut: '',
+      },
+      margenRedondeo: 2,
+      clienteSuministraPapel: 'si',
+    })
+    expect(result.cantidadHojas).toBe(60)
+    expect(result.valorPapel).toBeGreaterThan(0)
+    expect(result.valorCorte).toBeGreaterThan(0)
+  })
 })

@@ -334,6 +334,15 @@ const Sidebar: React.FC = () => {
               </span>
               {sidebarOpen && <span className="sidebar-label">Precio Montaje</span>}
             </NavLink>
+            <NavLink to={ROUTES.tarifasMillar.path} title={ROUTES.tarifasMillar.purpose} className={`sidebar-link ${location.pathname === ROUTES.tarifasMillar.path ? 'sidebar-link-active' : ''}`}>
+              <span className="sidebar-icon-wrapper">
+                <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path d="M4 7h16M4 12h10M4 17h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M18 10l3 2-3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              {sidebarOpen && <span className="sidebar-label">Tarifas por millar</span>}
+            </NavLink>
           </>
         )}
         {/* Otros */}

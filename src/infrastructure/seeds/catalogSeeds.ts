@@ -2,6 +2,7 @@ import { CortePapel, type DespieceAsociado } from '../../core/domain/entities/Co
 import { DespiecePliego } from '../../core/domain/entities/DespiecePliego.js'
 import { PrecioMontaje } from '../../core/domain/entities/PrecioMontaje.js'
 import { TamanoPlancha } from '../../core/domain/entities/TamanoPlancha.js'
+import { TarifaMillar } from '../../core/domain/entities/TarifaMillar.js'
 
 /** Registro de catálogo simple (Terminados / Operaciones). */
 export interface CatalogRecordSeed {
@@ -9,6 +10,7 @@ export interface CatalogRecordSeed {
   name: string
   quickAccess?: boolean
   cost?: string
+  valorCmCuadrado?: string
 }
 
 export interface DespieceAsociadoSeed {
@@ -137,6 +139,49 @@ export const PRECIO_MONTAJE_SEED = [
   { id: 'pm-4', name: 'Montaje especial laminado', cost: 158000, state: true },
 ] as const
 
+export const TARIFA_MILLAR_SEED = [
+  {
+    id: 'tm-1',
+    name: 'Color básico',
+    unidadMedida: 1000,
+    precio: 17500,
+    categoria: 'Colores',
+    descripcion:
+      'Impresión estándar en cuatricromía (CMYK), utilizada para la mayoría de trabajos comunes.',
+    state: true,
+  },
+  {
+    id: 'tm-4',
+    name: 'Pantone',
+    unidadMedida: 1000,
+    precio: 50000,
+    categoria: 'Colores',
+    descripcion:
+      'Tinta directa especial que asegura fidelidad exacta de color en logotipos y marcas corporativas.',
+    state: true,
+  },
+  {
+    id: 'tm-2',
+    name: 'Volteo por pinza',
+    unidadMedida: 1000,
+    precio: 20000,
+    categoria: 'Volteos',
+    descripcion:
+      'Proceso de girar la hoja para imprimir el reverso, requiere ajuste adicional en máquina.',
+    state: true,
+  },
+  {
+    id: 'tm-3',
+    name: 'Volteo por escuadra',
+    unidadMedida: 1000,
+    precio: 20000,
+    categoria: 'Volteos',
+    descripcion:
+      'Rotación de la hoja en otro ángulo para completar la impresión, usado en trabajos complejos.',
+    state: true,
+  },
+] as const
+
 const toDespieceAsociado = (d: DespieceAsociadoSeed): DespieceAsociado => ({ ...d })
 
 export const createDespiecePliegoSeeds = (): DespiecePliego[] =>
@@ -175,3 +220,17 @@ export const createTamanoPlanchaSeeds = (): TamanoPlancha[] =>
 
 export const createPrecioMontajeSeeds = (): PrecioMontaje[] =>
   PRECIO_MONTAJE_SEED.map(s => new PrecioMontaje(s.id, s.name, s.cost, s.state))
+
+export const createTarifaMillarSeeds = (): TarifaMillar[] =>
+  TARIFA_MILLAR_SEED.map(
+    s =>
+      new TarifaMillar(
+        s.id,
+        s.name,
+        s.unidadMedida,
+        s.precio,
+        s.categoria,
+        s.descripcion,
+        s.state
+      )
+  )

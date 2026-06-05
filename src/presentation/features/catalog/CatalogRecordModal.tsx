@@ -3,13 +3,21 @@ import Modal from '../../components/ui/Modal'
 import FormSection from '../../components/directory/FormSection'
 import FormField from '../../components/directory/FormField'
 import type { CatalogRecord, CatalogRecordFormValues, CatalogRecordVariant } from './catalogRecord'
-import { normalizeCatalogUnitCost } from './catalogRecord'
+import {
+  CATALOG_COSTO_MINIMO_LABEL,
+  CATALOG_VALOR_CM2_HINT,
+  CATALOG_VALOR_CM2_LABEL,
+  DEFAULT_CATALOG_VALOR_CM_CUADRADO,
+  normalizeCatalogUnitCost,
+  normalizeCatalogValorCmCuadrado,
+} from './catalogRecord'
 import './Catalog.css'
 
 const defaultValues: CatalogRecordFormValues = {
   name: '',
   quickAccess: false,
   cost: '',
+  valorCmCuadrado: DEFAULT_CATALOG_VALOR_CM_CUADRADO,
 }
 
 const COPY: Record<
@@ -68,6 +76,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
             quickAccess: item.quickAccess ?? false,
             cost:
               item.cost && item.cost !== '—' ? normalizeCatalogUnitCost(item.cost) : '',
+            valorCmCuadrado: normalizeCatalogValorCmCuadrado(item.valorCmCuadrado),
           }
         : defaultValues
     )
@@ -75,7 +84,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
     setSubmitting(false)
   }, [isOpen, item])
 
-  const handleChange = (field: 'name' | 'cost') => (
+  const handleChange = (field: 'name' | 'cost' | 'valorCmCuadrado') => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setValues(prev => ({ ...prev, [field]: e.target.value }))
@@ -97,6 +106,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
         name,
         quickAccess: values.quickAccess,
         cost: normalizeCatalogUnitCost(values.cost),
+        valorCmCuadrado: normalizeCatalogValorCmCuadrado(values.valorCmCuadrado),
       })
       onClose()
     } finally {
@@ -136,7 +146,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
           </FormField>
           <FormField
             id={`${variant}-cost`}
-            label="Costo unitario"
+            label={CATALOG_COSTO_MINIMO_LABEL}
             hint="Valor numérico sin símbolo $ (deje vacío si no aplica)"
             fullWidth
           >
@@ -147,6 +157,21 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
               value={values.cost}
               onChange={handleChange('cost')}
               placeholder="Ej. 18.000"
+            />
+          </FormField>
+          <FormField
+            id={`${variant}-valor-cm-cuadrado`}
+            label={CATALOG_VALOR_CM2_LABEL}
+            hint={CATALOG_VALOR_CM2_HINT}
+            fullWidth
+          >
+            <input
+              id={`${variant}-valor-cm-cuadrado`}
+              type="text"
+              className="record-form-input"
+              value={values.valorCmCuadrado}
+              onChange={handleChange('valorCmCuadrado')}
+              placeholder="0"
             />
           </FormField>
           <div

@@ -1,14 +1,60 @@
 import { DisenoColoresOption } from '../../../../core/domain/entities/PreprensaDiseno'
 
-/** Paleta fija de tintas (orden 1–7 para los puntos de color) */
+/** Sentinel para el swatch de Pantone (mezcla visual de toda la paleta). */
+export const DISENO_INK_PANTONE_MIX_SWATCH = 'pantone-mix' as const
+
+export const DISENO_INK_PRIMARIES_COUNT = 4
+
+export const DISENO_INK_SECONDARIES_COUNT = 3
+
+/** Tintas usadas en preprensa para contar colores (sin Pantone). */
+export const DISENO_INK_COUNT_PALETTE_SIZE =
+  DISENO_INK_PRIMARIES_COUNT + DISENO_INK_SECONDARIES_COUNT
+
+export const DISENO_INK_PANTONE_INDEX = DISENO_INK_COUNT_PALETTE_SIZE
+
+/** Colores base que componen la mezcla visual de Pantone (primarios + secundarios). */
+export const DISENO_INK_PANTONE_MIX_COLORS = [
+  '#00a9e0',
+  '#d6007a',
+  '#ffd400',
+  '#1a1a1a',
+  '#e4002b',
+  '#005eb8',
+  '#00a651',
+] as const
+
+/** Gradiente cónico para representar Pantone como mezcla de toda la paleta. */
+export const DISENO_INK_PANTONE_MIX_BACKGROUND = `conic-gradient(from 135deg, ${DISENO_INK_PANTONE_MIX_COLORS.join(', ')}, ${DISENO_INK_PANTONE_MIX_COLORS[0]})`
+
+export const isDisenoInkPantoneMix = (swatch: string): boolean =>
+  swatch === DISENO_INK_PANTONE_MIX_SWATCH
+
+/** Paleta completa: 4 primarios + 3 secundarios + Pantone */
 export const DISENO_INK_PALETTE = [
   { name: 'Cian', swatch: '#00a9e0' },
   { name: 'Magenta', swatch: '#d6007a' },
   { name: 'Amarillo', swatch: '#ffd400' },
   { name: 'Negro', swatch: '#1a1a1a' },
   { name: 'Rojo', swatch: '#e4002b' },
-  { name: 'Azul Pantone', swatch: '#005eb8' },
-  { name: 'Verde Pantone', swatch: '#00a651' },
+  { name: 'Azul', swatch: '#005eb8' },
+  { name: 'Verde', swatch: '#00a651' },
+  { name: 'Pantone', swatch: DISENO_INK_PANTONE_MIX_SWATCH },
+] as const
+
+export const DISENO_INK_PALETTE_SECTIONS = [
+  {
+    id: 'primarios',
+    indices: [0, 1, 2, 3],
+  },
+  {
+    id: 'secundarios',
+    indices: [4, 5, 6],
+  },
+  {
+    id: 'pantone',
+    indices: [DISENO_INK_PANTONE_INDEX],
+  },
 ] as const
 
 export interface DisenoColoresCountMeta {

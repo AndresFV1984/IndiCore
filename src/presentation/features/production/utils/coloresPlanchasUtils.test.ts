@@ -3,9 +3,12 @@ import {
   applyColoresPlanchasForHistorialReuse,
   computeTamanosBuenos,
   deriveCantidadHojas,
+  hasDuplicateColoresPlanchaRegistro,
+  resolvePrecioPlanchaDisplay,
   roundDivision,
   sumTamanosBuenosYSobrante,
   resolveTamanosBuenosValue,
+  sumValorTotalPlanchas,
   syncColoresPlanchasCantidadFromOrder,
 } from './coloresPlanchasUtils'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
@@ -27,6 +30,27 @@ const baseItem = (): DisenoColorPlanchaItem => ({
   reposicionPlancha: false,
   cantidadReposicion: 0,
   registroManual: false,
+})
+
+describe('hasDuplicateColoresPlanchaRegistro', () => {
+  it('detecta mismo tipo de plancha y descripción (sin distinguir mayúsculas)', () => {
+    const items = [{ ...baseItem(), detalle: 'Tinta pantone' }]
+    expect(hasDuplicateColoresPlanchaRegistro(items, 'tp1', 'tinta pantone')).toBe(true)
+    expect(hasDuplicateColoresPlanchaRegistro(items, 'tp1', '  Tinta pantone  ')).toBe(true)
+  })
+
+  it('no marca duplicado si cambia plancha o descripción', () => {
+    const items = [{ ...baseItem(), detalle: 'Tinta pantone' }]
+    expect(hasDuplicateColoresPlanchaRegistro(items, 'tp2', 'Tinta pantone')).toBe(false)
+    expect(hasDuplicateColoresPlanchaRegistro(items, 'tp1', 'Otro detalle')).toBe(false)
+  })
+
+  it('excluye el registro en edición por id', () => {
+    const items = [{ ...baseItem(), id: 'edit-me', detalle: 'Tinta pantone' }]
+    expect(
+      hasDuplicateColoresPlanchaRegistro(items, 'tp1', 'Tinta pantone', 'edit-me')
+    ).toBe(false)
+  })
 })
 
 describe('roundDivision', () => {

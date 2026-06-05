@@ -1,26 +1,24 @@
 import React, { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import type { PaperRow } from '../../../core/domain/entities/Order'
-import ProductionWorkspaceSection from './ProductionWorkspaceSection'
-import {
-  CatalogReadonlyField,
-  DespiecePliegoReadonlySection,
-  ProductionCatalogDetail,
-  ProductionCatalogDetailGrid,
-} from './ProductionCatalogDetail'
 import { formatUnidadEmpaqueDisplay } from '../../../core/domain/value-objects/UnidadEmpaque'
+import ProductionCorteCatalogSnapshot from './ProductionCorteCatalogSnapshot'
 import {
   buildTipoPapelNameCounts,
   clearTipoPapelFromRow,
   despiecePliegoSelectOptionLabel,
-  formatValorHojaDisplay,
+  findDespieceInTipoPapel,
   listActiveTiposPapel,
   mergeDespiecePliegoIntoRow,
-  findDespieceInTipoPapel,
   mergeTipoPapelIntoRow,
   normalizeTipoPapelList,
   tipoPapelSelectOptionLabel,
 } from './utils/tipoPapelDisplay'
+import { buildTipoPapelCatalogEditUrl } from './utils/tipoPapelCatalogNavigation'
+import { CORTE_PAPEL_COPY } from './constants/cortePapelCopy'
+
+const papelCopy = CORTE_PAPEL_COPY.sections.papel
 
 interface ProductionCorteTipoPapelFieldsProps {
   row: PaperRow
@@ -37,19 +35,15 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
   onChange,
   embedded = false,
 }) => {
+  const navigate = useNavigate()
   const catalog = useMemo(() => normalizeTipoPapelList(tiposPapel), [tiposPapel])
-
   const activeTipos = useMemo(() => listActiveTiposPapel(catalog), [catalog])
-
   const nameCounts = useMemo(() => buildTipoPapelNameCounts(activeTipos), [activeTipos])
-
   const selected = useMemo(
     () => catalog.find(t => t.id === row.tipoPapelId) ?? null,
     [catalog, row.tipoPapelId]
   )
-
   const selectedDespieceId = row.despiece?.despieceId ?? ''
-
   const despieceCatalogo = useMemo(
     () => findDespieceInTipoPapel(selected, selectedDespieceId) ?? row.despiece ?? null,
     [selected, selectedDespieceId, row.despiece]
@@ -75,8 +69,13 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
     if (despiece) onChange(mergeDespiecePliegoIntoRow(row, despiece))
   }
 
+  const goToTipoPapelCatalog = () => {
+    if (!selected) return
+    navigate(buildTipoPapelCatalogEditUrl(selected.id))
+  }
+
   const body = (
-    <>
+    <div className="production-corte-tipo-papel">
       {loadingTiposPapel ? (
         <p className="production-diseno-cliente-hint" role="status">
           Cargando tipos de papel del catálogo…
@@ -88,101 +87,101 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
         </p>
       ) : (
         <>
-          <label className="production-form-label" htmlFor="prod-tipo-papel-select">
-            Tipo de papel
-          </label>
-          <select
-            id="prod-tipo-papel-select"
-            className={`production-form-input production-form-select production-diseno-cliente-picker__select${
-              row.tipoPapelId ? '' : ' production-form-select--placeholder'
-            }`}
-            value={row.tipoPapelId ?? ''}
-            onChange={handleSelectChange}
-          >
-            <option value="">Seleccionar tipo de papel…</option>
-            {activeTipos.map(item => (
-              <option key={item.id} value={item.id}>
-                {tipoPapelSelectOptionLabel(item, nameCounts)}
-              </option>
-            ))}
-          </select>
+          <div className="production-corte-tipo-papel__selects">
+            <div className="production-form-field production-corte-field">
+              <label className="production-form-label" htmlFor="prod-tipo-papel-select">
+                Tipo de papel
+              </label>
+              <select
+                id="prod-tipo-papel-select"
+                className={`production-form-input production-form-select production-diseno-cliente-picker__select${
+                  row.tipoPapelId ? '' : ' production-form-select--placeholder'
+                }`}
+                value={row.tipoPapelId ?? ''}
+                onChange={handleSelectChange}
+              >
+                <option value="">Seleccionar tipo de papel…</option>
+                {activeTipos.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {tipoPapelSelectOptionLabel(item, nameCounts)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selected ? (
+              selected.despiecesPliego.length === 0 ? (
+                <div className="production-corte-tipo-papel__catalog-action production-corte-tipo-papel__hint-span">
+                  <p className="production-diseno-cliente-hint production-corte-tipo-papel__catalog-action-text">
+                    {papelCopy.sinDespieces}
+                  </p>
+                  <p className="production-diseno-cliente-hint production-corte-tipo-papel__catalog-action-hint">
+                    {papelCopy.agregarDespiecesHint(selected.name)}
+                  </p>
+                  <button
+                    type="button"
+                    className="production-plancha-detalle-op-gate__btn production-corte-tipo-papel__catalog-btn"
+                    onClick={goToTipoPapelCatalog}
+                  >
+                    {papelCopy.agregarDespieces}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="production-form-field production-corte-field">
+                    <label className="production-form-label" htmlFor="prod-despiece-pliego-select">
+                      Despiece por pliego
+                    </label>
+                    <select
+                      id="prod-despiece-pliego-select"
+                      className={`production-form-input production-form-select production-diseno-cliente-picker__select${
+                        selectedDespieceId ? '' : ' production-form-select--placeholder'
+                      }`}
+                      value={selectedDespieceId}
+                      onChange={handleDespieceChange}
+                    >
+                      <option value="">Seleccionar despiece por pliego…</option>
+                      {selected.despiecesPliego.map(despiece => (
+                        <option key={despiece.despieceId} value={despiece.despieceId}>
+                          {despiecePliegoSelectOptionLabel(despiece)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="production-corte-tipo-papel__catalog-link-wrap production-corte-tipo-papel__hint-span">
+                    <button
+                      type="button"
+                      className="production-corte-tipo-papel__catalog-link"
+                      onClick={goToTipoPapelCatalog}
+                    >
+                      {papelCopy.gestionarDespieces}
+                    </button>
+                  </div>
+                </>
+              )
+            ) : null}
+          </div>
 
           {selected ? (
-            selected.despiecesPliego.length === 0 ? (
-              <p className="production-diseno-cliente-hint">
-                Este tipo de papel no tiene despieces asociados en el catálogo.
-              </p>
-            ) : (
-              <>
-                <label className="production-form-label" htmlFor="prod-despiece-pliego-select">
-                  Despiece por pliego
-                </label>
-                <select
-                  id="prod-despiece-pliego-select"
-                  className={`production-form-input production-form-select production-diseno-cliente-picker__select${
-                    selectedDespieceId ? '' : ' production-form-select--placeholder'
-                  }`}
-                  value={selectedDespieceId}
-                  onChange={handleDespieceChange}
-                >
-                  <option value="">Seleccionar despiece por pliego…</option>
-                  {selected.despiecesPliego.map(despiece => (
-                    <option key={despiece.despieceId} value={despiece.despieceId}>
-                      {despiecePliegoSelectOptionLabel(despiece)}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )
+            <div className="production-corte-tipo-papel__catalog">
+              <ProductionCorteCatalogSnapshot
+                tipoPapel={selected}
+                despiece={despieceCatalogo}
+                inline
+              />
+            </div>
           ) : null}
         </>
       )}
-
-      {selected && (
-        <ProductionCatalogDetail title="Datos del tipo de papel" tone={1}>
-          <ProductionCatalogDetailGrid>
-            <CatalogReadonlyField label="Nombre" value={selected.name} />
-            <CatalogReadonlyField label="Ancho" value={selected.ancho} />
-            <CatalogReadonlyField label="Alto" value={selected.alto} />
-            <CatalogReadonlyField label="Unidad de medida" value={selected.unidadMedida} />
-            <CatalogReadonlyField
-              label="Valor hoja"
-              value={formatValorHojaDisplay(selected.valorHoja)}
-            />
-            <CatalogReadonlyField
-              label="Unidad empaque"
-              value={formatUnidadEmpaqueDisplay(selected.unidadEmpaque)}
-            />
-            <CatalogReadonlyField
-              label="Valor corte"
-              value={
-                despieceCatalogo &&
-                typeof despieceCatalogo.valorCorte === 'number' &&
-                despieceCatalogo.valorCorte > 0
-                  ? formatValorHojaDisplay(despieceCatalogo.valorCorte)
-                  : '—'
-              }
-            />
-          </ProductionCatalogDetailGrid>
-
-          {despieceCatalogo ? (
-            <DespiecePliegoReadonlySection despiece={despieceCatalogo} />
-          ) : selected.despiecesPliego.length > 0 ? (
-            <p className="production-diseno-cliente-hint production-catalog-detail__note">
-              Seleccione un despiece por pliego asociado al tipo de papel.
-            </p>
-          ) : null}
-        </ProductionCatalogDetail>
-      )}
-    </>
+    </div>
   )
 
   if (embedded) return body
 
   return (
-    <ProductionWorkspaceSection tag="Catálogo" title="Tipo de papel" tone={0}>
-      {body}
-    </ProductionWorkspaceSection>
+    <section className="production-ws-section production-ws-section--tone-0">
+      <div className="production-ws-section__body">{body}</div>
+    </section>
   )
 }
 

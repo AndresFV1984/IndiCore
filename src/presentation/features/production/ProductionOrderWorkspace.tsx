@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ProductionWorkflowNav from './ProductionWorkflowNav'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useOrdersHook } from '../../hooks/useOrders'
 import { Container } from '../../../di/container'
 import { Money } from '../../../core/domain/value-objects/Money'
-import { CreateOrderDTO, OrderSpecs, type PaperRow } from '../../../core/domain/entities/Order'
+import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro } from '../../../core/domain/entities/Order'
 import { ROUTES } from '../../../config/appRoutes'
 import { formatProductionOrderId } from '../../../core/domain/value-objects/ProductionOrderId'
 import {
@@ -18,12 +18,15 @@ import './Production.css'
 import ProductionKpiGrid from './ProductionKpiGrid'
 import ProductionSpecsSubNav from './ProductionSpecsSubNav'
 import ProductionPreprensaSubNav from './ProductionPreprensaSubNav'
+import ProductionImpresionSubNav from './ProductionImpresionSubNav'
 import ProductionCortePapelSubNav from './ProductionCortePapelSubNav'
+import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
 import ProductionClientPicker from './ProductionClientPicker'
 import ProductionVendedorPicker from './ProductionVendedorPicker'
 import { SpecsSubTabId } from './productionSpecsSubTabs'
 import { PreprensaSubTabId } from './productionPreprensaSubTabs'
 import { CortePapelSubTabId } from './productionCortePapelSubTabs'
+import { ImpresionSubTabId } from './productionImpresionSubTabs'
 import { Client } from '../../../core/domain/entities/Client'
 import { Vendedor } from '../../../core/domain/entities/Vendedor'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
@@ -39,16 +42,43 @@ import { ClienteDisenoOption } from './utils/buildClienteDisenos'
 import ProductionPreprensaDiseno from './ProductionPreprensaDiseno'
 import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
 import { patchPreprensaDesignNuevo } from './utils/preprensaDesignNuevoChange'
+import { patchCorteClienteSuministraPapel } from './utils/corteClienteSuministraPapelChange'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import ProductionCortePapelForm from './ProductionCortePapelForm'
 import { emptyPaperRow, normalizeTipoPapelList } from './utils/tipoPapelDisplay'
+import { DEFAULT_MARGEN_REDONDEO, normalizeMargenRedondeo } from './utils/cortePapelCalculations'
 import {
-  computeCortePapelValores,
-  DEFAULT_MARGEN_REDONDEO,
-  normalizeMargenRedondeo,
-} from './utils/cortePapelCalculations'
+  appendFaltanteLitografiaRow,
+  findPaperRowForActiveId,
+  isFaltanteLitografiaRow,
+  upsertPaperRow,
+} from './utils/cortePapelFaltante'
+import {
+  paperRowsMatchColoresPlanchas,
+  resolveOrderCortePapelMetrics,
+  syncPaperRowsWithColoresPlanchas,
+} from './utils/paperRowsSync'
+import { CORTE_PAPEL_COPY as cortePapelCopy } from './constants/cortePapelCopy'
+import {
+  buildProductionNewOrderDraft,
+  hydrateOrderSpecsFromDraft,
+  productionDraftHasContent,
+  resolveActiveTabFromDraft,
+  resolveCortePapelSubTabFromDraft,
+  resolveImpresionSubTabFromDraft,
+} from './utils/productionNewOrderDraft'
+import {
+  impresionTintasRegistrosEqual,
+  patchImpresionTintasRegistro,
+  syncImpresionTintasRegistros,
+} from './utils/impresionTintasUtils'
+import {
+  hasPersistedProductionNewOrderDraft,
+  useProductionNewOrderDraftStore,
+} from '../../stores/productionNewOrderDraftStore'
+import { confirmAction } from '../../utils/actionFeedback'
 
 const parseQuantityDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
@@ -81,6 +111,7 @@ const emptySpecs = (): OrderSpecs => ({
   cantidadHojas: 0,
   margenRedondeo: DEFAULT_MARGEN_REDONDEO,
   valorCorte: 0,
+  clienteSuministraPapel: 'no',
   mounting: false,
   mountingValue: new Money(0),
   design: true,
@@ -89,6 +120,7 @@ const emptySpecs = (): OrderSpecs => ({
   platesValue: new Money(0),
   thousands: 0,
   inks: '',
+  impresionTintasRegistros: [],
   machineOutputValue: new Money(0),
   chapoliado: false,
   finishes: [],
@@ -115,6 +147,9 @@ const ProductionOrderWorkspace: React.FC = () => {
   const [specsSubTab, setSpecsSubTab] = useState<SpecsSubTabId>('cliente')
   const [preprensaSubTab, setPreprensaSubTab] = useState<PreprensaSubTabId>('diseno')
   const [cortePapelSubTab, setCortePapelSubTab] = useState<CortePapelSubTabId>('corte')
+  const [impresionSubTab, setImpresionSubTab] = useState<ImpresionSubTabId>('tintas')
+  const [activeCorteColorPlanchaId, setActiveCorteColorPlanchaId] = useState('')
+  const [activeImpresionColorPlanchaId, setActiveImpresionColorPlanchaId] = useState('')
   const [clients, setClients] = useState<Client[]>([])
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [planchas, setPlanchas] = useState<TamanoPlancha[]>([])
@@ -164,48 +199,180 @@ const ProductionOrderWorkspace: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (isNew) {
-      setClientId('')
-      setVendedorId('')
-      setWorkName('')
-      setSpecs(emptySpecs())
-      setActiveTab('especificaciones')
-      setSpecsSubTab('cliente')
-      setPreprensaSubTab('diseno')
-    }
-  }, [orderId, isNew])
+    if (tiposPapelStore.length === 0) return
+    setTiposPapelCatalog(normalizeTipoPapelList(tiposPapelStore))
+  }, [tiposPapelStore])
 
-  const resolveCortePapelMetrics = useCallback(
-    (
-      coloresPlanchas: PreprensaDisenoSpecs['coloresPlanchas'],
-      row: PaperRow,
-      margenRedondeo = DEFAULT_MARGEN_REDONDEO
-    ) => {
-      const tipo = row.tipoPapelId ? tiposPapel.find(t => t.id === row.tipoPapelId) : null
-      const valores = computeCortePapelValores({
+  const draftHydratedRef = useRef(false)
+  const setDraft = useProductionNewOrderDraftStore(s => s.setDraft)
+  const clearDraft = useProductionNewOrderDraftStore(s => s.clearDraft)
+  const hasDraft = useProductionNewOrderDraftStore(
+    s => s.draft != null && productionDraftHasContent(s.draft)
+  )
+
+  const mergeSpecsWithCorteMetrics = useCallback(
+    (prev: OrderSpecs, patch: Partial<OrderSpecs> = {}): OrderSpecs => {
+      const preprensaDiseno = patch.preprensaDiseno
+        ? { ...prev.preprensaDiseno, ...patch.preprensaDiseno }
+        : prev.preprensaDiseno
+      const clienteSuministraPapel = patch.clienteSuministraPapel ?? prev.clienteSuministraPapel ?? 'no'
+      const coloresPlanchas = preprensaDiseno.coloresPlanchas
+      const paperRowsRaw = patch.paperRows ?? prev.paperRows
+      const paperRows = syncPaperRowsWithColoresPlanchas(coloresPlanchas, paperRowsRaw)
+      const metrics = resolveOrderCortePapelMetrics(
         coloresPlanchas,
-        row,
-        tipoPapel: tipo ?? null,
-        margenRedondeo,
-      })
+        paperRows,
+        tiposPapel,
+        normalizeMargenRedondeo(patch.margenRedondeo ?? prev.margenRedondeo),
+        clienteSuministraPapel
+      )
       return {
-        cantidadHojas: valores.cantidadHojas,
-        valorCorte: valores.valorCorte,
+        ...prev,
+        ...patch,
+        preprensaDiseno,
+        clienteSuministraPapel,
+        paperRows,
+        margenRedondeo: normalizeMargenRedondeo(patch.margenRedondeo ?? prev.margenRedondeo),
+        ...metrics,
       }
     },
     [tiposPapel]
   )
 
-  const handleCorteMetricsChange = useCallback(
-    (metrics: { cantidadHojas: number; valorCorte: number }) => {
-      setSpecs(prev =>
-        prev.cantidadHojas === metrics.cantidadHojas && prev.valorCorte === metrics.valorCorte
-          ? prev
-          : { ...prev, ...metrics }
-      )
-    },
-    []
+  const hydrateFromPersistedDraft = useCallback(() => {
+    const draft = useProductionNewOrderDraftStore.getState().draft
+    if (!draft || !productionDraftHasContent(draft)) return false
+    setClientId(draft.clientId)
+    setVendedorId(draft.vendedorId)
+    setWorkName(draft.workName)
+    setActiveTab(resolveActiveTabFromDraft(draft))
+    setSpecsSubTab(draft.specsSubTab)
+    setPreprensaSubTab(draft.preprensaSubTab)
+    setCortePapelSubTab(resolveCortePapelSubTabFromDraft(draft.cortePapelSubTab))
+    setImpresionSubTab(resolveImpresionSubTabFromDraft(draft))
+    setActiveCorteColorPlanchaId(draft.activeCorteColorPlanchaId)
+    setSpecs(
+      mergeSpecsWithCorteMetrics(hydrateOrderSpecsFromDraft(draft.specs), {})
+    )
+    return true
+  }, [mergeSpecsWithCorteMetrics])
+
+  const resetNewOrderForm = useCallback(() => {
+    setClientId('')
+    setVendedorId('')
+    setWorkName('')
+    setSpecs(emptySpecs())
+    setActiveTab('especificaciones')
+    setSpecsSubTab('cliente')
+    setPreprensaSubTab('diseno')
+    setCortePapelSubTab('corte')
+    setImpresionSubTab('tintas')
+    setActiveCorteColorPlanchaId('')
+    setActiveImpresionColorPlanchaId('')
+    setError(null)
+  }, [])
+
+  useEffect(() => {
+    if (!isNew) {
+      draftHydratedRef.current = false
+      return
+    }
+    if (draftHydratedRef.current) return
+    draftHydratedRef.current = true
+    if (!hydrateFromPersistedDraft()) {
+      resetNewOrderForm()
+    }
+  }, [isNew, orderId, hydrateFromPersistedDraft, resetNewOrderForm])
+
+  useEffect(() => {
+    if (!isNew || !draftHydratedRef.current) return
+    const snapshot = buildProductionNewOrderDraft({
+      clientId,
+      workName,
+      vendedorId,
+      specs,
+      activeTab,
+      specsSubTab,
+      preprensaSubTab,
+      cortePapelSubTab,
+      impresionSubTab,
+      activeCorteColorPlanchaId,
+    })
+    if (productionDraftHasContent(snapshot)) {
+      setDraft(snapshot)
+    } else {
+      clearDraft()
+    }
+  }, [
+    isNew,
+    clientId,
+    workName,
+    vendedorId,
+    specs,
+    activeTab,
+    specsSubTab,
+    preprensaSubTab,
+    cortePapelSubTab,
+    impresionSubTab,
+    activeCorteColorPlanchaId,
+    setDraft,
+    clearDraft,
+  ])
+
+  const impresionColoresPlanchas = useMemo(
+    () => normalizePreprensaSnapshot(specs.preprensaDiseno).coloresPlanchas,
+    [specs.preprensaDiseno]
   )
+
+  useEffect(() => {
+    const preprensaIds = specs.preprensaDiseno.coloresPlanchas.map(item => item.id)
+    const faltanteCorteIds = specs.paperRows
+      .filter(row => isFaltanteLitografiaRow(row) && row.corteRowId)
+      .map(row => row.corteRowId as string)
+    const allowedIds = new Set([...preprensaIds, ...faltanteCorteIds])
+    setActiveCorteColorPlanchaId(prev =>
+      prev && allowedIds.has(prev) ? prev : preprensaIds[0] ?? ''
+    )
+  }, [specs.preprensaDiseno.coloresPlanchas, specs.paperRows])
+
+  useEffect(() => {
+    const preprensaIds = impresionColoresPlanchas.map(item => item.id)
+    setActiveImpresionColorPlanchaId(prev =>
+      prev && preprensaIds.includes(prev) ? prev : preprensaIds[0] ?? ''
+    )
+  }, [impresionColoresPlanchas])
+
+  useEffect(() => {
+    setSpecs(prev => {
+      const next = syncImpresionTintasRegistros(
+        impresionColoresPlanchas,
+        prev.impresionTintasRegistros ?? []
+      )
+      if (impresionTintasRegistrosEqual(next, prev.impresionTintasRegistros ?? [])) {
+        return prev
+      }
+      return { ...prev, impresionTintasRegistros: next }
+    })
+  }, [impresionColoresPlanchas])
+
+  useEffect(() => {
+    if (paperRowsMatchColoresPlanchas(specs.preprensaDiseno.coloresPlanchas, specs.paperRows)) {
+      return
+    }
+    setSpecs(prev =>
+      mergeSpecsWithCorteMetrics(prev, {
+        paperRows: syncPaperRowsWithColoresPlanchas(
+          prev.preprensaDiseno.coloresPlanchas,
+          prev.paperRows
+        ),
+      })
+    )
+  }, [
+    specs.preprensaDiseno.coloresPlanchas,
+    specs.paperRows,
+    specs.clienteSuministraPapel,
+    mergeSpecsWithCorteMetrics,
+  ])
 
   useEffect(() => {
     if (isNew || !existingOrder) return
@@ -215,17 +382,25 @@ const ProductionOrderWorkspace: React.FC = () => {
     const legacyRow = existingOrder.specs.paperRows[0]
     const preprensaDiseno = normalizePreprensaSnapshot(existingOrder.specs.preprensaDiseno)
     const row = legacyRow ?? emptyPaperRow()
-    setSpecs({
-      ...existingOrder.specs,
-      margenRedondeo: normalizeMargenRedondeo(existingOrder.specs.margenRedondeo),
-      preprensaDiseno,
-      ...resolveCortePapelMetrics(
-        preprensaDiseno.coloresPlanchas,
-        row,
-        normalizeMargenRedondeo(existingOrder.specs.margenRedondeo)
-      ),
-    })
-  }, [isNew, existingOrder, resolveCortePapelMetrics])
+    setSpecs(
+      mergeSpecsWithCorteMetrics(
+        {
+          ...existingOrder.specs,
+          margenRedondeo: normalizeMargenRedondeo(existingOrder.specs.margenRedondeo),
+          clienteSuministraPapel: existingOrder.specs.clienteSuministraPapel ?? 'no',
+          preprensaDiseno,
+          impresionTintasRegistros: syncImpresionTintasRegistros(
+            preprensaDiseno.coloresPlanchas,
+            existingOrder.specs.impresionTintasRegistros ?? []
+          ),
+          paperRows: existingOrder.specs.paperRows?.length
+            ? existingOrder.specs.paperRows
+            : [row],
+        },
+        {}
+      )
+    )
+  }, [isNew, existingOrder, mergeSpecsWithCorteMetrics])
 
   const clientName = clients.find(c => c.id === clientId)?.name ?? clientId
 
@@ -243,20 +418,23 @@ const ProductionOrderWorkspace: React.FC = () => {
     setSpecs(prev => ({ ...prev, [key]: value }))
   }
 
+  const handleImpresionTintasRegistroChange = useCallback((registro: ImpresionTintasRegistro) => {
+    setSpecs(prev => ({
+      ...prev,
+      impresionTintasRegistros: patchImpresionTintasRegistro(
+        prev.impresionTintasRegistros ?? [],
+        registro
+      ),
+    }))
+  }, [])
+
   const updatePreprensaDiseno = (patch: Partial<PreprensaDisenoSpecs>) => {
     setSpecs(prev => {
       const next = { ...prev.preprensaDiseno, ...patch }
-      const row = prev.paperRows[0] ?? emptyPaperRow()
-      return {
-        ...prev,
+      return mergeSpecsWithCorteMetrics(prev, {
         preprensaDiseno: next,
         design: next.designNuevo === 'si',
-        ...resolveCortePapelMetrics(
-          next.coloresPlanchas,
-          row,
-          normalizeMargenRedondeo(prev.margenRedondeo)
-        ),
-      }
+      })
     })
   }
 
@@ -269,33 +447,48 @@ const ProductionOrderWorkspace: React.FC = () => {
       ...buildPreprensaFromHistorial(raw, option.sourceOrderId, option.workName),
       ...buildColoresPlanchasPatch(coloresPlanchas),
     }
-    setSpecs(prev => ({
-      ...prev,
-      design: false,
-      preprensaDiseno,
-      ...resolveCortePapelMetrics(
-        preprensaDiseno.coloresPlanchas,
-        prev.paperRows[0] ?? emptyPaperRow(),
-        normalizeMargenRedondeo(prev.margenRedondeo)
-      ),
-    }))
+    setSpecs(prev =>
+      mergeSpecsWithCorteMetrics(prev, {
+        design: false,
+        preprensaDiseno,
+      })
+    )
   }
 
-  const paperRow = specs.paperRows[0] ?? emptyPaperRow()
+  const clienteSuministraPapel = specs.clienteSuministraPapel ?? 'no'
+  const paperRow = findPaperRowForActiveId(specs.paperRows, activeCorteColorPlanchaId)
 
   const setPaperRow = (row: PaperRow) => {
+    setSpecs(prev =>
+      mergeSpecsWithCorteMetrics(prev, {
+        paperRows: upsertPaperRow(prev.paperRows, row),
+      })
+    )
+  }
+
+  const handleAddFaltanteLitografia = (parent: PaperRow, hojasFaltante: number) => {
+    let nextActiveId: string | undefined
     setSpecs(prev => {
-      const rows = [...prev.paperRows]
-      rows[0] = row
-      return {
-        ...prev,
-        paperRows: rows.length > 0 ? rows : [row],
-        ...resolveCortePapelMetrics(
-          prev.preprensaDiseno.coloresPlanchas,
-          row,
-          normalizeMargenRedondeo(prev.margenRedondeo)
-        ),
-      }
+      const result = appendFaltanteLitografiaRow(prev.paperRows, parent, hojasFaltante)
+      if (!result) return prev
+      nextActiveId = result.corteRowId
+      return mergeSpecsWithCorteMetrics(prev, { paperRows: result.paperRows })
+    })
+    if (nextActiveId) {
+      queueMicrotask(() => setActiveCorteColorPlanchaId(nextActiveId!))
+    }
+  }
+
+  const handleClienteSuministraPapelChange = (value: OrderSpecs['clienteSuministraPapel']) => {
+    setSpecs(prev => {
+      const patch = patchCorteClienteSuministraPapel(
+        value,
+        prev.preprensaDiseno.coloresPlanchas,
+        prev.paperRows
+      )
+      const firstId = prev.preprensaDiseno.coloresPlanchas[0]?.id ?? ''
+      setActiveCorteColorPlanchaId(firstId)
+      return mergeSpecsWithCorteMetrics(prev, patch)
     })
   }
 
@@ -314,6 +507,27 @@ const ProductionOrderWorkspace: React.FC = () => {
     const index = PRODUCTION_WORKFLOW_TABS.findIndex(t => t.id === activeTab)
     const next = PRODUCTION_WORKFLOW_TABS[index + direction]
     if (next) goToTab(next.id)
+  }
+
+  const handleDiscardDraft = async () => {
+    const hasDraft = hasPersistedProductionNewOrderDraft()
+    if (
+      hasDraft &&
+      !(await confirmAction(
+        '¿Eliminar el borrador de esta orden? Se perderá toda la información no guardada.',
+        { variant: 'danger', confirmLabel: 'Eliminar borrador', title: 'Eliminar borrador' }
+      ))
+    ) {
+      return
+    }
+    if (!hasDraft) {
+      resetNewOrderForm()
+      navigate(ROUTES.production.path)
+      return
+    }
+    clearDraft()
+    resetNewOrderForm()
+    navigate(ROUTES.production.path)
   }
 
   const handleSave = async () => {
@@ -344,6 +558,7 @@ const ProductionOrderWorkspace: React.FC = () => {
         vendedorId: vendedorId.trim() || undefined,
       }
       const order = await createOrder(dto)
+      clearDraft()
       navigate(`${ROUTES.production.path}/${order.id}`, { replace: true })
     } catch {
       setError('No se pudo guardar la orden. Intenta de nuevo.')
@@ -377,7 +592,6 @@ const ProductionOrderWorkspace: React.FC = () => {
     <div
       className={`remissions-container production-workspace${isNew ? ' production-workspace--new-order' : ''}`}
     >
-      {!isNew && (
       <div className="remissions-header">
         <div className="remissions-header-left">
           <button
@@ -397,12 +611,26 @@ const ProductionOrderWorkspace: React.FC = () => {
               {clientName}
             </p>
           )}
+          {isNew && hasDraft && (
+            <p className="production-draft-status" role="status">
+              Borrador guardado automáticamente. Elimínelo solo si no desea continuar esta orden.
+            </p>
+          )}
         </div>
         <div className="remissions-header-right">
-          {existingOrder && <StatusBadge status={existingOrder.status} />}
+          {isNew ? (
+            <button
+              type="button"
+              className="production-btn-secondary production-btn-secondary--danger"
+              onClick={handleDiscardDraft}
+            >
+              Eliminar borrador
+            </button>
+          ) : (
+            existingOrder && <StatusBadge status={existingOrder.status} />
+          )}
         </div>
       </div>
-      )}
 
       <ProductionKpiGrid orders={orders} />
 
@@ -670,91 +898,34 @@ const ProductionOrderWorkspace: React.FC = () => {
                 />
 
                 <div className="production-specs-content">
-                  {cortePapelSubTab === 'corte' && (
-                    <div
-                      className="production-preprensa-diseno-detail"
-                      role="tabpanel"
-                      id="production-corte-papel-panel-corte"
-                      aria-labelledby="production-corte-papel-subtab-corte"
-                    >
-                      <ProductionCortePapelForm
+                  <div
+                    className="production-preprensa-diseno-detail"
+                    role="tabpanel"
+                    id="production-corte-papel-panel-corte"
+                    aria-labelledby="production-corte-papel-subtab-corte"
+                  >
+                    <ProductionCortePapelForm
                         row={paperRow}
+                        paperRows={specs.paperRows}
                         tiposPapel={tiposPapel}
                         coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
                         margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
+                        clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
                         loadingTiposPapel={loadingTiposPapel && tiposPapel.length === 0}
+                        activeColorPlanchaId={activeCorteColorPlanchaId}
+                        onActiveColorPlanchaIdChange={setActiveCorteColorPlanchaId}
                         onPaperRowChange={setPaperRow}
+                        onClienteSuministraPapelChange={handleClienteSuministraPapelChange}
+                        onAddFaltanteLitografia={handleAddFaltanteLitografia}
                         onMargenRedondeoChange={value =>
-                          setSpecs(prev => ({
-                            ...prev,
-                            margenRedondeo: normalizeMargenRedondeo(value),
-                            ...resolveCortePapelMetrics(
-                              prev.preprensaDiseno.coloresPlanchas,
-                              prev.paperRows[0] ?? emptyPaperRow(),
-                              normalizeMargenRedondeo(value)
-                            ),
-                          }))
+                          setSpecs(prev =>
+                            mergeSpecsWithCorteMetrics(prev, {
+                              margenRedondeo: normalizeMargenRedondeo(value),
+                            })
+                          )
                         }
-                        onCorteMetricsChange={handleCorteMetricsChange}
                       />
                     </div>
-                  )}
-
-                  {cortePapelSubTab === 'tintas' && (
-                    <div
-                      className="production-specs-panel production-specs-panel--sections"
-                      role="tabpanel"
-                      id="production-corte-papel-panel-tintas"
-                      aria-labelledby="production-corte-papel-subtab-tintas"
-                    >
-                      <p className="production-workspace-panel-desc">
-                        Configuración de tintas y miles para el cálculo de impresión.
-                      </p>
-                      <div className="production-ws-sections-stack">
-                        <ProductionWorkspaceSection
-                          tag="Tintas"
-                          title="Configuración de tintas"
-                          tone={0}
-                        >
-                          <div className="production-form-field production-form-field--full">
-                            <label className="production-form-label" htmlFor="prod-inks">
-                              Tintas
-                            </label>
-                            <input
-                              id="prod-inks"
-                              type="text"
-                              className="production-form-input"
-                              value={specs.inks}
-                              onChange={e => updateSpecs('inks', e.target.value)}
-                              placeholder="Ej. 4×0, CMYK + Pantone 185 C"
-                            />
-                          </div>
-                        </ProductionWorkspaceSection>
-                        <ProductionWorkspaceSection
-                          tag="Impresión"
-                          title="Miles"
-                          tone={1}
-                        >
-                          <div className="production-form-field">
-                            <label className="production-form-label" htmlFor="prod-thousands">
-                              Miles
-                            </label>
-                            <input
-                              id="prod-thousands"
-                              type="number"
-                              min={0}
-                              className="production-form-input"
-                              value={specs.thousands || ''}
-                              onChange={e =>
-                                updateSpecs('thousands', Number(e.target.value) || 0)
-                              }
-                              placeholder="Ej. 1"
-                            />
-                          </div>
-                        </ProductionWorkspaceSection>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </>
@@ -763,43 +934,79 @@ const ProductionOrderWorkspace: React.FC = () => {
           {activeTab === 'impresion' && (
             <>
               <h2 className="production-workspace-panel-title">Impresión</h2>
-              <p className="production-workspace-panel-desc">
-                Parámetros de máquina, salida y acabados en línea de impresión.
-              </p>
-              <div className="production-ws-sections-stack">
-                <ProductionWorkspaceSection
-                  tag="Máquina"
-                  title="Salida de impresión"
-                  tone={2}
-                >
-                  <div className="production-form-field">
-                    <label className="production-form-label" htmlFor="prod-machine">
-                      Valor salida máquina
-                    </label>
-                    <input
-                      id="prod-machine"
-                      type="number"
-                      min={0}
-                      className="production-form-input"
-                      value={specs.machineOutputValue.getValue() || ''}
-                      onChange={e =>
-                        updateSpecs('machineOutputValue', new Money(Number(e.target.value) || 0))
-                      }
-                    />
-                  </div>
-                </ProductionWorkspaceSection>
-                <ProductionWorkspaceSection tag="Acabado" title="En línea" tone={0}>
-                  <div className="production-form-field">
-                    <label className="production-form-label">
-                      <input
-                        type="checkbox"
-                        checked={specs.chapoliado}
-                        onChange={e => updateSpecs('chapoliado', e.target.checked)}
-                      />{' '}
-                      Chapoliado
-                    </label>
-                  </div>
-                </ProductionWorkspaceSection>
+
+              <div className="production-specs-layout">
+                <ProductionImpresionSubNav
+                  active={impresionSubTab}
+                  onChange={setImpresionSubTab}
+                />
+
+                <div className="production-specs-content">
+                  {impresionSubTab === 'tintas' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-impresion-panel-tintas"
+                      aria-labelledby="production-impresion-subtab-tintas"
+                    >
+                      <ProductionImpresionTintasPanel
+                        coloresPlanchas={impresionColoresPlanchas}
+                        registros={specs.impresionTintasRegistros ?? []}
+                        activeColorPlanchaId={activeImpresionColorPlanchaId}
+                        onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
+                        onRegistroChange={handleImpresionTintasRegistroChange}
+                      />
+                    </div>
+                  )}
+
+                  {impresionSubTab === 'maquina' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-impresion-panel-maquina"
+                      aria-labelledby="production-impresion-subtab-maquina"
+                    >
+                      <p className="production-workspace-panel-desc">
+                        Parámetros de máquina, salida y acabados en línea de impresión.
+                      </p>
+                      <div className="production-ws-sections-stack">
+                        <ProductionWorkspaceSection
+                          tag="Máquina"
+                          title="Salida de impresión"
+                          tone={2}
+                        >
+                          <div className="production-form-field">
+                            <label className="production-form-label" htmlFor="prod-machine">
+                              Valor salida máquina
+                            </label>
+                            <input
+                              id="prod-machine"
+                              type="number"
+                              min={0}
+                              className="production-form-input"
+                              value={specs.machineOutputValue.getValue() || ''}
+                              onChange={e =>
+                                updateSpecs('machineOutputValue', new Money(Number(e.target.value) || 0))
+                              }
+                            />
+                          </div>
+                        </ProductionWorkspaceSection>
+                        <ProductionWorkspaceSection tag="Acabado" title="En línea" tone={0}>
+                          <div className="production-form-field">
+                            <label className="production-form-label">
+                              <input
+                                type="checkbox"
+                                checked={specs.chapoliado}
+                                onChange={e => updateSpecs('chapoliado', e.target.checked)}
+                              />{' '}
+                              Chapoliado
+                            </label>
+                          </div>
+                        </ProductionWorkspaceSection>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}

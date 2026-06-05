@@ -5,7 +5,12 @@ import { usePagination } from '../../hooks/usePagination'
 import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import CatalogRecordModal from './CatalogRecordModal'
 import type { CatalogRecord, CatalogRecordFormValues } from './catalogRecord'
-import { normalizeCatalogUnitCost } from './catalogRecord'
+import {
+  buildCatalogRecordFromFormValues,
+  CATALOG_VALOR_CM2_LABEL,
+  displayCatalogValorCmCuadrado,
+  normalizeCatalogRecordList,
+} from './catalogRecord'
 import { TERMINADOS_SEED } from './catalogSeeds'
 import CatalogRecordCost from './CatalogRecordCost'
 import {
@@ -19,13 +24,7 @@ import '../remissions/Remissions.css'
 import '../clients/Clients.css'
 
 function toRecord(values: CatalogRecordFormValues, id?: string): CatalogRecord {
-  const cost = normalizeCatalogUnitCost(values.cost)
-  return {
-    id: id ?? `t-${crypto.randomUUID()}`,
-    name: values.name.trim(),
-    ...(values.quickAccess ? { quickAccess: true } : {}),
-    cost: cost || '—',
-  }
+  return buildCatalogRecordFromFormValues(values, 't', id)
 }
 
 interface FinishedCardProps {
@@ -42,6 +41,12 @@ const FinishedCard: React.FC<FinishedCardProps> = ({ item, onEdit, onExport, onD
       <div className="catalog-card-info">
         <h3 className="catalog-card-name">{item.name}</h3>
         <CatalogRecordCost cost={item.cost} variant="orange" />
+        <div className="catalog-card-cost catalog-card-cost--orange">
+          <span className="catalog-card-cost__label">{CATALOG_VALOR_CM2_LABEL}</span>
+          <span className="catalog-card-cost__value">
+            {displayCatalogValorCmCuadrado(item.valorCmCuadrado)}
+          </span>
+        </div>
         {item.quickAccess ? (
           <span className="catalog-quick-access-badge catalog-quick-access-badge--orange">
             <span className="catalog-quick-access-badge__icon" aria-hidden>
@@ -88,7 +93,7 @@ const FinishedCard: React.FC<FinishedCardProps> = ({ item, onEdit, onExport, onD
 )
 
 const CatalogTerminados: React.FC = () => {
-  const [items, setItems] = useState<CatalogRecord[]>(TERMINADOS_SEED)
+  const [items, setItems] = useState<CatalogRecord[]>(() => normalizeCatalogRecordList(TERMINADOS_SEED))
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CatalogRecord | null>(null)
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import { displayCatalogUnitCost } from './catalogRecord'
+import { displayCatalogUnitCost, CATALOG_COSTO_MINIMO_LABEL } from './catalogRecord'
 
 interface CatalogRecordCostProps {
   cost?: string
@@ -11,7 +11,7 @@ const CatalogRecordCost: React.FC<CatalogRecordCostProps> = ({ cost, variant }) 
 
   return (
     <div className={`catalog-card-cost catalog-card-cost--${variant}`}>
-      <span className="catalog-card-cost__label">Costo unitario</span>
+      <span className="catalog-card-cost__label">{CATALOG_COSTO_MINIMO_LABEL}</span>
       <span className="catalog-card-cost__value">{display}</span>
     </div>
   )

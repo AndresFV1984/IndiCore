@@ -56,6 +56,8 @@ export interface PreprensaDisenoSpecs {
   coloresPlanchas: DisenoColorPlanchaItem[]
   /** Suma de valorTotal de todos los registros en coloresPlanchas */
   valorTotalPlanchas: number
+  /** Orden nueva: el cliente entrega las planchas (no se cobra precio de plancha) */
+  clienteSuministraPlanchas: YesNoChoice
   planchaId: string
   /** Snapshot: nombre y medida del tipo de plancha del catálogo */
   planchaNombreMedida: string
@@ -87,6 +89,7 @@ export const emptyPreprensaDiseno = (): PreprensaDisenoSpecs => ({
   colores: '',
   coloresPlanchas: [],
   valorTotalPlanchas: 0,
+  clienteSuministraPlanchas: 'no',
   planchaId: '',
   planchaNombreMedida: '',
   planchaValor: 0,
