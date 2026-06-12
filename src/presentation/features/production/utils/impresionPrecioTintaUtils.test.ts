@@ -78,31 +78,61 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
     )
     const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
 
-    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 2500, 17500, 50000)
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 2500, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+    })
 
     expect(breakdown.cantidadTintasColorBasico).toBe(3)
     expect(breakdown.cantidadTintasPantone).toBe(1)
-    expect(breakdown.millaresColorBasico).toBe(7.5)
-    expect(breakdown.millaresPantone).toBe(2.5)
-    expect(breakdown.millaresTotal).toBe(10)
-    expect(breakdown.colorBasico).toBe(131_250)
-    expect(breakdown.pantone).toBe(125_000)
-    expect(breakdown.total).toBe(256_250)
+    expect(breakdown.millaresColorBasico).toBe(8)
+    expect(breakdown.millaresPantone).toBe(3)
+    expect(breakdown.millaresTotal).toBe(11)
+    expect(breakdown.colorBasico).toBe(140_000)
+    expect(breakdown.pantone).toBe(150_000)
+    expect(breakdown.total).toBe(290_000)
     expect(breakdown.millaresVolteo).toBe(0)
     expect(breakdown.volteo).toBe(0)
-    expect(breakdown.grandTotal).toBe(256_250)
+    expect(breakdown.grandTotal).toBe(290_000)
   })
 
-  it('agrega precio de volteo cuando hay tarifa y millares del registro', () => {
+  it('con volteo y millares referencia bajo el tope usa precio con volteo', () => {
+    const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1)
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 250, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoColorBasicoMillar: 20_000,
+      conVolteoColorBasico: true,
+      topeMinimoMillarVolteoColorBasico: 600,
+      millarMinimoVentaVolteoColorBasico: 500,
+    })
+
+    expect(breakdown.millaresColorBasico).toBe(0.5)
+    expect(breakdown.colorBasico).toBe(10_000)
+    expect(breakdown.millaresVolteo).toBe(0)
+    expect(breakdown.volteo).toBe(0)
+    expect(breakdown.grandTotal).toBe(10_000)
+  })
+
+  it('con volteo y millares referencia ≥ tope usa precio millar sin volteo', () => {
     const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
     const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
 
-    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 2500, 17500, 50000, 20000)
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 2500, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoColorBasicoMillar: 20_000,
+      conVolteoColorBasico: true,
+      topeMinimoMillarVolteoColorBasico: 600,
+    })
 
-    expect(breakdown.millaresTotal).toBe(10)
-    expect(breakdown.millaresVolteo).toBe(10)
-    expect(breakdown.volteo).toBe(200_000)
-    expect(breakdown.grandTotal).toBe(375_000)
+    expect(breakdown.millaresColorBasico).toBe(10)
+    expect(breakdown.colorBasico).toBe(175_000)
+    expect(breakdown.millaresVolteo).toBe(0)
+    expect(breakdown.volteo).toBe(0)
+    expect(breakdown.grandTotal).toBe(175_000)
   })
 })
 
@@ -166,6 +196,8 @@ describe('buildImpresionTintasResumenConsolidado', () => {
       precioTintaPantone: 50_000,
       precioVolteo: 200_000,
       totalCobrar: 350_000,
+      volteoColorBasico: 'con',
+      volteoPantone: 'con',
     })
   })
 })
@@ -245,21 +277,20 @@ describe('computeImpresionPrecioTinta', () => {
     const precioColorBasico = 17500
     const precioPantone = 50000
 
-    // factorBase = 1 * (2500/1000) = 2.5
-    // precio = round(2.5 * 17500) = 43750
+    // factorBase = 1 * (2500/1000) = 2.5 → redondeo decimal ≥ 0.2 → 3 millares
     expect(
       computeImpresionPrecioTinta(tiro, retiro, 2500, precioColorBasico, precioPantone)
-    ).toBe(43_750)
+    ).toBe(52_500)
   })
 
-  it('aplica mínimo 1 por grupo cuando factor < 1', () => {
-    // nonPantoneCount = 1, factorBase = 1*(500/1000)=0.5 => mínimo 1
+  it('aplica redondeo decimal con umbral 0,2 en millares bajos', () => {
     const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1) // [0]
     const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
 
     const precioColorBasico = 17500
     const precioPantone = 50000
 
+    // factorBase = 1 * (500/1000) = 0,5 → decimal > 0,2 → 1 millar
     expect(
       computeImpresionPrecioTinta(tiro, retiro, 500, precioColorBasico, precioPantone)
     ).toBe(17_500)

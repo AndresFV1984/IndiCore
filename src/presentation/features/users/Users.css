@@ -1,1 +1,144 @@
 @import '../../styles/directory-records.css';
+
+.users-role-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--corp-primary) 12%, var(--surface));
+  color: var(--corp-primary);
+}
+
+.users-td-permissions {
+  min-width: 10rem;
+  max-width: 16rem;
+  vertical-align: top;
+}
+
+.users-permissions-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.users-permissions-display--empty {
+  color: var(--txt-3);
+}
+
+.users-permissions-display__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.28rem 0.45rem 0.28rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 20%, var(--border));
+  border-radius: 6px;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.users-permissions-display__toggle:hover {
+  border-color: color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 35%, var(--border));
+  background: color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 12%, var(--surface));
+}
+
+.users-permissions-display__toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 25%, transparent);
+}
+
+.users-permissions-display__toggle--open {
+  border-color: color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 38%, var(--border));
+  background: color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 14%, var(--surface));
+}
+
+.users-permissions-display__toggle--full {
+  color: var(--dir-accent, var(--corp-primary));
+}
+
+.users-permissions-display__summary {
+  min-width: 0;
+}
+
+.users-permissions-display__chevron {
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: -0.15rem;
+  transition: transform 0.15s ease;
+}
+
+.users-permissions-display__toggle--open .users-permissions-display__chevron {
+  transform: rotate(-135deg);
+  margin-top: 0.1rem;
+}
+
+.users-permissions-display__list {
+  width: 100%;
+  max-height: 10.5rem;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  overflow: auto;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.users-permissions-display__item {
+  position: relative;
+  padding: 0.28rem 0 0.28rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+.users-permissions-display__item::before {
+  content: '';
+  position: absolute;
+  left: 0.15rem;
+  top: 0.62rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dir-accent, var(--corp-primary)) 55%, #cbd5e1);
+}
+
+.users-permissions-display__item + .users-permissions-display__item {
+  border-top: 1px solid #f1f5f9;
+}
+
+.user-permissions-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.45rem 0.75rem;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.user-permissions-picker__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}

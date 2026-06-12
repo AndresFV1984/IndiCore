@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback } from 'react'
 import {
   DisenoColorPlanchaItem,
   PreprensaDisenoSpecs,
@@ -7,6 +7,7 @@ import {
 import { Client } from '../../../core/domain/entities/Client'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
 import { PrecioMontaje } from '../../../core/domain/entities/PrecioMontaje'
+import DisenoAcabadosPicker from './DisenoAcabadosPicker'
 import DisenoColoresPlanchasPanel from './DisenoColoresPlanchasPanel'
 import DisenoTotalesResumen from './DisenoTotalesResumen'
 import { buildColoresPlanchasPatch } from './utils/coloresPlanchasUtils'
@@ -21,13 +22,6 @@ import type { ProductionWorkspaceTone } from './constants/productionWorkspaceCol
 import { PREPRENSA_DISENO_COPY as copy } from './constants/preprensaDisenoCopy'
 
 const MAX_PDF_MB = 15
-
-const ACABADOS_OPTIONS = [
-  { key: 'lineaTroquel' as const, label: copy.acabados.lineaTroquel },
-  { key: 'reservaUv' as const, label: copy.acabados.reservaUv },
-  { key: 'estampado' as const, label: copy.acabados.estampado },
-  { key: 'repuje' as const, label: copy.acabados.repuje },
-]
 
 const parseDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
@@ -86,15 +80,26 @@ interface DisenoSectionProps {
   title?: string
   subtitle?: string
   tone?: DisenoSectionTone
+  variant?: 'card' | 'flat'
+  hideHead?: boolean
   children: React.ReactNode
 }
 
-const DisenoSection: React.FC<DisenoSectionProps> = ({ title, subtitle, tone, children }) => (
+const DisenoSection: React.FC<DisenoSectionProps> = ({
+  title,
+  subtitle,
+  tone,
+  variant = 'card',
+  hideHead = false,
+  children,
+}) => (
   <ProductionWorkspaceSection
-    tag={tone ? SECTION_TAG_LABELS[tone] : undefined}
+    tag={variant === 'card' && tone ? SECTION_TAG_LABELS[tone] : undefined}
     title={title}
     subtitle={subtitle}
-    tone={tone ? SECTION_TONE[tone] : 0}
+    hideHead={hideHead}
+    tone={variant === 'card' && tone ? SECTION_TONE[tone] : 0}
+    className={variant === 'flat' ? 'production-ws-section--diseno-flat' : undefined}
   >
     {children}
   </ProductionWorkspaceSection>
@@ -143,15 +148,8 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
   const showDetalleExistente = diseno.designNuevo === 'no'
   const historialSeleccionado = Boolean(diseno.disenoExistenteId.trim())
   const detalleDesdeTrabajoAnterior = showDetalleExistente && historialSeleccionado
-  const trabajoHistorial = useMemo(
-    () => disenosCliente.find(d => d.sourceOrderId === diseno.disenoExistenteId) ?? null,
-    [disenosCliente, diseno.disenoExistenteId]
-  )
   const showFormularioDisenoCompleto =
     diseno.designNuevo === 'si' || detalleDesdeTrabajoAnterior
-  const showEspecificacionesExistente =
-    showDetalleExistente && !detalleDesdeTrabajoAnterior
-
   const handleClienteDisenoSelect = (option: ClienteDisenoOption | null) => {
     if (!option) {
       clearPdfSelection()
@@ -181,7 +179,9 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
     onChange({ aplicaCostoDiseno: true })
   }
 
-  const toggleAcabado = (key: (typeof ACABADOS_OPTIONS)[number]['key']) => {
+  const toggleAcabado = (
+    key: 'lineaTroquel' | 'reservaUv' | 'estampado' | 'repuje'
+  ) => {
     onChange({ [key]: !diseno[key] })
   }
 
@@ -208,11 +208,17 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
 
   const n = copy.nuevo
 
-  const especificacionesTecnicasSection = (historialMode: boolean, subtitle?: string) => (
+  const especificacionesTecnicasSection = (
+    historialMode: boolean,
+    subtitle?: string,
+    variant: 'card' | 'flat' = 'card'
+  ) => (
     <DisenoSection
-      title={n.specsTitulo}
-      subtitle={subtitle}
+      title={variant === 'flat' ? undefined : n.specsTitulo}
+      subtitle={variant === 'flat' ? undefined : subtitle}
       tone="especificaciones"
+      variant={variant}
+      hideHead={variant === 'flat'}
     >
       <div
         className={[
@@ -243,16 +249,9 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
           className="production-diseno-detail production-diseno-detail--existente"
           aria-label={copy.existente.ariaLabel}
         >
-          <p className="production-diseno-detail__mode-label production-diseno-detail__mode-label--existente">
-            {copy.existente.modeLabel}
-          </p>
-
-          <DisenoSection
-            title={copy.existente.trabajoTitle}
-            subtitle={copy.existente.trabajoSubtitle}
-            tone="trabajo"
-          >
+          <DisenoSection title={copy.existente.clienteTitle} tone="trabajo">
             <DisenoClientePicker
+              part="client"
               clientId={clientId}
               clientName={clientName}
               clients={clients}
@@ -265,8 +264,21 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
             />
           </DisenoSection>
 
-          {showEspecificacionesExistente &&
-            especificacionesTecnicasSection(false, copy.existente.specsSubtitle)}
+          {clientId.trim() ? (
+            <DisenoSection title={copy.existente.trabajoTitle} tone="trabajo">
+              <DisenoClientePicker
+                part="trabajo"
+                clientId={clientId}
+                clientName={clientName}
+                clients={clients}
+                options={disenosCliente}
+                ordersLoading={ordersLoading}
+                selectedId={diseno.disenoExistenteId}
+                onClientSelect={onClientSelect}
+                onSelect={handleClienteDisenoSelect}
+              />
+            </DisenoSection>
+          ) : null}
         </section>
       )}
 
@@ -275,120 +287,133 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
           className="production-diseno-detail production-diseno-detail--nuevo"
           aria-label={n.ariaNuevo}
         >
-          <header className="production-diseno-detail__header">
-            {detalleDesdeTrabajoAnterior && (
-              <p className="production-diseno-detail__mode-label production-diseno-detail__mode-label--existente">
-                {copy.existente.modeLabel}
-              </p>
-            )}
-            <h3 className="production-diseno-detail__title">{n.tituloNuevo}</h3>
-            <p className="production-diseno-detail__lead">
-              {detalleDesdeTrabajoAnterior ? n.leadHistorial : n.leadNuevo}
-            </p>
-          </header>
+          {!detalleDesdeTrabajoAnterior ? (
+            <header className="production-diseno-detail__header">
+              <h3 className="production-diseno-detail__title">{n.tituloNuevo}</h3>
+            </header>
+          ) : null}
 
-          {trabajoHistorial && (
-            <div className="production-diseno-historial-banner">
-              <h4 className="production-diseno-historial-banner__title">
-                {n.bannerTitulo}
-              </h4>
-              <p className="production-diseno-historial-banner__ref">
-                <span className="production-diseno-historial-banner__ref-label">Trabajo</span>
-                <span>{trabajoHistorial.workName}</span>
-                <span className="production-diseno-historial-banner__sep" aria-hidden>
-                  {' › '}
+          <div className="production-diseno-nuevo-panels">
+            <div className="production-diseno-nuevo-panel">
+              <header className="production-diseno-nuevo-panel__head">
+                <span className="production-diseno-nuevo-panel__step" aria-hidden>
+                  1
                 </span>
-                <span className="production-diseno-historial-banner__ref-label">
-                  {n.refDiseno}
-                </span>
-                <span>
-                  {trabajoHistorial.nombreDiseno ||
-                    diseno.nombreDiseno ||
-                    n.sinNombreDiseno}
-                </span>
-              </p>
-              <p className="production-diseno-historial-banner__desc">{n.bannerDesc}</p>
+                <h4 className="production-diseno-nuevo-panel__title">{n.panelBasicoTitulo}</h4>
+              </header>
+
+              <div className="production-diseno-nuevo-panel__body">
+              <div className="production-diseno-nuevo-field">
+                <label className="production-form-label" htmlFor="diseno-nombre">
+                  {n.nombreLabel}
+                </label>
+                <input
+                  id="diseno-nombre"
+                  type="text"
+                  className="production-form-input"
+                  value={diseno.nombreDiseno}
+                  onChange={e => onChange({ nombreDiseno: e.target.value })}
+                  placeholder={n.nombrePlaceholder}
+                  autoFocus={!detalleDesdeTrabajoAnterior}
+                />
+              </div>
+
+              <DisenoSection variant="flat" hideHead>
+                <DisenoCrearCostoPanel
+                  incluir={costoIncluirValue}
+                  costo={diseno.crearDisenoCost}
+                  onIncluirChange={handleCostoIncluir}
+                  onCostoInputChange={e =>
+                    onChange({ crearDisenoCost: parseDigits(e.target.value) })
+                  }
+                  onCostoKeyDown={blockNonDigitKey}
+                />
+              </DisenoSection>
+
+              <DisenoSection title={n.pdfTitulo} variant="flat">
+                <DisenoPdfUpload
+                  fileName={diseno.designPdfFileName}
+                  maxMb={MAX_PDF_MB}
+                  historialSinPreview={detalleDesdeTrabajoAnterior}
+                  onFileNameChange={handlePdfFileNameChange}
+                />
+              </DisenoSection>
+              </div>
             </div>
-          )}
 
-          <DisenoSection title={n.nombreTitulo} subtitle={n.nombreSub} tone="identidad">
-            <label className="production-form-label" htmlFor="diseno-nombre">
-              {n.nombreLabel}
-            </label>
-            <input
-              id="diseno-nombre"
-              type="text"
-              className="production-form-input"
-              value={diseno.nombreDiseno}
-              onChange={e => onChange({ nombreDiseno: e.target.value })}
-              placeholder={n.nombrePlaceholder}
-              autoFocus={!detalleDesdeTrabajoAnterior}
-            />
-          </DisenoSection>
+            <div className="production-diseno-nuevo-panel production-diseno-nuevo-panel--focus">
+              <header className="production-diseno-nuevo-panel__head">
+                <span className="production-diseno-nuevo-panel__step" aria-hidden>
+                  2
+                </span>
+                <h4 className="production-diseno-nuevo-panel__title">{n.specsTitulo}</h4>
+              </header>
+              <div className="production-diseno-nuevo-panel__body">
+                {especificacionesTecnicasSection(
+                  detalleDesdeTrabajoAnterior,
+                  detalleDesdeTrabajoAnterior ? n.specsSubHistorial : undefined,
+                  'flat'
+                )}
+              </div>
+            </div>
 
-          <DisenoSection title={n.servicioTitulo} subtitle={n.servicioSub} tone="costo">
-            <DisenoCrearCostoPanel
-              incluir={costoIncluirValue}
-              costo={diseno.crearDisenoCost}
-              onIncluirChange={handleCostoIncluir}
-              onCostoInputChange={e =>
-                onChange({ crearDisenoCost: parseDigits(e.target.value) })
-              }
-              onCostoKeyDown={blockNonDigitKey}
-            />
-          </DisenoSection>
+            <div className="production-diseno-nuevo-panel production-diseno-nuevo-panel--produccion">
+              <header className="production-diseno-nuevo-panel__head">
+                <span className="production-diseno-nuevo-panel__step" aria-hidden>
+                  3
+                </span>
+                <h4 className="production-diseno-nuevo-panel__title">{n.panelProduccionTitulo}</h4>
+              </header>
 
-          <DisenoSection
-            title="Archivo PDF"
-            subtitle={n.pdfSub(MAX_PDF_MB)}
-            tone="archivo"
-          >
-            <DisenoPdfUpload
-              fileName={diseno.designPdfFileName}
-              maxMb={MAX_PDF_MB}
-              historialSinPreview={detalleDesdeTrabajoAnterior}
-              onFileNameChange={handlePdfFileNameChange}
-            />
-          </DisenoSection>
-
-          {especificacionesTecnicasSection(
-            detalleDesdeTrabajoAnterior,
-            detalleDesdeTrabajoAnterior ? n.specsSubHistorial : undefined
-          )}
-
-          <DisenoSection
-            title={n.acabadosTitulo}
-            subtitle={n.acabadosSub}
-            tone="acabados"
-          >
-            <div className="production-diseno-chips" role="group" aria-label={n.acabadosAria}>
-              {ACABADOS_OPTIONS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`production-diseno-chip${diseno[key] ? ' production-diseno-chip--on' : ''}`}
-                  onClick={() => toggleAcabado(key)}
-                  aria-pressed={diseno[key]}
+              <div className="production-diseno-produccion-layout">
+                <section
+                  className="production-diseno-produccion-block production-diseno-produccion-block--acabados"
+                  aria-labelledby="diseno-produccion-acabados-title"
                 >
-                  {label}
-                </button>
-              ))}
+                  <header className="production-diseno-produccion-block__head">
+                    <h5
+                      id="diseno-produccion-acabados-title"
+                      className="production-diseno-produccion-block__title"
+                    >
+                      {n.acabadosTitulo}
+                    </h5>
+                    <p className="production-diseno-produccion-block__sub">{n.acabadosSubtitle}</p>
+                  </header>
+                  <DisenoAcabadosPicker
+                    values={{
+                      lineaTroquel: diseno.lineaTroquel,
+                      reservaUv: diseno.reservaUv,
+                      estampado: diseno.estampado,
+                      repuje: diseno.repuje,
+                    }}
+                    onToggle={toggleAcabado}
+                    ariaLabel={n.acabadosAria}
+                  />
+                </section>
+
+                <section
+                  className="production-diseno-produccion-block production-diseno-produccion-block--montaje"
+                  aria-labelledby="diseno-produccion-montaje-title"
+                >
+                  <header className="production-diseno-produccion-block__head">
+                    <h5
+                      id="diseno-produccion-montaje-title"
+                      className="production-diseno-produccion-block__title"
+                    >
+                      {n.montajeTitulo}
+                    </h5>
+                  </header>
+                  <ProductionPrecioMontajePicker
+                    items={preciosMontaje}
+                    selectedId={diseno.precioMontajeId}
+                    onSelect={handlePrecioMontajeSelect}
+                  />
+                </section>
+              </div>
             </div>
-          </DisenoSection>
 
-          <DisenoSection
-            title={n.montajeTitulo}
-            subtitle={n.montajeSub}
-            tone="montaje"
-          >
-            <ProductionPrecioMontajePicker
-              items={preciosMontaje}
-              selectedId={diseno.precioMontajeId}
-              onSelect={handlePrecioMontajeSelect}
-            />
-          </DisenoSection>
-
-          <DisenoTotalesResumen diseno={diseno} />
+            <DisenoTotalesResumen diseno={diseno} />
+          </div>
         </section>
       )}
     </div>

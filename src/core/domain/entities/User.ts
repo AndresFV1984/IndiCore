@@ -1,3 +1,12 @@
+import {
+  normalizeUserPermissions,
+  normalizeUserRole,
+  type UserPermission,
+  type UserRole,
+} from '../auth/userPermissions'
+
+export type { UserPermission, UserRole }
+
 export type DocumentType = 'CC' | 'NIT' | 'CE' | 'PA' | 'TI'
 
 export class User {
@@ -13,10 +22,13 @@ export class User {
     public readonly mail: string,
     public readonly contact: string,
     public readonly password_hash: string,
-    public readonly state: boolean = true
+    public readonly state: boolean = true,
+    public readonly role: UserRole = 'Operador',
+    public readonly permissions: UserPermission[] = []
   ) {}
 
   static create(dto: CreateUserDTO) {
+    const role = normalizeUserRole(dto.role)
     return new User(
       dto.id || crypto.randomUUID(),
       dto.name,
@@ -29,7 +41,9 @@ export class User {
       dto.mail,
       dto.contact ?? '',
       dto.password_hash ?? '',
-      dto.state ?? true
+      dto.state ?? true,
+      role,
+      normalizeUserPermissions(dto.permissions, role)
     )
   }
 }
@@ -47,4 +61,6 @@ export interface CreateUserDTO {
   contact?: string
   password_hash?: string
   state?: boolean
+  role?: UserRole
+  permissions?: UserPermission[]
 }

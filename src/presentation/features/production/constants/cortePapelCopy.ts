@@ -3,8 +3,12 @@ export const CORTE_PAPEL_COPY = {
     'Registre el tipo de papel, el despiece asociado y los valores de producción para esta orden.',
   detailAria: 'Configuración del corte de papel',
   titulo: 'Datos del corte de papel',
-  lead:
-    'Complete las secciones en orden. Cada bloque agrupa el material, el despiece y la producción.',
+  lead: 'Seleccione el registro de Preprensa, complete el tipo de papel y pulse «Agregar registro».',
+  registroAcciones: {
+    agregar: 'Agregar registro',
+    guardar: 'Guardar cambios',
+    cancelar: 'Cancelar',
+  },
   sectionTags: {
     papel: 'Papel',
     valores: 'Producción',
@@ -239,6 +243,7 @@ export const CORTE_PAPEL_COPY = {
     registroEstadoSinCortar: 'Sin cortar',
     registroTamanosBuenos: 'Tamaños buenos',
     registroSobrante: 'Sobrante',
+    registroValorHoja: 'Valor hoja',
     registroCantidadHojas: 'Cantidad hojas',
     registroEditar: 'Editar registro',
     registroCompletado: 'Completado',
@@ -250,8 +255,9 @@ export const CORTE_PAPEL_COPY = {
     registroEliminar: 'Eliminar',
     registroEliminarAria: (label: string) => `Eliminar registro: ${label}`,
     registroEliminarConfirm: (label: string) =>
-      `¿Eliminar «${label}»? Se quitará de Preprensa y del corte de papel.`,
-    registroValorCorte: 'Valor corte',
+      `¿Eliminar el corte de papel de «${label}»? Se limpiará el tipo de papel y los valores de este registro.`,
+    registroValorCorte: 'Valor total corte',
+    registroValorTotalPapel: 'Valor total papel',
     registroFaltanteLitografia: 'Faltante — Litografía suministra papel',
     empty: '—',
   },

@@ -1,4 +1,7 @@
 import React, { useMemo } from 'react'
+import { confirmAction } from '../../utils/actionFeedback'
+import ActionIcon from '../../components/ui/ActionIcon'
+import { LIST_RECORD_ACTION_ICON_SIZE } from '../../constants/listRecordActions'
 import type { PaperRow } from '../../../core/domain/entities/Order'
 import type { DisenoColorPlanchaItem, YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 import type { TipoPapel } from '../../../core/domain/entities/TipoPapel'
@@ -43,11 +46,15 @@ const buildRegistroMetrics = (line: CorteRegistroResumenLine): RegistroMetric[] 
     value: fmtMoney(line.valorCorteUnitario),
   },
   {
+    label: copy.resumen.registroValorHoja,
+    value: fmtMoney(line.valorHoja),
+  },
+  {
     label: copy.resumen.registroCantidadHojas,
     value: fmtCantidad(line.cantidadHojas),
   },
   {
-    label: copy.resumen.valorPapelLabel,
+    label: copy.resumen.registroValorTotalPapel,
     value: fmtMoney(line.valorPapel),
   },
   {
@@ -64,6 +71,7 @@ interface ProductionCorteResumenConsolidadoProps {
   clienteSuministraPapel: YesNoChoice
   activeColorPlanchaId: string
   onSelectRegistro: (id: string) => void
+  onDeleteRegistro: (activeId: string) => void
 }
 
 const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolidadoProps> = ({
@@ -74,6 +82,7 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
   clienteSuministraPapel,
   activeColorPlanchaId,
   onSelectRegistro,
+  onDeleteRegistro,
 }) => {
   const resumen = useMemo(
     () =>
@@ -87,23 +96,56 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
     [coloresPlanchas, paperRows, tiposPapel, margenRedondeo, clienteSuministraPapel]
   )
 
-  const completados = resumen.registros.filter(line => line.completo).length
+  const registrosCompletados = useMemo(
+    () => resumen.registros.filter(line => line.completo),
+    [resumen.registros]
+  )
 
-  if (resumen.registros.length === 0) return null
+  const totalesCompletados = useMemo(
+    () =>
+      registrosCompletados.reduce(
+        (acc, line) => ({
+          cantidadHojas: acc.cantidadHojas + line.cantidadHojas,
+          valorPapel: acc.valorPapel + line.valorPapel,
+          valorCorte: acc.valorCorte + line.valorCorte,
+        }),
+        { cantidadHojas: 0, valorPapel: 0, valorCorte: 0 }
+      ),
+    [registrosCompletados]
+  )
+
+  const handleDelete = async (line: CorteRegistroResumenLine, lineActiveId: string) => {
+    if (
+      !(await confirmAction(copy.resumen.registroEliminarConfirm(line.shortLabel), {
+        title: copy.resumen.registroEliminar,
+        confirmLabel: copy.resumen.registroEliminar,
+        variant: 'danger',
+      }))
+    ) {
+      return
+    }
+    onDeleteRegistro(lineActiveId)
+  }
+
+  if (registrosCompletados.length === 0) return null
 
   return (
     <ProductionWorkspaceSection
       className="production-corte-resumen-consolidado production-diseno-resumen"
       tag={copy.sectionTags.resumen}
       title={copy.resumen.title}
-      subtitle={copy.resumen.subtitleCompacto(completados, resumen.registros.length)}
+      subtitle={copy.resumen.subtitleCompacto(
+        registrosCompletados.length,
+        registrosCompletados.length
+      )}
       tone={2}
     >
       <ul className="production-corte-resumen-consolidado__registros">
-        {resumen.registros.map((line, index) => {
+        {registrosCompletados.map((line, index) => {
           const lineActiveId = line.corteRowId ?? line.colorPlanchaId
           const isActive = lineActiveId === activeColorPlanchaId
           const metrics = buildRegistroMetrics(line)
+          const iconSize = LIST_RECORD_ACTION_ICON_SIZE
 
           return (
             <li
@@ -112,64 +154,63 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
                 'production-corte-resumen-consolidado__registro',
                 'production-corte-resumen-consolidado__registro--editable',
                 isActive ? 'production-corte-resumen-consolidado__registro--active' : '',
-                line.completo ? 'production-corte-resumen-consolidado__registro--completo' : '',
+                'production-corte-resumen-consolidado__registro--completo',
               ]
                 .filter(Boolean)
                 .join(' ')}
             >
               <div className="production-corte-resumen-consolidado__registro-toolbar">
-                <button
-                  type="button"
-                  className="production-corte-resumen-consolidado__registro-trigger"
-                  onClick={() => onSelectRegistro(lineActiveId)}
-                  aria-current={isActive ? 'true' : undefined}
-                  aria-label={`${copy.resumen.registroEditar}: ${line.label}`}
-                >
-                  <div className="production-corte-resumen-consolidado__registro-head">
-                    <div className="production-corte-resumen-consolidado__registro-title-wrap">
-                      <span className="production-corte-resumen-consolidado__registro-index">
-                        Registro {index + 1}
-                      </span>
-                      <strong className="production-corte-resumen-consolidado__registro-title">
-                        {line.shortLabel}
-                      </strong>
-                    </div>
-                    <div className="production-corte-resumen-consolidado__registro-badges">
-                      {line.esFaltanteLitografia ? (
-                        <CortePapelFaltanteMarca compact />
-                      ) : null}
-                      {isActive ? (
-                        <span className="production-corte-resumen-consolidado__estado production-corte-resumen-consolidado__estado--editando">
-                          {copy.resumen.registroEditandoCorto}
-                        </span>
-                      ) : null}
-                      <span
-                        className={[
-                          'production-corte-resumen-consolidado__estado',
-                          line.completo
-                            ? 'production-corte-resumen-consolidado__estado--ok'
-                            : 'production-corte-resumen-consolidado__estado--pendiente',
-                        ].join(' ')}
-                      >
-                        {line.completo
-                          ? copy.resumen.registroCompletado
-                          : copy.resumen.registroPendiente}
-                      </span>
-                    </div>
+                <div className="production-corte-resumen-consolidado__registro-head">
+                  <div className="production-corte-resumen-consolidado__registro-title-wrap">
+                    <span className="production-corte-resumen-consolidado__registro-index">
+                      Registro {index + 1}
+                    </span>
+                    <strong className="production-corte-resumen-consolidado__registro-title">
+                      {line.shortLabel}
+                    </strong>
                   </div>
-                  <span
+                  <div className="production-corte-resumen-consolidado__registro-badges">
+                    {line.esFaltanteLitografia ? (
+                      <CortePapelFaltanteMarca compact />
+                    ) : null}
+                    {isActive ? (
+                      <span className="production-corte-resumen-consolidado__estado production-corte-resumen-consolidado__estado--editando">
+                        {copy.resumen.registroEditandoCorto}
+                      </span>
+                    ) : (
+                      <span className="production-corte-resumen-consolidado__estado production-corte-resumen-consolidado__estado--ok">
+                        {copy.resumen.registroCompletado}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="production-corte-resumen-consolidado__registro-actions">
+                  <button
+                    type="button"
                     className={[
-                      'production-corte-resumen-consolidado__registro-edit-hint',
-                      isActive
-                        ? 'production-corte-resumen-consolidado__registro-edit-hint--active'
-                        : '',
+                      'action-icon-button action-icon-edit production-corte-resumen-consolidado__registro-edit',
+                      isActive ? 'production-corte-resumen-consolidado__registro-edit--active' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
+                    onClick={() => onSelectRegistro(lineActiveId)}
+                    title={copy.resumen.registroEditar}
+                    aria-label={`${copy.resumen.registroEditar}: ${line.shortLabel}`}
+                    aria-pressed={isActive}
                   >
-                    {isActive ? copy.resumen.registroEditando : copy.resumen.registroEditarHint}
-                  </span>
-                </button>
+                    <ActionIcon name="edit" size={iconSize} />
+                  </button>
+                  <button
+                    type="button"
+                    className="action-icon-button action-icon-delete production-corte-resumen-consolidado__registro-remove"
+                    onClick={() => void handleDelete(line, lineActiveId)}
+                    title={copy.resumen.registroEliminar}
+                    aria-label={copy.resumen.registroEliminarAria(line.shortLabel)}
+                  >
+                    <ActionIcon name="delete" size={iconSize} />
+                  </button>
+                </div>
               </div>
 
               <dl className="production-corte-resumen-consolidado__registro-metrics">
@@ -189,18 +230,10 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
         <ul className="production-diseno-resumen__rows">
           <li className="production-diseno-resumen__row">
             <span className="production-diseno-resumen__row-label">
-              {copy.resumen.totalCantidadHojas}
-            </span>
-            <span className="production-diseno-resumen__row-value">
-              {fmtCantidad(resumen.totales.cantidadHojas)}
-            </span>
-          </li>
-          <li className="production-diseno-resumen__row">
-            <span className="production-diseno-resumen__row-label">
               {copy.resumen.totalValorPapel}
             </span>
             <span className="production-diseno-resumen__row-value">
-              {fmtMoney(resumen.totales.valorPapel)}
+              {fmtMoney(totalesCompletados.valorPapel)}
             </span>
           </li>
         </ul>
@@ -212,8 +245,8 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
             </span>
           </div>
           <strong className="production-diseno-resumen__total-value">
-            {resumen.totales.valorCorte > 0
-              ? formatValor(resumen.totales.valorCorte)
+            {totalesCompletados.valorCorte > 0
+              ? formatValor(totalesCompletados.valorCorte)
               : copy.resumen.empty}
           </strong>
         </div>

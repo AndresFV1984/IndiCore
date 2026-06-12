@@ -2,9 +2,15 @@
 export const PREPRENSA_DISENO_COPY = {
   acabados: {
     lineaTroquel: 'L\u00EDnea troquel',
+    lineaTroquelDesc: 'Corte o perforado con troquel en l\u00EDnea de producci\u00F3n',
     reservaUv: 'Reserva UV',
+    reservaUvDesc: 'Zona protegida para barniz o acabado UV selectivo',
     estampado: 'Estampado',
+    estampadoDesc: 'Aplicaci\u00F3n de foil, relieve plano o estampado en fr\u00EDo',
     repuje: 'Repuje',
+    repujeDesc: 'Relieve en alto o bajo sobre el sustrato impreso',
+    summary: (selected: number) =>
+      selected === 0 ? '' : `${selected} activo${selected === 1 ? '' : 's'}`,
   },
   sectionTags: {
     trabajo: 'Historial',
@@ -16,13 +22,9 @@ export const PREPRENSA_DISENO_COPY = {
     montaje: 'Montaje',
   },
   existente: {
-    ariaLabel: 'Configuraci\u00F3n del dise\u00F1o existente',
-    modeLabel: 'Dise\u00F1o existente',
-    trabajoTitle: 'Trabajo ya realizado',
-    trabajoSubtitle:
-      'Seleccione una orden anterior de este cliente para reutilizar su informaci\u00F3n',
-    specsSubtitle:
-      'Colores, planchas y registros t\u00E9cnicos (igual que en dise\u00F1o nuevo). Opcionalmente importe un trabajo anterior arriba.',
+    ariaLabel: 'Dise\u00F1o existente',
+    clienteTitle: 'Cliente',
+    trabajoTitle: 'Trabajo y Dise\u00F1o anterior del cliente',
   },
   nuevo: {
     ariaHistorial: 'Informaci\u00F3n del trabajo ya realizado',
@@ -31,34 +33,51 @@ export const PREPRENSA_DISENO_COPY = {
     tituloNuevo: 'Datos del dise\u00F1o nuevo',
     leadHistorial:
       'Revise la informaci\u00F3n importada y ajuste solo lo que cambie en esta orden.',
-    leadNuevo:
-      'Complete las secciones en orden. Cada bloque agrupa un aspecto del arte y la producci\u00F3n.',
-    bannerTitulo: 'Informaci\u00F3n del trabajo ya realizado',
+    panelBasicoTitulo: 'Informaci\u00F3n b\u00E1sica',
+    panelProduccionTitulo: 'Producci\u00F3n',
+    bannerTitulo: 'Trabajo de referencia',
     refDiseno: 'Dise\u00F1o',
     sinNombreDiseno: 'Sin nombre de dise\u00F1o',
-    bannerDesc:
-      'Los campos siguientes se completaron con los datos registrados en esa orden anterior. Revise y ajuste solo lo que cambie en esta producci\u00F3n.',
-    nombreTituloHistorial: 'Nombre del dise\u00F1o',
-    nombreTitulo: 'Nombre',
     nombreLabel: 'Nombre del dise\u00F1o',
-    nombreSubHistorial: 'Registrado en el trabajo anterior',
-    nombreSub: 'Nombre del trabajo gr\u00E1fico',
     nombrePlaceholder: 'Ej. Empaque caja premium 2026',
-    servicioTitulo: 'Servicio de dise\u00F1o',
-    servicioSubHistorial: 'Costo registrado en el trabajo anterior',
-    servicioSub: 'Valor del servicio de dise\u00F1o',
-    pdfSub: (maxMb: number) => `M\u00E1ximo ${maxMb} MB`,
-    pdfPlaceholder: 'Haga clic para seleccionar archivo',
-    pdfExaminar: 'Examinar',
+    pdfTitulo: 'Archivo PDF',
+    pdfEmptyTitle: 'Subir dise\u00F1o en PDF',
+    pdfEmptyHint: (maxMb: number) => `Solo PDF \u00B7 m\u00E1x. ${maxMb} MB`,
+    pdfSelectBtn: 'Seleccionar archivo',
+    pdfChangeBtn: 'Cambiar',
+    pdfDropActive: 'Suelte el archivo aqu\u00ED',
+    pdfHistorialHint: 'Archivo del trabajo anterior. Cargue uno nuevo si lo necesita.',
     pdfQuitar: 'Quitar',
     pdfPreview: (fileName: string) => `Vista previa: ${fileName}`,
     specsTitulo: 'Especificaciones t\u00E9cnicas',
     specsSubHistorial: 'Datos t\u00E9cnicos del trabajo anterior',
-    acabadosTitulo: 'Acabados de dise\u00F1o',
-    acabadosSub: 'Seleccione los que apliquen',
-    acabadosAria: 'Acabados',
+    acabadosTitulo: 'Acabados',
+    acabadosSubtitle: 'Toque un acabado para activarlo o desactivarlo.',
+    acabadosAria: 'Acabados del dise\u00F1o',
     montajeTitulo: 'Precio de montaje',
-    montajeSub: 'Seleccione la tarifa que aplica a esta orden',
+    costoDiseno: {
+      ariaLabel: 'Costo del dise\u00F1o',
+      opciones: {
+        sinCosto: {
+          title: 'Sin costo de dise\u00F1o',
+          description: 'No se factura un valor aparte por crear el dise\u00F1o',
+        },
+        conCosto: {
+          title: 'Cobrar dise\u00F1o',
+          description: 'Indique el valor que se cobrar\u00E1 por el dise\u00F1o en esta orden',
+        },
+      },
+      valorLabel: 'Valor a cobrar (COP)',
+    },
+    montaje: {
+      ariaLabel: 'Precio de montaje',
+      hint: 'Seleccione la tarifa del cat\u00E1logo. Elija \u00ABSin montaje\u00BB si no aplica.',
+      selectLabel: 'Tarifa de montaje',
+      selectPlaceholder: 'Elija una tarifa\u2026',
+      sinMontajeOption: 'Sin montaje',
+      empty: 'No hay tarifas de montaje activas en el cat\u00E1logo.',
+      resumenLabel: 'Tarifa aplicada',
+    },
   },
   coloresPlanchas: {
     tamanosBuenosFormula: 'Cantidad ÷ Cavidades (redondeo al entero más cercano)',
@@ -67,23 +86,12 @@ export const PREPRENSA_DISENO_COPY = {
     faltaCavidad: 'Falta cavidades',
     faltaCantidad: 'Falta cantidad',
     validationTitle: 'Revise el registro',
-    legacyIntro:
-      'Elija la cantidad de colores. Cada tarjeta muestra las tintas incluidas (CMYK, secundarios y Pantone).',
-    colorPickerPlaceholder: 'Seleccione cuántos colores lleva la plancha',
-    colorPickerHint: 'Pulse una tarjeta de 1-Color a 7-Colores o más',
-    colorPickerEditHint:
-      'Cambie la cantidad de colores eligiendo otra tarjeta en el formulario de edición.',
+    colorPickerPlaceholder: 'Cantidad de colores',
+    colorPickerEditHint: 'Elija otra cantidad de colores para actualizar el registro.',
     sinPlanchasActivas: 'Sin tipos de plancha activos en el catálogo.',
-    pasos: {
-      tipoPlancha: 'Seleccione el tipo de plancha del catálogo vigente.',
-      descripcion: 'Describa el registro (tinta, acabado, observación técnica, etc.).',
-      detalle: 'Detalle técnico del registro (obligatorio).',
-    },
     registro: {
       editing: 'Editando registro',
       edit: 'Editar registro',
-      editIntro:
-        'Cambie la cantidad de colores en el desplegable y actualice los demás datos. Pulse «Guardar cambios» al terminar.',
       saveEdit: 'Guardar cambios',
     },
     validation: {

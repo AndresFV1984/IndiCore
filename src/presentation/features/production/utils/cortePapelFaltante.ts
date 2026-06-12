@@ -147,6 +147,22 @@ export const removeFaltanteRow = (
   corteRowId: string
 ): PaperRow[] => paperRows.filter(row => row.corteRowId !== corteRowId)
 
+/** Restablece un registro de corte (preprensa o faltante) a valores vacíos. */
+export const resetPaperRowForActiveId = (
+  paperRows: PaperRow[],
+  activeId: string
+): PaperRow[] => {
+  if (!activeId.trim()) return paperRows
+
+  const row = findPaperRowForActiveId(paperRows, activeId)
+  if (isFaltanteLitografiaRow(row) && row.corteRowId) {
+    return removeFaltanteRow(paperRows, row.corteRowId)
+  }
+
+  const registroId = row.colorPlanchaId ?? activeId
+  return upsertPaperRow(paperRows, emptyPaperRow(registroId))
+}
+
 /** Filas de preprensa (sin faltantes) alineadas con colores/planchas. */
 export const syncPreprensaPaperRows = (
   coloresPlanchas: DisenoColorPlanchaItem[],

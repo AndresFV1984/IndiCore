@@ -14,6 +14,7 @@ import {
   resolvePrecioPantoneMillarPatch,
   resolveTarifaColorBasicoMillar,
   resolveTarifaPantoneMillar,
+  resolveTintasMillarPatchForDraft,
   resolveTintasMillarPatchForEntrada,
   shouldApplyColorBasicoTarifa,
   shouldApplyPantoneTarifa,
@@ -202,6 +203,34 @@ describe('resolvePantoneMillarPatchForEntrada', () => {
 describe('resolvePrecioPantoneMillarPatch', () => {
   it('devuelve precio de la tarifa activa', () => {
     expect(resolvePrecioPantoneMillarPatch([tarifaPantone])).toEqual({
+      tarifaPantoneMillarId: 'tm-4',
+      precioPantoneMillar: 50000,
+    })
+  })
+})
+
+describe('resolveTintasMillarPatchForDraft', () => {
+  it('precarga PRECIO sin exigir plancha completa', () => {
+    const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    expect(
+      resolveTintasMillarPatchForDraft([tarifaColorBasico, tarifaPantone], tiro, emptyImpresionLadoTintas())
+    ).toEqual({
+      tarifaColorBasicoMillarId: 'tm-1',
+      precioColorBasicoMillar: 17500,
+      tarifaPantoneMillarId: '',
+      precioPantoneMillar: 0,
+    })
+  })
+
+  it('precarga Pantone al asignar al menos un Pantone', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    expect(resolveTintasMillarPatchForDraft([tarifaPantone], tiro, emptyImpresionLadoTintas())).toEqual({
+      tarifaColorBasicoMillarId: '',
+      precioColorBasicoMillar: 0,
       tarifaPantoneMillarId: 'tm-4',
       precioPantoneMillar: 50000,
     })

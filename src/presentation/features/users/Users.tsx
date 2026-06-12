@@ -7,6 +7,9 @@ import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import NewUserModal from './NewUserModal'
 import { User, CreateUserDTO } from '../../../core/domain/entities/User'
+import { USER_ROLE_LABELS } from '../../constants/userRoles'
+import { getPermissionLabel } from '../../constants/userRoles'
+import UserPermissionsDisplay from './UserPermissionsDisplay'
 import RecordCell from '../../components/directory/RecordCell'
 import CellValue from '../../components/directory/CellValue'
 import IdentityDocumentDisplay from '../../components/directory/IdentityDocumentDisplay'
@@ -42,7 +45,9 @@ const Users: React.FC = () => {
           u.mail.toLowerCase().includes(q) ||
           u.contact.toLowerCase().includes(q) ||
           u.city.toLowerCase().includes(q) ||
-          u.department.toLowerCase().includes(q)
+          u.department.toLowerCase().includes(q) ||
+          USER_ROLE_LABELS[u.role].toLowerCase().includes(q) ||
+          u.permissions.some(permission => getPermissionLabel(permission).toLowerCase().includes(q))
       )
     }
     return result
@@ -123,6 +128,8 @@ const Users: React.FC = () => {
           contact: user.contact,
           password_hash: user.password_hash,
           state: !user.state,
+          role: user.role,
+          permissions: user.permissions,
         }),
     })
   }
@@ -200,6 +207,8 @@ const Users: React.FC = () => {
                 <th className="remissions-th-documento">IDENTIFICACIÓN</th>
                 <th className="remissions-th-email">CORREO</th>
                 <th className="remissions-th-ciudad">UBICACIÓN</th>
+                <th>ROL</th>
+                <th>PERMISOS</th>
                 <th>CONTACTO</th>
                 <th className="remissions-th-estado">ESTADO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
@@ -224,6 +233,14 @@ const Users: React.FC = () => {
                     <td data-label="Ubicación">
                       <CellValue>{formatLocationLabel(u.department, u.city)}</CellValue>
                     </td>
+                    <td data-label="Rol">
+                      <CellValue>
+                        <span className="users-role-badge">{USER_ROLE_LABELS[u.role]}</span>
+                      </CellValue>
+                    </td>
+                    <td data-label="Permisos" className="users-td-permissions">
+                      <UserPermissionsDisplay permissions={u.permissions} />
+                    </td>
                     <td data-label="Contacto">
                       <CellValue>{u.contact || '—'}</CellValue>
                     </td>
@@ -247,7 +264,7 @@ const Users: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="remissions-td-empty">
+                  <td colSpan={9} className="remissions-td-empty">
                     <DirectoryEmptyState
                       icon="👤"
                       title="Sin usuarios"

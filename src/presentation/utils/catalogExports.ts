@@ -6,6 +6,10 @@ import { formatDespieceBadge, formatDespieceMedidaPiezas, formatMedidaDisplay } 
 import { formatUnidadEmpaqueDisplay } from '../../core/domain/value-objects/UnidadEmpaque'
 import { PrecioMontaje } from '../../core/domain/entities/PrecioMontaje'
 import { TarifaMillar } from '../../core/domain/entities/TarifaMillar'
+import {
+  resolveTarifaMillarPrecioVolteoEscuadra,
+  resolveTarifaMillarPrecioVolteoPinza,
+} from '../features/production/constants/impresionTarifaMillar'
 import type { CatalogRecord } from '../features/catalog/catalogRecord'
 import {
   CATALOG_COSTO_MINIMO_LABEL,
@@ -94,8 +98,23 @@ const tarifasMillarFields: ExportField<TarifaMillar>[] = [
   { label: 'Nombre', value: r => r.name, width: 32 },
   { label: 'Unidad millar', value: r => String(r.unidadMedida) },
   { label: 'Precio', value: r => formatCop(r.precio) },
-  { label: 'Categoría', value: r => r.categoria },
-  { label: 'Descripción', value: r => r.descripcion || '—', width: 36 },
+  { label: 'Millar mínimo venta', value: r => String(r.millarMinimoVenta) },
+  { label: 'Tope mínimo millar', value: r => String(r.topeMinimoMillar) },
+  { label: 'Umbral decimal', value: r => String(r.umbralDecimalMillar) },
+  {
+    label: 'Volteo por pinza',
+    value: r => {
+      const precio = resolveTarifaMillarPrecioVolteoPinza(r)
+      return precio !== null ? formatCop(precio) : '—'
+    },
+  },
+  {
+    label: 'Volteo por escuadra',
+    value: r => {
+      const precio = resolveTarifaMillarPrecioVolteoEscuadra(r)
+      return precio !== null ? formatCop(precio) : '—'
+    },
+  },
   { label: 'Estado', value: r => estadoLabel(r.state) },
 ]
 
@@ -127,6 +146,44 @@ export function exportPrecioMontaje(rows: PrecioMontaje[], scope: 'listado' | st
 
 export function exportTarifasMillar(rows: TarifaMillar[], scope: 'listado' | string): Promise<void> {
   return exportRows('tarifas-millar', 'Tarifa por millar', tarifasMillarFields, rows, scope, r => r.name)
+}
+
+const tarifasMillarListadoFields: ExportField<TarifaMillar>[] = [
+  { label: 'Nombre', value: r => r.name, width: 32 },
+  { label: 'Unidad millar', value: r => String(r.unidadMedida) },
+  { label: 'Precio', value: r => formatCop(r.precio) },
+  {
+    label: 'Volteo por pinza',
+    value: r => {
+      const precio = resolveTarifaMillarPrecioVolteoPinza(r)
+      return precio !== null ? formatCop(precio) : '—'
+    },
+  },
+  {
+    label: 'Volteo por escuadra',
+    value: r => {
+      const precio = resolveTarifaMillarPrecioVolteoEscuadra(r)
+      return precio !== null ? formatCop(precio) : '—'
+    },
+  },
+  { label: 'Tope mínimo millar', value: r => String(r.topeMinimoMillar) },
+  { label: 'Millar mínimo', value: r => String(r.millarMinimoVenta) },
+  { label: 'Umbral decimal', value: r => String(r.umbralDecimalMillar) },
+  { label: 'Estado', value: r => estadoLabel(r.state) },
+]
+
+export function exportTarifasMillarListado(
+  rows: TarifaMillar[],
+  scope: 'listado' | string
+): Promise<void> {
+  return exportRows(
+    'tarifas-millar',
+    'Tarifa por millar',
+    tarifasMillarListadoFields,
+    rows,
+    scope,
+    r => r.name
+  )
 }
 
 export function exportCatalogTerminados(rows: CatalogRecord[], scope: 'listado' | string): Promise<void> {

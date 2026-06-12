@@ -10,8 +10,6 @@ import { buildCorteValoresHelpDetalle } from './utils/buildCorteValoresHelpDetal
 interface ProductionCorteValoresSectionProps {
   row: PaperRow
   coloresPlanchas: DisenoColorPlanchaItem[]
-  despieceSeleccionado: boolean
-  tipoPapelSeleccionado: boolean
   valores: CortePapelValores
   cantidadHojasDisplay: string
   valorCorteDisplay: string
@@ -31,8 +29,6 @@ const valoresCopy = copy.sections.valores
 const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps> = ({
   row,
   coloresPlanchas,
-  despieceSeleccionado,
-  tipoPapelSeleccionado,
   valores,
   cantidadHojasDisplay,
   valorCorteDisplay,
@@ -64,8 +60,6 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
   const valorPapelReady = valores.valorPapel > 0
   const valorPapelDisplay =
     valores.valorPapel > 0 ? formatValorHojaDisplay(valores.valorPapel) : '$ 0'
-  const showCamposCalculo = despieceSeleccionado
-
   const helpPasos = useMemo(
     () =>
       buildCorteValoresHelpDetalle({
@@ -102,59 +96,51 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
 
   return (
     <div className="production-corte-valores">
-      {!despieceSeleccionado && tipoPapelSeleccionado ? (
-        <p className="production-diseno-cliente-hint production-corte-valores__await">
-          {valoresCopy.awaitDespiece}
-        </p>
-      ) : null}
-
-      {showCamposCalculo ? (
-        <div className="production-corte-valores__campos" aria-label={valoresCopy.grupoCalculo}>
-          <div className="production-corte-valores__campo">
-            <span className="production-corte-valores__campo-label">
-              {copy.sections.cantidadHojas.label}
-            </span>
-            <span
-              className={[
-                'production-corte-valores__campo-value',
-                valores.cantidadHojas > 0 ? '' : 'production-corte-valores__campo-value--muted',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {cantidadHojasDisplay}
-            </span>
-          </div>
-
-          <div className="production-corte-valores__campo">
-            <span className="production-corte-valores__campo-label">Unidad empaque</span>
-            <span
-              className={[
-                'production-corte-valores__campo-value',
-                valores.unidadEmpaqueCantidad > 0 ? '' : 'production-corte-valores__campo-value--muted',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {unidadEmpaqueDisplay}
-            </span>
-          </div>
-
-          <div className="production-corte-valores__campo">
-            <span className="production-corte-valores__campo-label">Valor corte unit.</span>
-            <span
-              className={[
-                'production-corte-valores__campo-value',
-                valores.valorCorteUnitario > 0 ? '' : 'production-corte-valores__campo-value--muted',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {valorUnitarioDisplay}
-            </span>
-          </div>
+      <div className="production-corte-valores__campos" aria-label={valoresCopy.grupoCalculo}>
+        <div className="production-corte-valores__campo">
+          <span className="production-corte-valores__campo-label">
+            {copy.sections.cantidadHojas.label}
+          </span>
+          <span
+            className={[
+              'production-corte-valores__campo-value',
+              valores.cantidadHojas > 0 ? '' : 'production-corte-valores__campo-value--muted',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {cantidadHojasDisplay}
+          </span>
         </div>
-      ) : null}
+
+        <div className="production-corte-valores__campo">
+          <span className="production-corte-valores__campo-label">Unidad empaque</span>
+          <span
+            className={[
+              'production-corte-valores__campo-value',
+              valores.unidadEmpaqueCantidad > 0 ? '' : 'production-corte-valores__campo-value--muted',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {unidadEmpaqueDisplay}
+          </span>
+        </div>
+
+        <div className="production-corte-valores__campo">
+          <span className="production-corte-valores__campo-label">Valor corte unit.</span>
+          <span
+            className={[
+              'production-corte-valores__campo-value',
+              valores.valorCorteUnitario > 0 ? '' : 'production-corte-valores__campo-value--muted',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {valorUnitarioDisplay}
+          </span>
+        </div>
+      </div>
 
       {litografiaSuministra ? (
         <div

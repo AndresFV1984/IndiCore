@@ -2,29 +2,22 @@ import React, { useMemo, useState } from 'react'
 import { useTarifaMillarHook } from '../../hooks/useTarifaMillar'
 import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
+import Badge from '../../components/ui/Badge'
 import RecordCell from '../../components/directory/RecordCell'
 import DirectoryEmptyState from '../../components/directory/DirectoryEmptyState'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import NewTarifaMillarModal from './NewTarifaMillarModal'
 import {
+  isLegacyVolteoTarifaMillarRecord,
+  resolveTarifaMillarPrecioVolteoEscuadra,
+  resolveTarifaMillarPrecioVolteoPinza,
+} from '../production/constants/impresionTarifaMillar'
+import {
   CreateTarifaMillarDTO,
-  TARIFA_MILLAR_CATEGORIAS,
   TarifaMillar,
 } from '../../../core/domain/entities/TarifaMillar'
-
-const categoriaOrder = Object.fromEntries(
-  TARIFA_MILLAR_CATEGORIAS.map((categoria, index) => [categoria, index])
-)
-
-const sortByCategoria = (items: TarifaMillar[]) =>
-  [...items].sort((a, b) => {
-    const order =
-      (categoriaOrder[a.categoria] ?? Number.MAX_SAFE_INTEGER) -
-      (categoriaOrder[b.categoria] ?? Number.MAX_SAFE_INTEGER)
-    if (order !== 0) return order
-    return a.name.localeCompare(b.name, 'es')
-  })
+import { formatMillaresFactor } from '../production/utils/impresionPrecioTintaUtils'
 import {
   confirmExport,
   confirmSave,
@@ -33,6 +26,10 @@ import {
 } from '../../utils/actionFeedback'
 import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import { countDirectoryStats } from '../../components/directory/directoryStats'
+import {
+  isTarifaMillarDirectoryRecord,
+  sortTarifasMillarDirectory,
+} from './tarifasMillarDirectory'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
 
@@ -43,28 +40,50 @@ const formatPrecio = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value)
 
+const formatVolteoPinzaPrecio = (item: TarifaMillar) => {
+  const precio = resolveTarifaMillarPrecioVolteoPinza(item)
+  return precio !== null ? formatPrecio(precio) : '—'
+}
+
+const formatVolteoEscuadraPrecio = (item: TarifaMillar) => {
+  const precio = resolveTarifaMillarPrecioVolteoEscuadra(item)
+  return precio !== null ? formatPrecio(precio) : '—'
+}
+
 const TarifasMillarPage: React.FC = () => {
   const { items, loading, error, createTarifaMillar, updateTarifaMillar } = useTarifaMillarHook()
   const [searchQuery, setSearchQuery] = useState('')
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<TarifaMillar | null>(null)
-  const activeItems = useMemo(() => items.filter(item => item.state), [items])
+  const directoryItems = useMemo(
+    () =>
+      items.filter(
+        item => !isLegacyVolteoTarifaMillarRecord(item) && isTarifaMillarDirectoryRecord(item)
+      ),
+    [items]
+  )
 
   const filtered = useMemo(() => {
-    let result = activeItems
+    let result = directoryItems
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
-      result = result.filter(
-        item =>
+      result = result.filter(item => {
+        const volteoPinza = resolveTarifaMillarPrecioVolteoPinza(item)
+        const volteoEscuadra = resolveTarifaMillarPrecioVolteoEscuadra(item)
+        return (
           item.name.toLowerCase().includes(q) ||
           String(item.unidadMedida).includes(q) ||
-          item.categoria.toLowerCase().includes(q) ||
-          item.descripcion.toLowerCase().includes(q) ||
-          String(item.precio).includes(q)
-      )
+          String(item.precio).includes(q) ||
+          String(item.topeMinimoMillar).includes(q) ||
+          String(item.millarMinimoVenta).includes(q) ||
+          String(item.umbralDecimalMillar).includes(q) ||
+          (volteoPinza !== null && String(volteoPinza).includes(q)) ||
+          (volteoEscuadra !== null && String(volteoEscuadra).includes(q))
+        )
+      })
     }
-    return sortByCategoria(result)
-  }, [activeItems, searchQuery])
+    return sortTarifasMillarDirectory(result)
+  }, [directoryItems, searchQuery])
 
   const stats = useMemo(() => countDirectoryStats(items), [items])
 
@@ -108,12 +127,12 @@ const TarifasMillarPage: React.FC = () => {
 
   const handleExportList = async () => {
     if (!(await confirmExport('el listado de tarifas por millar'))) return
-    void import('../../utils/catalogExports').then(m => m.exportTarifasMillar(filtered, 'listado'))
+    void import('../../utils/catalogExports').then(m => m.exportTarifasMillarListado(filtered, 'listado'))
   }
 
   const handleExportOne = async (item: TarifaMillar) => {
     if (!(await confirmExport(`la tarifa por millar «${item.name}»`))) return
-    void import('../../utils/catalogExports').then(m => m.exportTarifasMillar([item], item.name))
+    void import('../../utils/catalogExports').then(m => m.exportTarifasMillarListado([item], item.name))
   }
 
   const handleToggleState = async (item: TarifaMillar) => {
@@ -129,6 +148,11 @@ const TarifasMillarPage: React.FC = () => {
           categoria: item.categoria,
           descripcion: item.descripcion,
           state: false,
+          millarMinimoVenta: item.millarMinimoVenta,
+          topeMinimoMillar: item.topeMinimoMillar,
+          umbralDecimalMillar: item.umbralDecimalMillar,
+          precioVolteoPinza: item.precioVolteoPinza,
+          precioVolteoEscuadra: item.precioVolteoEscuadra,
         }),
     })
   }
@@ -185,8 +209,12 @@ const TarifasMillarPage: React.FC = () => {
                 <th className="remissions-th-nombre">NOMBRE</th>
                 <th>UNIDAD MILLAR</th>
                 <th>PRECIO</th>
-                <th>CATEGORÍA</th>
-                <th>DESCRIPCIÓN</th>
+                <th>VOLTEO POR PINZA</th>
+                <th>VOLTEO POR ESCUADRA</th>
+                <th>TOPE MÍNIMO MILLAR</th>
+                <th>MILLAR MÍNIMO</th>
+                <th>UMBRAL DECIMAL</th>
+                <th>ESTADO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
             </thead>
@@ -199,12 +227,23 @@ const TarifasMillarPage: React.FC = () => {
                     </td>
                     <td data-label="Unidad millar">{item.unidadMedida}</td>
                     <td data-label="Precio">{formatPrecio(item.precio)}</td>
-                    <td data-label="Categoría">{item.categoria}</td>
-                    <td data-label="Descripción">{item.descripcion || '—'}</td>
+                    <td data-label="Volteo por pinza">{formatVolteoPinzaPrecio(item)}</td>
+                    <td data-label="Volteo por escuadra">{formatVolteoEscuadraPrecio(item)}</td>
+                    <td data-label="Tope mínimo millar">{item.topeMinimoMillar}</td>
+                    <td data-label="Millar mínimo">{item.millarMinimoVenta}</td>
+                    <td data-label="Umbral decimal">
+                      {formatMillaresFactor(item.umbralDecimalMillar)}
+                    </td>
+                    <td data-label="Estado" className="orders-td-estado">
+                      <Badge
+                        variant={item.state ? 'success' : 'neutral'}
+                        label={item.state ? 'Activo' : 'Inactivo'}
+                      />
+                    </td>
                     <td className="orders-td-acciones" data-label="Acciones">
                       <ListRecordActions
                         recordName={item.name}
-                        isActive
+                        isActive={item.state}
                         onView={() => handleEdit(item)}
                         onEdit={() => handleEdit(item)}
                         onExport={() => handleExportOne(item)}
@@ -215,7 +254,7 @@ const TarifasMillarPage: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="remissions-td-empty">
+                  <td colSpan={10} className="remissions-td-empty">
                     <DirectoryEmptyState
                       icon="💰"
                       title="Sin tarifas por millar"

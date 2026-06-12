@@ -129,3 +129,31 @@ export const resolveTintasMillarPatchForEntrada = (
   ...resolveColorBasicoMillarPatchForEntrada(tarifas, tiro, retiro, maxColores),
   ...resolvePantoneMillarPatchForEntrada(tarifas, tiro, retiro, maxColores),
 })
+
+/** Precarga PRECIO cuando hay tintas del grupo asignadas (sin exigir plancha completa). */
+export const resolveColorBasicoMillarPatchForDraft = (
+  tarifas: TarifaMillar[],
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): ImpresionTintasRegistroColorBasicoPatch =>
+  entradaUsesPrimaryOrSecondaryInks(tiro, retiro)
+    ? resolvePrecioColorBasicoMillarPatch(tarifas)
+    : { tarifaColorBasicoMillarId: '', precioColorBasicoMillar: 0 }
+
+export const resolvePantoneMillarPatchForDraft = (
+  tarifas: TarifaMillar[],
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): ImpresionTintasRegistroPantonePatch =>
+  entradaUsesPantoneInks(tiro, retiro)
+    ? resolvePrecioPantoneMillarPatch(tarifas)
+    : { tarifaPantoneMillarId: '', precioPantoneMillar: 0 }
+
+export const resolveTintasMillarPatchForDraft = (
+  tarifas: TarifaMillar[],
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): ImpresionTintasRegistroTarifasPatch => ({
+  ...resolveColorBasicoMillarPatchForDraft(tarifas, tiro, retiro),
+  ...resolvePantoneMillarPatchForDraft(tarifas, tiro, retiro),
+})

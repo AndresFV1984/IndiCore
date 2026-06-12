@@ -6,6 +6,7 @@ interface ProductionWorkspaceSectionProps {
   subtitle?: string
   tag?: string
   tone?: ProductionWorkspaceTone
+  hideHead?: boolean
   children: React.ReactNode
   className?: string
 }
@@ -15,10 +16,11 @@ const ProductionWorkspaceSection: React.FC<ProductionWorkspaceSectionProps> = ({
   subtitle,
   tag,
   tone = 0,
+  hideHead = false,
   children,
   className,
 }) => {
-  const showHead = Boolean(tag || title || subtitle)
+  const showHead = !hideHead && Boolean(tag || title || subtitle)
 
   return (
     <section

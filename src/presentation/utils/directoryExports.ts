@@ -2,6 +2,7 @@ import { Client } from '../../core/domain/entities/Client'
 import { User } from '../../core/domain/entities/User'
 import { Vendedor } from '../../core/domain/entities/Vendedor'
 import { DOCUMENT_LABELS } from '../constants/documentTypes'
+import { USER_ROLE_LABELS, getPermissionLabel } from '../constants/userRoles'
 import { formatLocationLabel } from '../../core/utils/colombiaLocations'
 import type { ExportField } from './exportFields'
 import { slugifyFilename, todayExportSuffix } from './exportFields'
@@ -37,6 +38,12 @@ const userFields: ExportField<User>[] = [
   { label: 'Ciudad', value: u => u.city },
   { label: 'Ubicación', value: u => formatLocationLabel(u.department, u.city), width: 24 },
   { label: 'Dirección', value: u => u.address, width: 36 },
+  { label: 'Rol', value: u => USER_ROLE_LABELS[u.role] ?? u.role },
+  {
+    label: 'Permisos',
+    value: u => u.permissions.map(getPermissionLabel).join(' · ') || '—',
+    width: 40,
+  },
   { label: 'Estado', value: u => estadoLabel(u.state) },
 ]
 

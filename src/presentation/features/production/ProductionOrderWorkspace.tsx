@@ -20,13 +20,26 @@ import ProductionSpecsSubNav from './ProductionSpecsSubNav'
 import ProductionPreprensaSubNav from './ProductionPreprensaSubNav'
 import ProductionImpresionSubNav from './ProductionImpresionSubNav'
 import ProductionCortePapelSubNav from './ProductionCortePapelSubNav'
+import ProductionTerminadosSubNav from './ProductionTerminadosSubNav'
+import ProductionAcabadosSubNav from './ProductionAcabadosSubNav'
 import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
 import ProductionClientPicker from './ProductionClientPicker'
 import ProductionVendedorPicker from './ProductionVendedorPicker'
+import ProductionOperadorAssignmentSection from './ProductionOperadorAssignmentSection'
 import { SpecsSubTabId } from './productionSpecsSubTabs'
 import { PreprensaSubTabId } from './productionPreprensaSubTabs'
 import { CortePapelSubTabId } from './productionCortePapelSubTabs'
 import { ImpresionSubTabId } from './productionImpresionSubTabs'
+import { TerminadosSubTabId } from './productionTerminadosSubTabs'
+import { AcabadosSubTabId } from './productionAcabadosSubTabs'
+import { useUsersHook } from '../../hooks/useUsers'
+import type { UserPermission, UserRole } from '../../../core/domain/auth/userPermissions'
+import {
+  OPERADOR_ASSIGNMENT_FIELDS,
+  normalizeOperadorPermissionFilters,
+  resolveOperadorRoleFilter,
+  type ProductionAssignmentPhaseId,
+} from './utils/productionOperatorAssignment'
 import { Client } from '../../../core/domain/entities/Client'
 import { Vendedor } from '../../../core/domain/entities/Vendedor'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
@@ -53,6 +66,7 @@ import {
   appendFaltanteLitografiaRow,
   findPaperRowForActiveId,
   isFaltanteLitografiaRow,
+  resetPaperRowForActiveId,
   upsertPaperRow,
 } from './utils/cortePapelFaltante'
 import {
@@ -133,6 +147,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   const isNew = orderId === 'new'
   const { orders, loading: ordersLoading, createOrder } = useOrdersHook()
   const { items: tiposPapelStore, loading: loadingTiposPapel } = useTipoPapelHook()
+  const { users } = useUsersHook()
   const [tiposPapelCatalog, setTiposPapelCatalog] = useState<TipoPapel[]>([])
 
   const tiposPapel = useMemo(
@@ -148,6 +163,8 @@ const ProductionOrderWorkspace: React.FC = () => {
   const [preprensaSubTab, setPreprensaSubTab] = useState<PreprensaSubTabId>('diseno')
   const [cortePapelSubTab, setCortePapelSubTab] = useState<CortePapelSubTabId>('corte')
   const [impresionSubTab, setImpresionSubTab] = useState<ImpresionSubTabId>('tintas')
+  const [terminadosSubTab, setTerminadosSubTab] = useState<TerminadosSubTabId>('catalogo')
+  const [acabadosSubTab, setAcabadosSubTab] = useState<AcabadosSubTabId>('operaciones')
   const [activeCorteColorPlanchaId, setActiveCorteColorPlanchaId] = useState('')
   const [activeImpresionColorPlanchaId, setActiveImpresionColorPlanchaId] = useState('')
   const [clients, setClients] = useState<Client[]>([])
@@ -330,9 +347,12 @@ const ProductionOrderWorkspace: React.FC = () => {
       .filter(row => isFaltanteLitografiaRow(row) && row.corteRowId)
       .map(row => row.corteRowId as string)
     const allowedIds = new Set([...preprensaIds, ...faltanteCorteIds])
-    setActiveCorteColorPlanchaId(prev =>
-      prev && allowedIds.has(prev) ? prev : preprensaIds[0] ?? ''
-    )
+    setActiveCorteColorPlanchaId(prev => {
+      if (prev && allowedIds.has(prev)) return prev
+      // Mantener sin selección tras commit o al iniciar; solo reasignar si el id activo quedó inválido.
+      if (prev) return preprensaIds[0] ?? ''
+      return ''
+    })
   }, [specs.preprensaDiseno.coloresPlanchas, specs.paperRows])
 
   useEffect(() => {
@@ -418,6 +438,61 @@ const ProductionOrderWorkspace: React.FC = () => {
     setSpecs(prev => ({ ...prev, [key]: value }))
   }
 
+  const patchOperadorAssignment = useCallback(
+    (
+      phase: ProductionAssignmentPhaseId,
+      patch: { userId?: string; role?: UserRole; permissions?: UserPermission[] }
+    ) => {
+      const fields = OPERADOR_ASSIGNMENT_FIELDS[phase]
+      setSpecs(prev => ({
+        ...prev,
+        [fields.id]:
+          patch.userId !== undefined ? patch.userId : (prev[fields.id] as string | undefined) ?? '',
+        [fields.rol]:
+          patch.role !== undefined
+            ? patch.role
+            : resolveOperadorRoleFilter(prev[fields.rol] as UserRole | undefined),
+        [fields.permisos]:
+          patch.permissions !== undefined
+            ? normalizeOperadorPermissionFilters(phase, patch.permissions)
+            : normalizeOperadorPermissionFilters(
+                phase,
+                prev[fields.permisos] as UserPermission[] | undefined
+              ),
+      }))
+    },
+    []
+  )
+
+  const renderOperadorSection = (
+    phase: ProductionAssignmentPhaseId,
+    etapa: string,
+    tone: 0 | 1 | 2,
+    inputId: string
+  ) => {
+    const fields = OPERADOR_ASSIGNMENT_FIELDS[phase]
+    return (
+      <ProductionOperadorAssignmentSection
+        users={users}
+        phaseId={phase}
+        selectedId={(specs[fields.id] as string | undefined) ?? ''}
+        roleFilter={resolveOperadorRoleFilter(specs[fields.rol] as UserRole | undefined)}
+        permissionFilters={normalizeOperadorPermissionFilters(
+          phase,
+          specs[fields.permisos] as UserPermission[] | undefined
+        )}
+        onSelect={userId => patchOperadorAssignment(phase, { userId })}
+        onRoleFilterChange={role => patchOperadorAssignment(phase, { role })}
+        onPermissionFiltersChange={permissions =>
+          patchOperadorAssignment(phase, { permissions })
+        }
+        etapa={etapa}
+        tone={tone}
+        inputId={inputId}
+      />
+    )
+  }
+
   const handleImpresionTintasRegistroChange = useCallback((registro: ImpresionTintasRegistro) => {
     setSpecs(prev => ({
       ...prev,
@@ -458,12 +533,24 @@ const ProductionOrderWorkspace: React.FC = () => {
   const clienteSuministraPapel = specs.clienteSuministraPapel ?? 'no'
   const paperRow = findPaperRowForActiveId(specs.paperRows, activeCorteColorPlanchaId)
 
-  const setPaperRow = (row: PaperRow) => {
+  const handlePaperRowCommit = (row: PaperRow) => {
     setSpecs(prev =>
       mergeSpecsWithCorteMetrics(prev, {
         paperRows: upsertPaperRow(prev.paperRows, row),
       })
     )
+    setActiveCorteColorPlanchaId('')
+  }
+
+  const handlePaperRowDelete = (activeId: string) => {
+    setSpecs(prev =>
+      mergeSpecsWithCorteMetrics(prev, {
+        paperRows: resetPaperRowForActiveId(prev.paperRows, activeId),
+      })
+    )
+    if (activeCorteColorPlanchaId === activeId) {
+      setActiveCorteColorPlanchaId('')
+    }
   }
 
   const handleAddFaltanteLitografia = (parent: PaperRow, hojasFaltante: number) => {
@@ -760,6 +847,16 @@ const ProductionOrderWorkspace: React.FC = () => {
                 <ProductionPreprensaSubNav active={preprensaSubTab} onChange={setPreprensaSubTab} />
 
                 <div className="production-specs-content">
+                  {preprensaSubTab === 'responsable' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-preprensa-panel-responsable"
+                      aria-labelledby="production-preprensa-subtab-responsable"
+                    >
+                      {renderOperadorSection('preprensa', 'Preprensa', 0, 'preprensa-operador')}
+                    </div>
+                  )}
                   {preprensaSubTab === 'diseno' && (
                     <div
                       className="production-preprensa-diseno-detail"
@@ -898,6 +995,17 @@ const ProductionOrderWorkspace: React.FC = () => {
                 />
 
                 <div className="production-specs-content">
+                  {cortePapelSubTab === 'responsable' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-corte-papel-panel-responsable"
+                      aria-labelledby="production-corte-papel-subtab-responsable"
+                    >
+                      {renderOperadorSection('corte-papel', 'Corte de papel', 1, 'corte-operador')}
+                    </div>
+                  )}
+                  {cortePapelSubTab === 'corte' && (
                   <div
                     className="production-preprensa-diseno-detail"
                     role="tabpanel"
@@ -914,7 +1022,8 @@ const ProductionOrderWorkspace: React.FC = () => {
                         loadingTiposPapel={loadingTiposPapel && tiposPapel.length === 0}
                         activeColorPlanchaId={activeCorteColorPlanchaId}
                         onActiveColorPlanchaIdChange={setActiveCorteColorPlanchaId}
-                        onPaperRowChange={setPaperRow}
+                        onPaperRowCommit={handlePaperRowCommit}
+                        onPaperRowDelete={handlePaperRowDelete}
                         onClienteSuministraPapelChange={handleClienteSuministraPapelChange}
                         onAddFaltanteLitografia={handleAddFaltanteLitografia}
                         onMargenRedondeoChange={value =>
@@ -926,6 +1035,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                         }
                       />
                     </div>
+                  )}
                 </div>
               </div>
             </>
@@ -942,6 +1052,16 @@ const ProductionOrderWorkspace: React.FC = () => {
                 />
 
                 <div className="production-specs-content">
+                  {impresionSubTab === 'responsable' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-impresion-panel-responsable"
+                      aria-labelledby="production-impresion-subtab-responsable"
+                    >
+                      {renderOperadorSection('impresion', 'Impresión', 2, 'impresion-operador')}
+                    </div>
+                  )}
                   {impresionSubTab === 'tintas' && (
                     <div
                       className="production-specs-panel production-specs-panel--sections"
@@ -1014,48 +1134,103 @@ const ProductionOrderWorkspace: React.FC = () => {
           {activeTab === 'terminados' && (
             <>
               <h2 className="production-workspace-panel-title">Terminados</h2>
-              <p className="production-workspace-panel-desc">
-                Terminaciones del catálogo asignadas a esta orden (laminado, troquel, etc.).
-              </p>
-              <ProductionWorkspaceSection tag="Catálogo" title="Terminados vinculados" tone={1}>
-                {specs.finishes.length > 0 ? (
-                  <ul className="production-ws-list">
-                    {specs.finishes.map((f, i) => (
-                      <li key={i}>
-                        {f.name} · Cant: {f.quantity} · {f.total.toString()}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="production-empty-hint">
-                    Aún no hay terminados asignados. Podrás vincularlos desde el catálogo de Terminados.
-                  </p>
-                )}
-              </ProductionWorkspaceSection>
+
+              <div className="production-specs-layout">
+                <ProductionTerminadosSubNav
+                  active={terminadosSubTab}
+                  onChange={setTerminadosSubTab}
+                />
+
+                <div className="production-specs-content">
+                  {terminadosSubTab === 'responsable' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-terminados-panel-responsable"
+                      aria-labelledby="production-terminados-subtab-responsable"
+                    >
+                      {renderOperadorSection('terminados', 'Terminados', 1, 'terminados-operador')}
+                    </div>
+                  )}
+                  {terminadosSubTab === 'catalogo' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-terminados-panel-catalogo"
+                      aria-labelledby="production-terminados-subtab-catalogo"
+                    >
+                      <p className="production-workspace-panel-desc">
+                        Terminaciones del catálogo asignadas a esta orden (laminado, troquel, etc.).
+                      </p>
+                      <ProductionWorkspaceSection tag="Catálogo" title="Terminados vinculados" tone={1}>
+                        {specs.finishes.length > 0 ? (
+                          <ul className="production-ws-list">
+                            {specs.finishes.map((f, i) => (
+                              <li key={i}>
+                                {f.name} · Cant: {f.quantity} · {f.total.toString()}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="production-empty-hint">
+                            Aún no hay terminados asignados. Podrás vincularlos desde el catálogo de Terminados.
+                          </p>
+                        )}
+                      </ProductionWorkspaceSection>
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           )}
 
           {activeTab === 'acabados' && (
             <>
               <h2 className="production-workspace-panel-title">Acabados</h2>
-              <p className="production-workspace-panel-desc">
-                Operaciones de acabado y mano de obra asociada a la orden.
-              </p>
-              <ProductionWorkspaceSection tag="Operaciones" title="Acabados vinculados" tone={2}>
-                {specs.operations.length > 0 ? (
-                  <ul className="production-ws-list">
-                    {specs.operations.map((op, i) => (
-                      <li key={i}>
-                        {op.name} · {op.value.toString()}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="production-empty-hint">
-                    Aún no hay operaciones de acabado. Podrás asignarlas desde el catálogo de Operaciones.
-                  </p>
-                )}
-              </ProductionWorkspaceSection>
+
+              <div className="production-specs-layout">
+                <ProductionAcabadosSubNav active={acabadosSubTab} onChange={setAcabadosSubTab} />
+
+                <div className="production-specs-content">
+                  {acabadosSubTab === 'responsable' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-acabados-panel-responsable"
+                      aria-labelledby="production-acabados-subtab-responsable"
+                    >
+                      {renderOperadorSection('acabados', 'Acabados', 2, 'acabados-operador')}
+                    </div>
+                  )}
+                  {acabadosSubTab === 'operaciones' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-acabados-panel-operaciones"
+                      aria-labelledby="production-acabados-subtab-operaciones"
+                    >
+                      <p className="production-workspace-panel-desc">
+                        Operaciones de acabado y mano de obra asociada a la orden.
+                      </p>
+                      <ProductionWorkspaceSection tag="Operaciones" title="Acabados vinculados" tone={2}>
+                        {specs.operations.length > 0 ? (
+                          <ul className="production-ws-list">
+                            {specs.operations.map((op, i) => (
+                              <li key={i}>
+                                {op.name} · {op.value.toString()}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="production-empty-hint">
+                            Aún no hay operaciones de acabado. Podrás asignarlas desde el catálogo de Operaciones.
+                          </p>
+                        )}
+                      </ProductionWorkspaceSection>
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
           )}
 

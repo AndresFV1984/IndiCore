@@ -3,6 +3,7 @@ import type {
   ImpresionTintasRegistro,
   ImpresionTiroRetiroEntrada,
 } from '../../../../core/domain/entities/Order'
+import type { TarifaMillarPricing } from '../../../../core/domain/entities/TarifaMillar'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
 import { getColoresOptionMeta } from './coloresPlanchasUtils'
 import {
@@ -11,6 +12,12 @@ import {
   isValidImpresionTintaIndex,
   normalizeImpresionInkIndex,
 } from './impresionTintasUtils'
+import { isImpresionConVolteo, normalizeImpresionTipoBifronte } from '../constants/impresionTipoBifronte'
+import {
+  computeMillaresCalculados,
+  computeValorImpresionPorMillaresReferencia,
+  resolveMillaresParaCobro,
+} from './tarifaMillarPricingUtils'
 
 export interface ImpresionPrecioTintaBreakdown {
   cantidadTintasColorBasico: number
@@ -23,7 +30,25 @@ export interface ImpresionPrecioTintaBreakdown {
   total: number
   millaresVolteo: number
   volteo: number
+  millaresVolteoColorBasico: number
+  volteoColorBasico: number
+  millaresVolteoPantone: number
+  volteoPantone: number
   grandTotal: number
+}
+
+export type ImpresionGrupoMillaresAjuste = 'ninguno' | 'minimoPorTope' | 'millarUno'
+
+export interface ImpresionGrupoMillaresPreview {
+  variant: 'colorBasico' | 'pantone'
+  cantidadTintas: number
+  tintasTiro: number
+  tintasRetiro: number
+  tamanosBuenos: number
+  millaresBase: number
+  millaresCalculados: number
+  ajuste: ImpresionGrupoMillaresAjuste
+  millarMinimoVentaAplicado?: number
 }
 
 export interface ImpresionTintasResumenLine {
@@ -37,6 +62,8 @@ export interface ImpresionTintasResumenLine {
   totalCobrar: number
 }
 
+export type ImpresionTintasResumenVolteoEstado = 'con' | 'sin' | 'mixto' | null
+
 export interface ImpresionTintasResumenConsolidado {
   registros: ImpresionTintasResumenLine[]
   totales: {
@@ -44,7 +71,47 @@ export interface ImpresionTintasResumenConsolidado {
     precioTintaPantone: number
     precioVolteo: number
     totalCobrar: number
+    volteoColorBasico: ImpresionTintasResumenVolteoEstado
+    volteoPantone: ImpresionTintasResumenVolteoEstado
   }
+}
+
+const resolveRegistroConVolteoColorBasico = (registro: ImpresionTintasRegistro): boolean => {
+  const tipo =
+    normalizeImpresionTipoBifronte(registro.tipoBifronteColorBasico) ||
+    normalizeImpresionTipoBifronte(registro.tipoBifronte)
+  return isImpresionConVolteo(tipo)
+}
+
+const resolveRegistroConVolteoPantone = (registro: ImpresionTintasRegistro): boolean => {
+  const tipo =
+    normalizeImpresionTipoBifronte(registro.tipoBifrontePantone) ||
+    normalizeImpresionTipoBifronte(registro.tipoBifronte)
+  return isImpresionConVolteo(tipo)
+}
+
+const resolveVolteoEstadoConsolidado = (
+  registros: ImpresionTintasRegistro[],
+  variant: 'colorBasico' | 'pantone'
+): ImpresionTintasResumenVolteoEstado => {
+  const conVolteo =
+    variant === 'colorBasico' ? resolveRegistroConVolteoColorBasico : resolveRegistroConVolteoPantone
+  const aplicaAEntrada = (registro: ImpresionTintasRegistro): boolean => {
+    const entrada = registro.entradas[0]
+    if (!entrada) return false
+    const resumen = resolveEntradaRegistroResumen(entrada)
+    return variant === 'colorBasico'
+      ? resumen.cantidadTintasColorBasico > 0 || resumen.precioTintaColorBasico > 0
+      : resumen.cantidadTintasPantone > 0 || resumen.precioTintaPantone > 0
+  }
+
+  const contribuyentes = registros.filter(aplicaAEntrada)
+  if (contribuyentes.length === 0) return null
+
+  const conVolteoCount = contribuyentes.filter(conVolteo).length
+  if (conVolteoCount === 0) return 'sin'
+  if (conVolteoCount === contribuyentes.length) return 'con'
+  return 'mixto'
 }
 
 export interface ImpresionEntradaRegistroResumen {
@@ -60,7 +127,7 @@ export interface ImpresionEntradaRegistroResumen {
   grandTotal: number
 }
 
-const countDistinctPantoneInLado = (lado: ImpresionLadoTintas): number => {
+export const countDistinctPantoneInLado = (lado: ImpresionLadoTintas): number => {
   const pantones = new Set<number>()
   for (const ink of lado.tintas.slice(0, lado.cantidad)) {
     const normalized = normalizeImpresionInkIndex(ink)
@@ -70,7 +137,7 @@ const countDistinctPantoneInLado = (lado: ImpresionLadoTintas): number => {
   return pantones.size
 }
 
-const countDistinctNonPantoneInLado = (lado: ImpresionLadoTintas): number => {
+export const countDistinctNonPantoneInLado = (lado: ImpresionLadoTintas): number => {
   const inks = new Set<number>()
   for (const ink of lado.tintas.slice(0, lado.cantidad)) {
     const normalized = normalizeImpresionInkIndex(ink)
@@ -80,86 +147,229 @@ const countDistinctNonPantoneInLado = (lado: ImpresionLadoTintas): number => {
   return inks.size
 }
 
-/** Colores distintos NO-Pantone (primarios/secundarios) en tiro + en retiro. */
 export const sumDistinctNonPantoneColorsBySide = (
   tiro: ImpresionLadoTintas,
   retiro: ImpresionLadoTintas
 ): number => countDistinctNonPantoneInLado(tiro) + countDistinctNonPantoneInLado(retiro)
 
-/** Pantones distintos asignados en tiro + Pantones distintos asignados en retiro. */
 export const sumDistinctPantoneColorsBySide = (
   tiro: ImpresionLadoTintas,
   retiro: ImpresionLadoTintas
 ): number => countDistinctPantoneInLado(tiro) + countDistinctPantoneInLado(retiro)
-
-/** Millares = (tiro + retiro) × Tamaños buenos ÷ 1.000, con mínimo 1 si aplica. */
-export const computeImpresionMillaresFactor = (
-  tiroRetiroCount: number,
-  tamanosBuenos: number
-): number => {
-  if (tiroRetiroCount <= 0 || tamanosBuenos <= 0) return 0
-  const factorBase = tiroRetiroCount * (tamanosBuenos / 1000)
-  return Math.max(1, factorBase)
-}
 
 export const formatMillaresFactor = (value: number): string =>
   value > 0
     ? new Intl.NumberFormat('es-CO', { maximumFractionDigits: 3 }).format(value)
     : '—'
 
-const computeGrupoMillares = (
-  count: number,
-  tamanosBuenos: number,
-  precioMillar: number
-): { millares: number; precio: number } => {
-  const millares = computeImpresionMillaresFactor(count, tamanosBuenos)
-  if (millares <= 0 || precioMillar <= 0) return { millares: 0, precio: 0 }
-  return { millares, precio: Math.round(millares * precioMillar) }
+export const resolveImpresionTarifaMillarPricing = (
+  precio: number,
+  millarMinimoVenta?: number,
+  topeMinimoMillar?: number,
+  umbralDecimalMillar?: number
+): TarifaMillarPricing => ({
+  precio: Math.max(0, precio),
+  millarMinimoVenta: millarMinimoVenta ?? 0,
+  topeMinimoMillar: topeMinimoMillar ?? 0,
+  umbralDecimalMillar: umbralDecimalMillar ?? 0.2,
+})
+
+const resolveGrupoMillaresAjuste = (
+  millaresBase: number,
+  millaresCalculados: number,
+  pricing: TarifaMillarPricing
+): ImpresionGrupoMillaresAjuste => {
+  if (millaresBase <= 0 || millaresCalculados <= 0) return 'ninguno'
+  if (millaresCalculados === 1 && millaresBase < 1) return 'millarUno'
+  const topeEnMillares =
+    pricing.topeMinimoMillar > 0 ? pricing.topeMinimoMillar / 1000 : 0
+  const millarMinimoEnMillares =
+    pricing.millarMinimoVenta > 0 ? pricing.millarMinimoVenta / 1000 : 0
+  if (
+    topeEnMillares > 0 &&
+    millaresBase < topeEnMillares &&
+    millarMinimoEnMillares > 0 &&
+    millaresCalculados === millarMinimoEnMillares
+  ) {
+    return 'minimoPorTope'
+  }
+  return 'ninguno'
 }
 
-/**
- * Calcular millares al registrar un tiro/retiro (desglosado):
- * - (Tiro + retiro) × Tamaños buenos ÷ 1.000 × Precio Color básico
- * - (Tiro + retiro) × Tamaños buenos ÷ 1.000 × Precio Pantone
- *
- * Si el factor de cada grupo da menos de 1, se cobra mínimo 1 millar por grupo.
- */
-const computeVolteoFromMillares = (
-  millaresTiroRetiro: number,
-  precioVolteoMillar: number
-): { millaresVolteo: number; volteo: number } => {
-  if (millaresTiroRetiro <= 0 || precioVolteoMillar <= 0) {
-    return { millaresVolteo: 0, volteo: 0 }
-  }
+export const buildImpresionGrupoMillaresPreview = (
+  variant: 'colorBasico' | 'pantone',
+  tintasTiro: number,
+  tintasRetiro: number,
+  tamanosBuenos: number,
+  pricing: TarifaMillarPricing
+): ImpresionGrupoMillaresPreview | null => {
+  const cantidadTintas = tintasTiro + tintasRetiro
+  if (cantidadTintas <= 0 || tamanosBuenos <= 0) return null
+  const millaresBase = computeMillaresCalculados(cantidadTintas, tamanosBuenos)
+  const millaresCalculados = resolveMillaresParaCobro(
+    millaresBase,
+    pricing.millarMinimoVenta,
+    pricing.umbralDecimalMillar,
+    pricing.topeMinimoMillar
+  )
+  const ajuste = resolveGrupoMillaresAjuste(millaresBase, millaresCalculados, pricing)
   return {
-    millaresVolteo: millaresTiroRetiro,
-    volteo: Math.round(millaresTiroRetiro * precioVolteoMillar),
+    variant,
+    cantidadTintas,
+    tintasTiro,
+    tintasRetiro,
+    tamanosBuenos,
+    millaresBase,
+    millaresCalculados,
+    ajuste,
+    millarMinimoVentaAplicado:
+      ajuste === 'minimoPorTope' ? pricing.millarMinimoVenta : undefined,
   }
+}
+
+const resolveGrupoMillaresReferencia = (
+  variant: 'colorBasico' | 'pantone',
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas,
+  tamanosBuenos: number,
+  conVolteo: boolean,
+  basePricing: TarifaMillarPricing,
+  volteoPricing: TarifaMillarPricing
+): number => {
+  const tintasTiro =
+    variant === 'colorBasico'
+      ? countDistinctNonPantoneInLado(tiro)
+      : countDistinctPantoneInLado(tiro)
+  const tintasRetiro =
+    variant === 'colorBasico'
+      ? countDistinctNonPantoneInLado(retiro)
+      : countDistinctPantoneInLado(retiro)
+  const pricing = conVolteo ? volteoPricing : basePricing
+  const preview = buildImpresionGrupoMillaresPreview(
+    variant,
+    tintasTiro,
+    tintasRetiro,
+    tamanosBuenos,
+    pricing
+  )
+  return preview?.millaresCalculados ?? 0
+}
+
+const computeGrupoImpresionCobro = (
+  variant: 'colorBasico' | 'pantone',
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas,
+  tamanosBuenos: number,
+  precioInicial: number,
+  precioPorMillar: number,
+  conVolteo: boolean,
+  basePricing: TarifaMillarPricing,
+  volteoPricing: TarifaMillarPricing
+): { millares: number; precio: number } => {
+  const millares = resolveGrupoMillaresReferencia(
+    variant,
+    tiro,
+    retiro,
+    tamanosBuenos,
+    conVolteo,
+    basePricing,
+    volteoPricing
+  )
+  const precio = computeValorImpresionPorMillaresReferencia({
+    millaresReferencia: millares,
+    precioInicial,
+    precioPorMillar: conVolteo ? precioPorMillar : precioInicial,
+    conVolteo,
+    topeMinimoMillar: conVolteo
+      ? volteoPricing.topeMinimoMillar
+      : basePricing.topeMinimoMillar,
+  })
+  return { millares, precio }
+}
+
+export interface ImpresionPrecioTintaBreakdownInput {
+  precioColorBasicoMillar: number
+  precioPantoneMillar: number
+  precioVolteoColorBasicoMillar?: number
+  precioVolteoPantoneMillar?: number
+  conVolteoColorBasico?: boolean
+  conVolteoPantone?: boolean
+  millarMinimoVentaColorBasico?: number
+  topeMinimoMillarColorBasico?: number
+  umbralDecimalMillarColorBasico?: number
+  millarMinimoVentaPantone?: number
+  topeMinimoMillarPantone?: number
+  umbralDecimalMillarPantone?: number
+  millarMinimoVentaVolteoColorBasico?: number
+  topeMinimoMillarVolteoColorBasico?: number
+  umbralDecimalMillarVolteoColorBasico?: number
+  millarMinimoVentaVolteoPantone?: number
+  topeMinimoMillarVolteoPantone?: number
+  umbralDecimalMillarVolteoPantone?: number
 }
 
 export const computeImpresionPrecioTintaBreakdown = (
   tiro: ImpresionLadoTintas,
   retiro: ImpresionLadoTintas,
   tamanosBuenos: number,
-  precioColorBasicoMillar: number,
-  precioPantoneMillar: number,
-  precioVolteoMillar = 0
+  input: ImpresionPrecioTintaBreakdownInput
 ): ImpresionPrecioTintaBreakdown => {
   const cantidadTintasColorBasico = sumDistinctNonPantoneColorsBySide(tiro, retiro)
   const cantidadTintasPantone = sumDistinctPantoneColorsBySide(tiro, retiro)
-  const colorBasicoGrupo = computeGrupoMillares(
-    cantidadTintasColorBasico,
-    tamanosBuenos,
-    precioColorBasicoMillar
+
+  const pricingColorBasico = resolveImpresionTarifaMillarPricing(
+    input.precioColorBasicoMillar,
+    input.millarMinimoVentaColorBasico,
+    input.topeMinimoMillarColorBasico,
+    input.umbralDecimalMillarColorBasico
   )
-  const pantoneGrupo = computeGrupoMillares(
-    cantidadTintasPantone,
-    tamanosBuenos,
-    precioPantoneMillar
+  const pricingPantone = resolveImpresionTarifaMillarPricing(
+    input.precioPantoneMillar,
+    input.millarMinimoVentaPantone,
+    input.topeMinimoMillarPantone,
+    input.umbralDecimalMillarPantone
   )
-  const millaresTotal = colorBasicoGrupo.millares + pantoneGrupo.millares
+
+  const volteoColorBasicoPricing = resolveImpresionTarifaMillarPricing(
+    input.precioVolteoColorBasicoMillar ?? 0,
+    input.millarMinimoVentaVolteoColorBasico,
+    input.topeMinimoMillarVolteoColorBasico,
+    input.umbralDecimalMillarVolteoColorBasico
+  )
+  const volteoPantonePricing = resolveImpresionTarifaMillarPricing(
+    input.precioVolteoPantoneMillar ?? 0,
+    input.millarMinimoVentaVolteoPantone,
+    input.topeMinimoMillarVolteoPantone,
+    input.umbralDecimalMillarVolteoPantone
+  )
+  const conVolteoColorBasico = Boolean(input.conVolteoColorBasico)
+  const conVolteoPantone = Boolean(input.conVolteoPantone)
+
+  const colorBasicoGrupo = computeGrupoImpresionCobro(
+    'colorBasico',
+    tiro,
+    retiro,
+    tamanosBuenos,
+    input.precioColorBasicoMillar,
+    input.precioVolteoColorBasicoMillar ?? 0,
+    conVolteoColorBasico,
+    pricingColorBasico,
+    volteoColorBasicoPricing
+  )
+  const pantoneGrupo = computeGrupoImpresionCobro(
+    'pantone',
+    tiro,
+    retiro,
+    tamanosBuenos,
+    input.precioPantoneMillar,
+    input.precioVolteoPantoneMillar ?? 0,
+    conVolteoPantone,
+    pricingPantone,
+    volteoPantonePricing
+  )
+
   const total = colorBasicoGrupo.precio + pantoneGrupo.precio
-  const volteoGrupo = computeVolteoFromMillares(millaresTotal, precioVolteoMillar)
+  const millaresTotal = colorBasicoGrupo.millares + pantoneGrupo.millares
 
   return {
     cantidadTintasColorBasico,
@@ -170,10 +380,24 @@ export const computeImpresionPrecioTintaBreakdown = (
     colorBasico: colorBasicoGrupo.precio,
     pantone: pantoneGrupo.precio,
     total,
-    millaresVolteo: volteoGrupo.millaresVolteo,
-    volteo: volteoGrupo.volteo,
-    grandTotal: total + volteoGrupo.volteo,
+    millaresVolteo: 0,
+    volteo: 0,
+    millaresVolteoColorBasico: 0,
+    volteoColorBasico: 0,
+    millaresVolteoPantone: 0,
+    volteoPantone: 0,
+    grandTotal: total,
   }
+}
+
+/** @deprecated Use computeImpresionPrecioTintaBreakdown with input object. */
+export const computeImpresionMillaresFactor = (
+  tiroRetiroCount: number,
+  tamanosBuenos: number
+): number => {
+  if (tiroRetiroCount <= 0 || tamanosBuenos <= 0) return 0
+  const factorBase = tiroRetiroCount * (tamanosBuenos / 1000)
+  return Math.max(1, factorBase)
 }
 
 export const resolveEntradaRegistroResumen = (
@@ -228,7 +452,7 @@ export const buildImpresionTintasResumenConsolidado = (
     }
   })
 
-  const totales = lines.reduce(
+  const totalesBase = lines.reduce(
     (acc, line) => ({
       precioTintaColorBasico: acc.precioTintaColorBasico + line.precioTintaColorBasico,
       precioTintaPantone: acc.precioTintaPantone + line.precioTintaPantone,
@@ -243,7 +467,18 @@ export const buildImpresionTintasResumenConsolidado = (
     }
   )
 
-  return { registros: lines, totales }
+  const registrosCompletos = coloresPlanchas
+    .map(plancha => byId.get(plancha.id))
+    .filter((registro): registro is ImpresionTintasRegistro => Boolean(registro?.entradas[0]))
+
+  return {
+    registros: lines,
+    totales: {
+      ...totalesBase,
+      volteoColorBasico: resolveVolteoEstadoConsolidado(registrosCompletos, 'colorBasico'),
+      volteoPantone: resolveVolteoEstadoConsolidado(registrosCompletos, 'pantone'),
+    },
+  }
 }
 
 export const computeImpresionPrecioTinta = (
@@ -253,10 +488,7 @@ export const computeImpresionPrecioTinta = (
   precioColorBasicoMillar: number,
   precioPantoneMillar: number
 ): number =>
-  computeImpresionPrecioTintaBreakdown(
-    tiro,
-    retiro,
-    tamanosBuenos,
+  computeImpresionPrecioTintaBreakdown(tiro, retiro, tamanosBuenos, {
     precioColorBasicoMillar,
-    precioPantoneMillar
-  ).total
+    precioPantoneMillar,
+  }).total

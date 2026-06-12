@@ -7,6 +7,7 @@ import {
   findPaperRowForActiveId,
   resolveHojasCalculadasCorte,
   resolveHojasFaltanteCliente,
+  resetPaperRowForActiveId,
   upsertPaperRow,
 } from './cortePapelFaltante'
 
@@ -67,6 +68,37 @@ describe('findPaperRowForActiveId', () => {
     const id = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
     const row = findPaperRowForActiveId([], id)
     expect(row.colorPlanchaId).toBe(id)
+  })
+})
+
+describe('resetPaperRowForActiveId', () => {
+  it('limpia tipo de papel del registro preprensa', () => {
+    const registroId = 'registro-preprensa-1'
+    const rows = upsertPaperRow([], {
+      ...rowBase(),
+      colorPlanchaId: registroId,
+      tipoPapelId: 'tp-1',
+      type: 'Couché',
+      despiece: {
+        despieceId: 'd-1',
+        nombre: 'Despiece',
+        piezasPorPliego: 4,
+        valorCorte: 1000,
+      },
+    })
+    const reset = resetPaperRowForActiveId(rows, registroId)
+    const row = reset.find(r => r.colorPlanchaId === registroId)
+    expect(row?.tipoPapelId).toBe('')
+    expect(row?.despiece).toBeUndefined()
+  })
+
+  it('elimina fila de faltante litografía', () => {
+    const parentId = 'registro-preprensa-1'
+    const parent = { ...rowBase(), colorPlanchaId: parentId }
+    const faltante = createFaltanteLitografiaRow(parent, parentId, 50)
+    const rows = upsertPaperRow(upsertPaperRow([], parent), faltante)
+    const reset = resetPaperRowForActiveId(rows, faltante.corteRowId!)
+    expect(reset.filter(r => r.esFaltanteLitografia)).toHaveLength(0)
   })
 })
 

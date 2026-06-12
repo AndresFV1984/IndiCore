@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import Modal from '../../components/ui/Modal'
-import { CreateUserDTO, DocumentType, User } from '../../../core/domain/entities/User'
+import { CreateUserDTO, DocumentType, User, type UserPermission, type UserRole } from '../../../core/domain/entities/User'
+import { DEFAULT_USER_ROLE, getPermissionsForRole, USER_ROLE_OPTIONS } from '../../constants/userRoles'
 import { hashPassword } from '../../utils/passwordHash'
+import UserPermissionsPicker from './UserPermissionsPicker'
 import FormSection from '../../components/directory/FormSection'
 import FormField from '../../components/directory/FormField'
 import { DOCUMENT_TYPE_OPTIONS } from '../../constants/documentTypes'
@@ -20,6 +22,8 @@ export interface NewUserFormValues {
   contact: string
   password: string
   state: boolean
+  role: UserRole
+  permissions: UserPermission[]
 }
 
 const defaultValues: NewUserFormValues = {
@@ -32,6 +36,8 @@ const defaultValues: NewUserFormValues = {
   contact: '',
   password: '',
   state: true,
+  role: DEFAULT_USER_ROLE,
+  permissions: getPermissionsForRole(DEFAULT_USER_ROLE),
 }
 
 interface NewUserModalProps {
@@ -61,6 +67,8 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
             contact: user.contact,
             password: '',
             state: user.state,
+            role: user.role,
+            permissions: [...user.permissions],
           }
         : defaultValues
     )
@@ -129,6 +137,8 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
         contact: values.contact.trim(),
         password_hash,
         state: values.state,
+        role: values.role,
+        permissions: values.permissions,
       })
       onClose()
     } catch {
@@ -229,6 +239,34 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSubmit, 
         </FormSection>
 
         <FormSection title="Acceso al sistema">
+          <FormField id="user-role" label="Rol" required fullWidth>
+            <select
+              id="user-role"
+              className="record-form-input"
+              value={values.role}
+              onChange={e => {
+                const role = e.target.value as UserRole
+                setValues(prev => ({
+                  ...prev,
+                  role,
+                  permissions: getPermissionsForRole(role),
+                }))
+                if (error) setError(null)
+              }}
+            >
+              {USER_ROLE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField id="user-permissions" label="Permisos" fullWidth>
+            <UserPermissionsPicker
+              selected={values.permissions}
+              onChange={permissions => setValues(prev => ({ ...prev, permissions }))}
+            />
+          </FormField>
           <FormField
             id="user-password"
             label="Contraseña"

@@ -1,40 +1,94 @@
 import type { ImpresionTipoBifronte } from '../../../../core/domain/entities/Order'
-import type { TarifaMillar } from '../../../../core/domain/entities/TarifaMillar'
+import type { TarifaMillar, TarifaMillarPricing } from '../../../../core/domain/entities/TarifaMillar'
 import {
-  IMPRESION_VOLTEO_TARIFA_NAME,
-  isImpresionConVolteo,
-} from '../constants/impresionTipoBifronte'
+  IMPRESION_VOLTEO_MILLAR_RULES,
+  resolveTarifaMillarPrecioVolteoPorTipo,
+} from '../constants/impresionTarifaMillar'
+import { isImpresionConVolteo } from '../constants/impresionTipoBifronte'
+import {
+  resolveTarifaColorBasicoMillar,
+  resolveTarifaPantoneMillar,
+} from './impresionColorBasicoTarifaUtils'
 
 export interface ImpresionTintasRegistroVolteoPatch {
   tarifaVolteoMillarId: string
   precioVolteoMillar: number
 }
 
-export const resolveTarifaVolteoMillar = (
-  tarifas: TarifaMillar[],
-  tipoBifronte: ImpresionTipoBifronte | ''
-): TarifaMillar | null => {
-  if (!isImpresionConVolteo(tipoBifronte)) return null
-  const expectedName = IMPRESION_VOLTEO_TARIFA_NAME[tipoBifronte]
-  const normalized = expectedName.trim().toLowerCase()
-  return (
-    tarifas.find(
-      item => item.state && item.name.trim().toLowerCase() === normalized
-    ) ?? null
-  )
+export interface ImpresionTintasRegistroColorBasicoVolteoPatch {
+  tarifaVolteoColorBasicoMillarId: string
+  precioVolteoColorBasicoMillar: number
 }
+
+export interface ImpresionTintasRegistroPantoneVolteoPatch {
+  tarifaVolteoPantoneMillarId: string
+  precioVolteoPantoneMillar: number
+}
+
+const emptyColorBasicoVolteoPatch = (): ImpresionTintasRegistroColorBasicoVolteoPatch => ({
+  tarifaVolteoColorBasicoMillarId: '',
+  precioVolteoColorBasicoMillar: 0,
+})
+
+const emptyPantoneVolteoPatch = (): ImpresionTintasRegistroPantoneVolteoPatch => ({
+  tarifaVolteoPantoneMillarId: '',
+  precioVolteoPantoneMillar: 0,
+})
+
+export const getImpresionVolteoMillarRules = () => IMPRESION_VOLTEO_MILLAR_RULES
+
+export const getImpresionVolteoMillarRulesFromTarifa = (
+  tarifa: TarifaMillar | null | undefined
+): TarifaMillarPricing => {
+  if (!tarifa) return IMPRESION_VOLTEO_MILLAR_RULES
+  return {
+    precio: 0,
+    millarMinimoVenta: tarifa.millarMinimoVenta,
+    topeMinimoMillar: tarifa.topeMinimoMillar,
+    umbralDecimalMillar: tarifa.umbralDecimalMillar,
+  }
+}
+
+const resolveVolteoPrecioFromTarifa = (
+  tarifa: TarifaMillar | null,
+  tipoBifronte: ImpresionTipoBifronte | ''
+): number => resolveTarifaMillarPrecioVolteoPorTipo(tarifa, tipoBifronte)
 
 export const resolvePrecioVolteoMillarPatch = (
   tarifas: TarifaMillar[],
   tipoBifronte: ImpresionTipoBifronte | ''
 ): ImpresionTintasRegistroVolteoPatch => {
-  const tarifa = resolveTarifaVolteoMillar(tarifas, tipoBifronte)
-  if (!tarifa) {
+  if (!isImpresionConVolteo(tipoBifronte)) {
     return { tarifaVolteoMillarId: '', precioVolteoMillar: 0 }
   }
+  const tarifa = resolveTarifaColorBasicoMillar(tarifas)
   return {
-    tarifaVolteoMillarId: tarifa.id,
-    precioVolteoMillar: tarifa.precio,
+    tarifaVolteoMillarId: tarifa?.id ?? '',
+    precioVolteoMillar: resolveVolteoPrecioFromTarifa(tarifa, tipoBifronte),
+  }
+}
+
+export const resolveColorBasicoVolteoMillarPatch = (
+  tarifas: TarifaMillar[],
+  tipoBifronte: ImpresionTipoBifronte | ''
+): ImpresionTintasRegistroColorBasicoVolteoPatch => {
+  if (!isImpresionConVolteo(tipoBifronte)) return emptyColorBasicoVolteoPatch()
+  const tarifa = resolveTarifaColorBasicoMillar(tarifas)
+  return {
+    tarifaVolteoColorBasicoMillarId: tarifa?.id ?? '',
+    precioVolteoColorBasicoMillar: resolveVolteoPrecioFromTarifa(tarifa, tipoBifronte),
+  }
+}
+
+export const resolvePantoneVolteoMillarPatch = (
+  tarifas: TarifaMillar[],
+  tipoBifronte: ImpresionTipoBifronte | ''
+): ImpresionTintasRegistroPantoneVolteoPatch => {
+  if (!isImpresionConVolteo(tipoBifronte)) return emptyPantoneVolteoPatch()
+  const tarifa = resolveTarifaPantoneMillar(tarifas)
+  return {
+    tarifaVolteoPantoneMillarId: tarifa?.id ?? '',
+    precioVolteoPantoneMillar: resolveVolteoPrecioFromTarifa(tarifa, tipoBifronte),
   }
 }
 

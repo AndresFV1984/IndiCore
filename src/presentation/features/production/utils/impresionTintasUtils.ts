@@ -98,6 +98,24 @@ export const formatImpresionPlanchaColoresLabel = (item: DisenoColorPlanchaItem)
 export const formatImpresionPlanchaSelectLabel = (item: DisenoColorPlanchaItem): string =>
   formatColoresPlanchaRegistroSelectLabel(item)
 
+export type ImpresionTintasGrupoVariant = 'colorBasico' | 'pantone'
+
+export const filterLadoInkIndicesByGrupo = (
+  lado: ImpresionLadoTintas,
+  variant: ImpresionTintasGrupoVariant
+): number[] =>
+  lado.tintas.slice(0, lado.cantidad).filter(ink => {
+    const normalized = normalizeImpresionInkIndex(ink)
+    if (!isValidImpresionTintaIndex(normalized)) return false
+    const isPantone = isImpresionPantoneInkIndex(normalized)
+    return variant === 'pantone' ? isPantone : !isPantone
+  })
+
+export const countLadoInkIndicesByGrupo = (
+  lado: ImpresionLadoTintas,
+  variant: ImpresionTintasGrupoVariant
+): number => filterLadoInkIndicesByGrupo(lado, variant).length
+
 export const formatImpresionLadoTintasResumen = (
   label: string,
   lado: ImpresionLadoTintas
@@ -309,6 +327,12 @@ const normalizeImpresionTintasRegistro = (
   maxColores: number
 ): ImpresionTintasRegistro => {
   const tipoBifronte = normalizeImpresionTipoBifronte(raw.tipoBifronte)
+  const tipoBifronteColorBasico = normalizeImpresionTipoBifronte(
+    raw.tipoBifronteColorBasico ?? raw.tipoBifronte
+  )
+  const tipoBifrontePantone = normalizeImpresionTipoBifronte(
+    raw.tipoBifrontePantone ?? raw.tipoBifronte
+  )
 
   const tarifaVolteoMillarId =
     typeof raw.tarifaVolteoMillarId === 'string' ? raw.tarifaVolteoMillarId : ''
@@ -328,13 +352,35 @@ const normalizeImpresionTintasRegistro = (
     typeof raw.precioPantoneMillar === 'number' && raw.precioPantoneMillar >= 0
       ? raw.precioPantoneMillar
       : 0
+  const tarifaVolteoColorBasicoMillarId =
+    typeof raw.tarifaVolteoColorBasicoMillarId === 'string'
+      ? raw.tarifaVolteoColorBasicoMillarId
+      : raw.tarifaVolteoMillarId ?? ''
+  const precioVolteoColorBasicoMillar =
+    typeof raw.precioVolteoColorBasicoMillar === 'number' && raw.precioVolteoColorBasicoMillar >= 0
+      ? raw.precioVolteoColorBasicoMillar
+      : raw.precioVolteoMillar ?? 0
+  const tarifaVolteoPantoneMillarId =
+    typeof raw.tarifaVolteoPantoneMillarId === 'string'
+      ? raw.tarifaVolteoPantoneMillarId
+      : raw.tarifaVolteoMillarId ?? ''
+  const precioVolteoPantoneMillar =
+    typeof raw.precioVolteoPantoneMillar === 'number' && raw.precioVolteoPantoneMillar >= 0
+      ? raw.precioVolteoPantoneMillar
+      : raw.precioVolteoMillar ?? 0
 
   if (Array.isArray(raw.entradas)) {
     return {
       colorPlanchaId,
       tipoBifronte,
+      tipoBifronteColorBasico,
+      tipoBifrontePantone,
       tarifaVolteoMillarId,
       precioVolteoMillar,
+      tarifaVolteoColorBasicoMillarId,
+      precioVolteoColorBasicoMillar,
+      tarifaVolteoPantoneMillarId,
+      precioVolteoPantoneMillar,
       tarifaColorBasicoMillarId,
       precioColorBasicoMillar,
       tarifaPantoneMillarId,
@@ -354,8 +400,14 @@ const normalizeImpresionTintasRegistro = (
   return {
     colorPlanchaId,
     tipoBifronte,
+    tipoBifronteColorBasico,
+    tipoBifrontePantone,
     tarifaVolteoMillarId,
     precioVolteoMillar,
+    tarifaVolteoColorBasicoMillarId,
+    precioVolteoColorBasicoMillar,
+    tarifaVolteoPantoneMillarId,
+    precioVolteoPantoneMillar,
     tarifaColorBasicoMillarId,
     precioColorBasicoMillar,
     tarifaPantoneMillarId,

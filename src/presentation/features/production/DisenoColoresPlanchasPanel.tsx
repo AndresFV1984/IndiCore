@@ -759,12 +759,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
         </span>
       </header>
 
-      <p className="production-plancha-draft__intro">
-        {isEditing
-          ? coloresCopy.registro.editIntro
-          : 'Elija el tipo de plancha, revise el total calculado y agregue una descripción.'}
-      </p>
-
       {draftError ? (
         <PreprensaValidationNotice title={coloresCopy.validationTitle} message={draftError} />
       ) : null}
@@ -824,9 +818,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
               </option>
             ))}
           </select>
-          {!draftPlanchaId ? (
-            <PreprensaFieldNotice variant="info">{coloresCopy.pasos.tipoPlancha}</PreprensaFieldNotice>
-          ) : null}
         </div>
 
         <div className="production-plancha-draft__readonly-grid">
@@ -846,9 +837,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
               placeholder="Cantidad del registro"
               aria-label="Cantidad del registro"
             />
-            <span className="production-plancha-draft__field-hint">
-              Editable por registro; puede ajustarla en la tabla después de agregar
-            </span>
           </div>
 
           <div className="production-plancha-draft__readonly">
@@ -866,9 +854,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
               placeholder="Cavidades"
               aria-label="Cavidades del registro"
             />
-            <span className="production-plancha-draft__field-hint">
-              Editable en cualquier momento, también en la tabla de registros
-            </span>
           </div>
 
           <div className="production-plancha-draft__readonly">
@@ -894,9 +879,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
                 !tamanosBuenosCalc.ok ? 'diseno-add-tamanos-buenos-hint' : undefined
               }
             />
-            <span className="production-plancha-draft__field-hint">
-              {coloresCopy.tamanosBuenosFormula}
-            </span>
             {!tamanosBuenosCalc.ok ? (
               <PreprensaFieldNotice id="diseno-add-tamanos-buenos-hint" variant="warning">
                 {tamanosBuenosPendingMessage(tamanosBuenosCalc.reason)}
@@ -948,9 +930,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
                 aria-label="Número de planchas según colores"
               />
             )}
-            <span className="production-plancha-draft__field-hint">
-              {isSieteOMasColores ? 'Ingrese 7 o más' : 'Según colores elegidos'}
-            </span>
           </div>
 
           <div className="production-plancha-draft__readonly">
@@ -978,16 +957,6 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
           </div>
         </div>
 
-        <div className="production-plancha-draft__total" aria-live="polite">
-          <div className="production-plancha-draft__total-text">
-            <span className="production-plancha-draft__total-label">Valor total</span>
-            <span className="production-plancha-draft__total-formula">Precio plancha × Número planchas</span>
-          </div>
-          <strong className="production-plancha-draft__total-value">
-            {draftValorTotal > 0 ? formatValor(draftValorTotal) : '$0'}
-          </strong>
-        </div>
-
         <div className="production-form-field production-form-field--full">
           <label className="production-form-label" htmlFor="diseno-add-descripcion">
             Descripción
@@ -1001,7 +970,15 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
             onChange={e => onDescripcionChange(e.target.value)}
             placeholder="Ej. Tinta Pantone, acabado…"
           />
-          <PreprensaFieldNotice variant="info">{coloresCopy.pasos.descripcion}</PreprensaFieldNotice>
+        </div>
+
+        <div className="production-plancha-draft__total" aria-live="polite">
+          <div className="production-plancha-draft__total-text">
+            <span className="production-plancha-draft__total-label">Valor total</span>
+          </div>
+          <strong className="production-plancha-draft__total-value">
+            {draftValorTotal > 0 ? formatValor(draftValorTotal) : '$0'}
+          </strong>
         </div>
       </div>
 
@@ -1582,7 +1559,6 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                 disabled={!detalleOpCantidadLista}
                 onChange={handleDraftColorChange}
               />
-              <p className="production-diseno-colores-add__hint">{coloresCopy.colorPickerHint}</p>
             </div>
             ) : null}
 
@@ -1725,7 +1701,6 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
           <span className="production-form-label" id="diseno-colores-add-label">
             Colores
           </span>
-          <p className="production-diseno-colores-add__hint">{coloresCopy.legacyIntro}</p>
           <DisenoColoresPicker
             id="diseno-colores-add-legacy"
             labelId="diseno-colores-add-label"
@@ -1736,15 +1711,10 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               setDraftError(null)
             }}
           />
-          <p className="production-diseno-colores-add__hint">{coloresCopy.colorPickerHint}</p>
         </div>
 
         {showDraftForm ? (
           <div className="production-diseno-colores-add__form">
-            <p className="production-diseno-colores-add__step">
-              Complete los datos para{' '}
-              <strong>{getColoresOptionMeta(draftColor)?.label}</strong>
-            </p>
             {draftError ? (
               <PreprensaValidationNotice
                 title={coloresCopy.validationTitle}
@@ -1815,11 +1785,6 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                         </option>
                       ))}
                     </select>
-                    {!draftPlanchaId ? (
-                      <PreprensaFieldNotice variant="info">
-                        {coloresCopy.pasos.tipoPlancha}
-                      </PreprensaFieldNotice>
-                    ) : null}
                 </div>
                 <div className="production-form-field production-form-field--full">
                   <label className="production-form-label" htmlFor="diseno-add-detalle">
@@ -1836,7 +1801,6 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                     }}
                     placeholder="Ej. Tinta pantone, observaciones…"
                   />
-                  <PreprensaFieldNotice variant="info">{coloresCopy.pasos.detalle}</PreprensaFieldNotice>
                 </div>
               </>
             <div className="production-diseno-colores-add__actions">
@@ -1858,9 +1822,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               </button>
             </div>
           </div>
-        ) : (
-          <PreprensaFieldNotice variant="info">{coloresCopy.legacyIntro}</PreprensaFieldNotice>
-        )}
+        ) : null}
 
         {activePlanchas.length === 0 ? (
           <PreprensaFieldNotice variant="warning">{coloresCopy.sinPlanchasActivas}</PreprensaFieldNotice>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { PaperRow } from '../../../core/domain/entities/Order'
 import type { DisenoColorPlanchaItem, YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 import { TipoPapel } from '../../../core/domain/entities/TipoPapel'
@@ -15,11 +15,14 @@ import CortePapelFaltanteLitografiaBar from './CortePapelFaltanteLitografiaBar'
 import CortePapelFaltanteMarca from './CortePapelFaltanteMarca'
 import type { CorteRegistroPickerOption } from './ProductionCortePreprensaRegistroPicker'
 import {
+  findPaperRowForActiveId,
   getCorteRowActiveId,
   isFaltanteLitografiaRow,
   listFaltantePaperRows,
 } from './utils/cortePapelFaltante'
 import {
+  clearTipoPapelFromRow,
+  emptyPaperRow,
   formatValorHojaDisplay,
   normalizeTipoPapelList,
   syncPaperRowWithTipoPapelCatalog,
@@ -44,7 +47,8 @@ interface ProductionCortePapelFormProps {
   activeColorPlanchaId: string
   onActiveColorPlanchaIdChange: (id: string) => void
   loadingTiposPapel?: boolean
-  onPaperRowChange: (row: PaperRow) => void
+  onPaperRowCommit: (row: PaperRow) => void
+  onPaperRowDelete: (activeId: string) => void
   onMargenRedondeoChange: (value: number) => void
   onClienteSuministraPapelChange: (value: YesNoChoice) => void
   onAddFaltanteLitografia?: (parent: PaperRow, hojasFaltante: number) => void
@@ -60,20 +64,24 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
   activeColorPlanchaId,
   onActiveColorPlanchaIdChange,
   loadingTiposPapel = false,
-  onPaperRowChange,
+  onPaperRowCommit,
+  onPaperRowDelete,
   onMargenRedondeoChange,
   onClienteSuministraPapelChange,
   onAddFaltanteLitografia,
 }) => {
-  const esFaltanteLitografia = isFaltanteLitografiaRow(row)
+  const [draftRow, setDraftRow] = useState<PaperRow>(row)
+  const lastActiveRegistroId = useRef(activeColorPlanchaId)
+
+  const esFaltanteLitografia = isFaltanteLitografiaRow(draftRow)
   const clienteSuministra = clienteSuministraPapel === 'si' && !esFaltanteLitografia
-  const papelSinCortar = isPapelSinCortarClienteSuministro(clienteSuministraPapel, row)
+  const papelSinCortar = isPapelSinCortarClienteSuministro(clienteSuministraPapel, draftRow)
   const registroActivo = useMemo(() => {
-    if (esFaltanteLitografia && row.faltanteDeColorPlanchaId) {
-      return coloresPlanchas.find(item => item.id === row.faltanteDeColorPlanchaId) ?? null
+    if (esFaltanteLitografia && draftRow.faltanteDeColorPlanchaId) {
+      return coloresPlanchas.find(item => item.id === draftRow.faltanteDeColorPlanchaId) ?? null
     }
     return coloresPlanchas.find(item => item.id === activeColorPlanchaId) ?? null
-  }, [coloresPlanchas, activeColorPlanchaId, esFaltanteLitografia, row.faltanteDeColorPlanchaId])
+  }, [coloresPlanchas, activeColorPlanchaId, esFaltanteLitografia, draftRow.faltanteDeColorPlanchaId])
   const registroIndex = useMemo(() => {
     if (!registroActivo) return -1
     return coloresPlanchas.findIndex(item => item.id === registroActivo.id)
@@ -82,31 +90,71 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
   const catalogTipos = useMemo(() => normalizeTipoPapelList(tiposPapel), [tiposPapel])
 
   const selectedTipo = useMemo(
-    () => (row.tipoPapelId ? catalogTipos.find(t => t.id === row.tipoPapelId) ?? null : null),
-    [row.tipoPapelId, catalogTipos]
+    () =>
+      draftRow.tipoPapelId
+        ? catalogTipos.find(t => t.id === draftRow.tipoPapelId) ?? null
+        : null,
+    [draftRow.tipoPapelId, catalogTipos]
   )
 
   useEffect(() => {
-    if (!row.tipoPapelId || tiposPapel.length === 0) return
-    const synced = syncPaperRowWithTipoPapelCatalog(row, tiposPapel)
-    const syncedValor = synced.valorCorteUnitario ?? synced.despiece?.valorCorte ?? 0
-    const rowValor = row.valorCorteUnitario ?? row.despiece?.valorCorte ?? 0
-    if (syncedValor === rowValor && synced.despiece?.valorCorte === row.despiece?.valorCorte) {
+    if (lastActiveRegistroId.current === activeColorPlanchaId) return
+    lastActiveRegistroId.current = activeColorPlanchaId
+
+    if (!activeColorPlanchaId) {
+      setDraftRow(emptyPaperRow())
       return
     }
-    onPaperRowChange(synced)
-  }, [row, tiposPapel, onPaperRowChange])
+
+    const saved = findPaperRowForActiveId(paperRows, activeColorPlanchaId)
+    const savedCompleto = isCorteRegistroCompleto(
+      saved,
+      coloresPlanchas,
+      catalogTipos,
+      margenRedondeo,
+      clienteSuministraPapel
+    )
+
+    if (savedCompleto) {
+      setDraftRow(saved)
+      return
+    }
+
+    setDraftRow(
+      clearTipoPapelFromRow({
+        ...emptyPaperRow(activeColorPlanchaId),
+        colorPlanchaId: activeColorPlanchaId,
+        papelCortado: saved.papelCortado ?? 'si',
+        hojasEntregadasCliente: saved.hojasEntregadasCliente ?? 0,
+        tamanosBuenosManual: saved.tamanosBuenosManual ?? 0,
+        sobranteManual: saved.sobranteManual ?? 0,
+      })
+    )
+  }, [activeColorPlanchaId, coloresPlanchas, catalogTipos, margenRedondeo, clienteSuministraPapel])
+
+  useEffect(() => {
+    if (!draftRow.tipoPapelId || tiposPapel.length === 0) return
+    setDraftRow(prev => {
+      const synced = syncPaperRowWithTipoPapelCatalog(prev, tiposPapel)
+      const syncedValor = synced.valorCorteUnitario ?? synced.despiece?.valorCorte ?? 0
+      const rowValor = prev.valorCorteUnitario ?? prev.despiece?.valorCorte ?? 0
+      if (syncedValor === rowValor && synced.despiece?.valorCorte === prev.despiece?.valorCorte) {
+        return prev
+      }
+      return synced
+    })
+  }, [draftRow.tipoPapelId, draftRow.despiece?.despieceId, tiposPapel])
 
   const valores = useMemo(
     () =>
       computeCortePapelValores({
         coloresPlanchas,
-        row,
+        row: draftRow,
         tipoPapel: selectedTipo,
         margenRedondeo,
         clienteSuministraPapel,
       }),
-    [coloresPlanchas, row, selectedTipo, margenRedondeo, clienteSuministraPapel]
+    [coloresPlanchas, draftRow, selectedTipo, margenRedondeo, clienteSuministraPapel]
   )
 
   const processedRegistroIds = useMemo(() => {
@@ -149,9 +197,9 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
 
   const cantidadHojasEmpty =
     valores.cantidadHojas <= 0
-      ? !row.despiece?.piezasPorPliego
+      ? !draftRow.despiece?.piezasPorPliego
         ? copy.sections.cantidadHojas.emptySinDespiece
-        : (clienteSuministra || esFaltanteLitografia) && (row.tamanosBuenosManual ?? 0) <= 0
+        : (clienteSuministra || esFaltanteLitografia) && (draftRow.tamanosBuenosManual ?? 0) <= 0
           ? copy.sections.cantidadHojas.emptySinTamanosBuenos
           : !registroActivo && !esFaltanteLitografia
                 ? copy.registroPreprensa.placeholder
@@ -161,20 +209,20 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
       : null
 
   const despieceSeleccionado = Boolean(
-    row.despiece?.despieceId &&
-      selectedTipo?.despiecesPliego.some(d => d.despieceId === row.despiece?.despieceId)
+    draftRow.despiece?.despieceId &&
+      selectedTipo?.despiecesPliego.some(d => d.despieceId === draftRow.despiece?.despieceId)
   )
 
   const valorCorteEmpty =
     !registroActivo && !esFaltanteLitografia
       ? copy.registroPreprensa.placeholder
-      : !row.tipoPapelId
+      : !draftRow.tipoPapelId
       ? copy.sections.valorCorte.emptySinTipo
       : !despieceSeleccionado
         ? copy.sections.valorCorte.emptySinDespiece
         : clienteSuministra && !papelSinCortar
           ? copy.sections.valorCorte.emptyNoAplicaCortado
-          : clienteSuministra && papelSinCortar && (row.tamanosBuenosManual ?? 0) <= 0
+          : clienteSuministra && papelSinCortar && (draftRow.tamanosBuenosManual ?? 0) <= 0
             ? copy.sections.valorCorte.emptySinTamanosBuenos
           : valores.valorCorteUnitario <= 0
             ? copy.sections.valorCorte.emptySinValorUnitario
@@ -186,6 +234,53 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
 
   const showRegistroForm = Boolean(registroActivo) || esFaltanteLitografia
 
+  const savedRowCompleto = useMemo(() => {
+    if (!activeColorPlanchaId) return false
+    const saved = findPaperRowForActiveId(paperRows, activeColorPlanchaId)
+    return isCorteRegistroCompleto(
+      saved,
+      coloresPlanchas,
+      catalogTipos,
+      margenRedondeo,
+      clienteSuministraPapel
+    )
+  }, [
+    activeColorPlanchaId,
+    paperRows,
+    coloresPlanchas,
+    catalogTipos,
+    margenRedondeo,
+    clienteSuministraPapel,
+  ])
+
+  const canCommitRegistro = isCorteRegistroCompleto(
+    draftRow,
+    coloresPlanchas,
+    catalogTipos,
+    margenRedondeo,
+    clienteSuministraPapel
+  )
+
+  const handleDraftChange = (next: PaperRow) => {
+    setDraftRow(next)
+  }
+
+  const handleCancelRegistro = () => {
+    onActiveColorPlanchaIdChange('')
+  }
+
+  const resetDraftAfterCommit = () => {
+    lastActiveRegistroId.current = ''
+    setDraftRow(clearTipoPapelFromRow(emptyPaperRow()))
+    onActiveColorPlanchaIdChange('')
+  }
+
+  const handleCommitRegistro = () => {
+    if (!canCommitRegistro) return
+    onPaperRowCommit(draftRow)
+    resetDraftAfterCommit()
+  }
+
   const cantidadHojasDisplay =
     cantidadHojasEmpty ?? (valores.cantidadHojas > 0 ? valores.cantidadHojas.toLocaleString('es-CO') : '—')
 
@@ -193,31 +288,37 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
     valorCorteEmpty ??
     (valores.valorCorte > 0 ? formatValorHojaDisplay(valores.valorCorte) : '$ 0')
 
-  const valoresSection = showRegistroForm ? (
-    <CorteFormPanel
-      step="2"
-      title={copy.sections.valores.title}
-      subtitle={copy.sections.valores.subtitle}
-      className="production-corte-panel--valores"
-    >
-      <ProductionCorteValoresSection
-        row={row}
-        coloresPlanchas={coloresPlanchas}
-        despieceSeleccionado={despieceSeleccionado}
-        tipoPapelSeleccionado={Boolean(row.tipoPapelId)}
-        valores={valores}
-        cantidadHojasDisplay={cantidadHojasDisplay}
-        valorCorteDisplay={valorCorteDisplay}
-        margenRedondeo={margenRedondeo}
-        onMargenRedondeoChange={onMargenRedondeoChange}
-        clienteSuministra={clienteSuministra}
-        esFaltanteLitografia={esFaltanteLitografia}
-        papelSinCortar={papelSinCortar}
-        registroActivo={registroActivo}
-        registroIndex={registroIndex}
-      />
-    </CorteFormPanel>
-  ) : null
+  const valoresSection =
+    showRegistroForm && despieceSeleccionado ? (
+      <CorteFormPanel
+        step="2"
+        title={copy.sections.valores.title}
+        subtitle={copy.sections.valores.subtitle}
+        className="production-corte-panel--valores"
+      >
+        <ProductionCorteValoresSection
+          row={draftRow}
+          coloresPlanchas={coloresPlanchas}
+          valores={valores}
+          cantidadHojasDisplay={cantidadHojasDisplay}
+          valorCorteDisplay={valorCorteDisplay}
+          margenRedondeo={margenRedondeo}
+          onMargenRedondeoChange={onMargenRedondeoChange}
+          clienteSuministra={clienteSuministra}
+          esFaltanteLitografia={esFaltanteLitografia}
+          papelSinCortar={papelSinCortar}
+          registroActivo={registroActivo}
+          registroIndex={registroIndex}
+        />
+      </CorteFormPanel>
+    ) : null
+
+  const valoresAwaitHint =
+    showRegistroForm && !despieceSeleccionado ? (
+      <p className="production-diseno-cliente-hint production-corte-valores__await">
+        {copy.sections.valores.awaitDespiece}
+      </p>
+    ) : null
 
   return (
     <div className="production-preprensa-diseno-detail">
@@ -239,17 +340,17 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
       {clienteSuministra &&
       !esFaltanteLitografia &&
       registroActivo &&
-      row.colorPlanchaId ? (
+      draftRow.colorPlanchaId ? (
         <>
-          <CortePapelEstadoCorteShell row={row} onChange={onPaperRowChange} />
+          <CortePapelEstadoCorteShell row={draftRow} onChange={handleDraftChange} />
           <CortePapelFaltantePanel
-            row={row}
+            row={draftRow}
             coloresPlanchas={coloresPlanchas}
             paperRows={paperRows}
             cantidadHojas={valores.cantidadHojas}
             onAgregarFaltante={hojasFaltante => {
-              if (row.colorPlanchaId && onAddFaltanteLitografia && hojasFaltante > 0) {
-                onAddFaltanteLitografia(row, hojasFaltante)
+              if (draftRow.colorPlanchaId && onAddFaltanteLitografia && hojasFaltante > 0) {
+                onAddFaltanteLitografia(draftRow, hojasFaltante)
               }
             }}
             onEditarFaltante={onActiveColorPlanchaIdChange}
@@ -267,10 +368,10 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
 
       {esFaltanteLitografia ? (
         <>
-          <CortePapelFaltanteLitografiaBar row={row} />
+          <CortePapelFaltanteLitografiaBar row={draftRow} />
           <CortePapelEstadoCorteShell
-            row={row}
-            onChange={onPaperRowChange}
+            row={draftRow}
+            onChange={handleDraftChange}
             variant="faltanteLitografia"
           />
         </>
@@ -316,18 +417,41 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
               >
                 <ProductionCorteTipoPapelFields
                   embedded
-                  row={row}
+                  row={draftRow}
                   tiposPapel={catalogTipos}
                   loadingTiposPapel={loadingTiposPapel}
-                  onChange={onPaperRowChange}
+                  onChange={handleDraftChange}
                 />
               </CorteFormPanel>
             ) : null}
 
+            {valoresAwaitHint}
             {valoresSection}
+
+            {showRegistroForm ? (
+              <footer className="production-plancha-draft__footer production-corte-registro-actions">
+                <button
+                  type="button"
+                  className="production-plancha-draft__btn production-plancha-draft__btn--ghost"
+                  onClick={handleCancelRegistro}
+                >
+                  {copy.registroAcciones.cancelar}
+                </button>
+                <button
+                  type="button"
+                  className="production-plancha-draft__btn production-plancha-draft__btn--primary"
+                  onClick={handleCommitRegistro}
+                  disabled={!canCommitRegistro}
+                >
+                  {savedRowCompleto
+                    ? copy.registroAcciones.guardar
+                    : copy.registroAcciones.agregar}
+                </button>
+              </footer>
+            ) : null}
           </div>
 
-          {coloresPlanchas.length > 0 ? (
+          {processedRegistroIds.size > 0 ? (
             <ProductionCorteResumenConsolidado
               coloresPlanchas={coloresPlanchas}
               paperRows={paperRows}
@@ -336,6 +460,7 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
               clienteSuministraPapel={clienteSuministraPapel}
               activeColorPlanchaId={activeColorPlanchaId}
               onSelectRegistro={onActiveColorPlanchaIdChange}
+              onDeleteRegistro={onPaperRowDelete}
             />
           ) : null}
         </section>

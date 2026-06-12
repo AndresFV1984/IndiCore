@@ -8,6 +8,15 @@ export const IMPRESION_VOLTEO_TIPO_OPTIONS: ReadonlyArray<{
   { value: 'volteo-escuadra', label: 'Volteo por escuadra' },
 ]
 
+/** Opciones del select de volteo por grupo (Color básico / Pantone). */
+export const IMPRESION_GRUPO_VOLTEO_SELECT_OPTIONS: ReadonlyArray<{
+  value: ImpresionTipoBifronte
+  label: string
+}> = [
+  { value: 'diferente-plancha', label: 'Sin volteo' },
+  ...IMPRESION_VOLTEO_TIPO_OPTIONS,
+]
+
 export const IMPRESION_TIPO_BIFRONTE_OPTIONS: ReadonlyArray<{
   value: ImpresionTipoBifronte
   label: string
@@ -35,10 +44,3 @@ export const resolveImpresionConVolteoEnabled = (
       : 'volteo-pinza'
     : 'diferente-plancha'
 
-export const IMPRESION_VOLTEO_TARIFA_NAME: Record<
-  Extract<ImpresionTipoBifronte, 'volteo-pinza' | 'volteo-escuadra'>,
-  string
-> = {
-  'volteo-pinza': 'Volteo por pinza',
-  'volteo-escuadra': 'Volteo por escuadra',
-}

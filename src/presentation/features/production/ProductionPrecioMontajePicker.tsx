@@ -1,5 +1,9 @@
 import React, { useMemo } from 'react'
+import clsx from 'clsx'
 import { PrecioMontaje } from '../../../core/domain/entities/PrecioMontaje'
+import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
+
+const copy = PREPRENSA_DISENO_COPY.nuevo.montaje
 
 interface ProductionPrecioMontajePickerProps {
   items: PrecioMontaje[]
@@ -36,19 +40,31 @@ const ProductionPrecioMontajePicker: React.FC<ProductionPrecioMontajePickerProps
     if (item) onSelect(item)
   }
 
+  if (activeItems.length === 0) {
+    return <p className="production-diseno-montaje-select__empty">{copy.empty}</p>
+  }
+
   return (
-    <div className="production-pm-picker">
-      <div className="production-form-field production-pm-picker__select-field">
-        <label className="production-form-label" htmlFor="pm-montaje-select">
-          Precio de montaje
+    <div className="production-diseno-montaje-select">
+      <p className="production-diseno-montaje-select__hint">{copy.hint}</p>
+
+      <div className="production-diseno-montaje-select__field">
+        <label className="production-form-label" htmlFor="diseno-montaje-select">
+          {copy.selectLabel}
         </label>
         <select
-          id="pm-montaje-select"
-          className="production-form-input production-form-select production-pm-picker__select"
+          id="diseno-montaje-select"
+          className={clsx(
+            'production-form-input',
+            'production-form-select',
+            'production-diseno-montaje-select__control',
+            !selectedId && 'production-diseno-montaje-select__control--empty'
+          )}
           value={selectedId}
           onChange={handleChange}
+          aria-label={copy.ariaLabel}
         >
-          <option value="">Seleccionar montaje…</option>
+          <option value="">{copy.sinMontajeOption}</option>
           {activeItems.map(item => (
             <option key={item.id} value={item.id}>
               {item.name} — {formatPrecioMontajeCost(item.cost)}
@@ -57,36 +73,17 @@ const ProductionPrecioMontajePicker: React.FC<ProductionPrecioMontajePickerProps
         </select>
       </div>
 
-      {selected && (
-        <div className="production-pm-picker__fields">
-          <div className="production-form-field production-pm-picker__field-cost">
-            <label className="production-form-label" htmlFor="pm-montaje-valor">
-              Valor
-            </label>
-            <input
-              id="pm-montaje-valor"
-              type="text"
-              className="production-form-input production-form-input--readonly production-pm-picker__valor-input"
-              value={formatPrecioMontajeCost(selected.cost)}
-              readOnly
-              tabIndex={-1}
-            />
-          </div>
-          <div className="production-form-field production-pm-picker__field-name">
-            <label className="production-form-label" htmlFor="pm-montaje-nombre-display">
-              Nombre
-            </label>
-            <input
-              id="pm-montaje-nombre-display"
-              type="text"
-              className="production-form-input production-form-input--readonly production-pm-picker__nombre-input"
-              value={selected.name}
-              readOnly
-              tabIndex={-1}
-            />
-          </div>
+      {selected ? (
+        <div className="production-diseno-montaje-select__resumen" role="status">
+          <span className="production-diseno-montaje-select__resumen-label">
+            {copy.resumenLabel}
+          </span>
+          <span className="production-diseno-montaje-select__resumen-name">{selected.name}</span>
+          <strong className="production-diseno-montaje-select__resumen-price">
+            {formatPrecioMontajeCost(selected.cost)}
+          </strong>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

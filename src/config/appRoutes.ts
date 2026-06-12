@@ -116,7 +116,7 @@ export const ROUTES = {
     path: '/tarifas-millar',
     label: 'Tarifas por millar',
     purpose:
-      'Catálogo de tarifas por millar: nombre, unidad, precio, categoría, descripción y estado.',
+      'Catálogo de tarifas por millar: nombre, unidad, precio, reglas de millar, volteo y estado.',
   },
   reports: {
     id: 'REPORTS',

@@ -11,11 +11,16 @@ export const useUsersHook = () => {
     useUsersStore()
 
   useEffect(() => {
-    if (useUsersStore.getState().users.length > 0) return
+    const cached = useUsersStore.getState().users
+    const cacheValid =
+      cached.length > 0 &&
+      cached.every(user => typeof user.role === 'string' && Array.isArray(user.permissions))
+    if (cacheValid) return
+    if (cached.length > 0) setUsers([])
 
     let cancelled = false
     setLoading(true)
-    dedupedFetch('store:users', () => container.getUserUseCases().getUsers())
+    dedupedFetch('store:users:v2', () => container.getUserUseCases().getUsers())
       .then(fetched => {
         if (!cancelled) setUsers(fetched)
       })

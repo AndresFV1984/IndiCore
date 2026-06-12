@@ -1,6 +1,7 @@
 import { Money } from '../value-objects/Money.js';
 import { OrderStatus } from '../value-objects/OrderStatus.js';
 import { OrderTotalCalculator } from '../value-objects/OrderTotalCalculator.js';
+import type { UserPermission, UserRole } from '../auth/userPermissions.js';
 import type { DespieceAsociado } from './CortePapel.js';
 import { PreprensaDisenoSpecs, YesNoChoice } from './PreprensaDiseno.js';
 
@@ -27,6 +28,21 @@ export interface OrderSpecs {
   chapoliado: boolean;
   finishes: FinishItem[];
   operations: OperationItem[];
+  operadorPreprensaId?: string;
+  operadorPreprensaRol?: UserRole;
+  operadorPreprensaPermisos?: UserPermission[];
+  operadorCortePapelId?: string;
+  operadorCortePapelRol?: UserRole;
+  operadorCortePapelPermisos?: UserPermission[];
+  operadorImpresionId?: string;
+  operadorImpresionRol?: UserRole;
+  operadorImpresionPermisos?: UserPermission[];
+  operadorTerminadosId?: string;
+  operadorTerminadosRol?: UserRole;
+  operadorTerminadosPermisos?: UserPermission[];
+  operadorAcabadosId?: string;
+  operadorAcabadosRol?: UserRole;
+  operadorAcabadosPermisos?: UserPermission[];
 }
 
 export interface PaperRow {
@@ -127,10 +143,20 @@ export interface ImpresionTintasRegistro {
   colorPlanchaId: string;
   entradas: ImpresionTiroRetiroEntrada[];
   tipoBifronte?: ImpresionTipoBifronte | '';
+  /** Volteo independiente para el grupo Color básico. */
+  tipoBifronteColorBasico?: ImpresionTipoBifronte | '';
+  /** Volteo independiente para el grupo Pantone. */
+  tipoBifrontePantone?: ImpresionTipoBifronte | '';
   /** Tarifa por millar del catálogo asociada al volteo seleccionado. */
   tarifaVolteoMillarId?: string;
   /** Precio por millar (COP) tomado de la tarifa vigente al configurar el volteo. */
   precioVolteoMillar?: number;
+  /** Tarifa de volteo para Color básico. */
+  tarifaVolteoColorBasicoMillarId?: string;
+  precioVolteoColorBasicoMillar?: number;
+  /** Tarifa de volteo para Pantone. */
+  tarifaVolteoPantoneMillarId?: string;
+  precioVolteoPantoneMillar?: number;
   /** Tarifa por millar «Color básico» cuando tiro/retiro usan primarios o secundarios. */
   tarifaColorBasicoMillarId?: string;
   /** Precio por millar (COP) de Color básico al completar la asignación de tintas. */

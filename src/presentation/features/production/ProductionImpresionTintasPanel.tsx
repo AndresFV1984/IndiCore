@@ -9,15 +9,22 @@ import type { DisenoColorPlanchaItem } from '../../../core/domain/entities/Prepr
 import { useTarifaMillarHook } from '../../hooks/useTarifaMillar'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
-import ImpresionTintasTarifaFields from './ImpresionTintasTarifaFields'
+import ImpresionTiroRetiroDiagram from './ImpresionTiroRetiroDiagram'
+import ImpresionTintasVolteoSection from './ImpresionTintasVolteoSection'
 import ImpresionLadoTintasFields from './ImpresionLadoTintasFields'
 import ImpresionPlanchaDetalleFields from './ImpresionPlanchaDetalleFields'
 import ImpresionPlanchaSelect from './ImpresionPlanchaSelect'
 import ImpresionTintasEntradasList from './ImpresionTintasEntradasList'
 import ProductionImpresionTintasResumen from './ProductionImpresionTintasResumen'
 import { resolveTamanosBuenosForItem } from './utils/coloresPlanchasUtils'
-import ImpresionPrecioTintaBreakdownDisplay from './ImpresionPrecioTintaBreakdown'
-import { computeImpresionPrecioTintaBreakdown } from './utils/impresionPrecioTintaUtils'
+import {
+  buildImpresionGrupoMillaresPreview,
+  computeImpresionPrecioTintaBreakdown,
+  countDistinctNonPantoneInLado,
+  countDistinctPantoneInLado,
+  resolveImpresionTarifaMillarPricing,
+  type ImpresionPrecioTintaBreakdownInput,
+} from './utils/impresionPrecioTintaUtils'
 import {
   buildImpresionTintasTableRows,
   clampImpresionEntradaDraftSides,
@@ -25,22 +32,25 @@ import {
   createImpresionTiroRetiroEntrada,
   emptyImpresionLadoTintas,
   isImpresionEntradaDraftValid,
-  isImpresionPlanchaCompleta,
   resolveCompletedPlanchaIds,
   resolvePlanchaColoresMax,
 } from './utils/impresionTintasUtils'
 import { isImpresionConVolteo } from './constants/impresionTipoBifronte'
 import {
+  entradaUsesPantoneInks,
+  entradaUsesPrimaryOrSecondaryInks,
   resolveTarifaColorBasicoMillar,
   resolveTarifaPantoneMillar,
-  resolveTintasMillarPatchForEntrada,
-  shouldApplyColorBasicoTarifa,
-  shouldApplyPantoneTarifa,
 } from './utils/impresionColorBasicoTarifaUtils'
+import { getImpresionVolteoMillarRulesFromTarifa } from './utils/impresionVolteoTarifaUtils'
+import { resolveTarifaMillarPrecioVolteoPorTipo } from './constants/impresionTarifaMillar'
 import {
-  resolvePrecioVolteoMillarPatch,
-  resolveTarifaVolteoMillar,
-} from './utils/impresionVolteoTarifaUtils'
+  emptyImpresionTintasDraftTarifa,
+  patchImpresionTintasDraftTarifaVolteo,
+  readImpresionTintasDraftTarifa,
+  syncImpresionTintasDraftTarifa,
+  type ImpresionTintasDraftTarifa,
+} from './utils/impresionTintasDraftTarifa'
 
 const tintasCopy = copy.tintas
 const registroCopy = tintasCopy.registro
@@ -71,6 +81,9 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   const skipReloadAfterSaveRef = useRef(false)
   const [draftTiro, setDraftTiro] = useState<ImpresionLadoTintas>(emptyImpresionLadoTintas())
   const [draftRetiro, setDraftRetiro] = useState<ImpresionLadoTintas>(emptyImpresionLadoTintas())
+  const [draftTarifa, setDraftTarifa] = useState<ImpresionTintasDraftTarifa>(
+    emptyImpresionTintasDraftTarifa()
+  )
   const [editingEntradaId, setEditingEntradaId] = useState<string | null>(null)
   const [draftError, setDraftError] = useState<string | null>(null)
   const { items: tarifasMillar, loading: tarifasMillarLoading } = useTarifaMillarHook()
@@ -96,70 +109,143 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   const maxColoresPlancha = activePlancha ? resolvePlanchaColoresMax(activePlancha) : 0
   const draftTotal = draftTiro.cantidad + draftRetiro.cantidad
+  const hasDraftContent =
+    draftTiro.cantidad > 0 ||
+    draftRetiro.cantidad > 0 ||
+    draftTiro.tintas.some(t => t.trim()) ||
+    draftRetiro.tintas.some(t => t.trim())
   const canSaveDraft = isImpresionEntradaDraftValid(draftTiro, draftRetiro, maxColoresPlancha)
-  const showColorBasicoTarifa = shouldApplyColorBasicoTarifa(
-    draftTiro,
-    draftRetiro,
-    maxColoresPlancha
-  )
-  const showPantoneTarifa = shouldApplyPantoneTarifa(draftTiro, draftRetiro, maxColoresPlancha)
+  const showColorBasicoTarifa = entradaUsesPrimaryOrSecondaryInks(draftTiro, draftRetiro)
+  const showPantoneTarifa = entradaUsesPantoneInks(draftTiro, draftRetiro)
   const tarifaColorBasico = resolveTarifaColorBasicoMillar(tarifasMillar)
   const tarifaPantone = resolveTarifaPantoneMillar(tarifasMillar)
-  const tipoBifronte = activeRegistro?.tipoBifronte ?? ''
-  const conVolteo = isImpresionConVolteo(tipoBifronte)
-  const tarifaVolteo = conVolteo ? resolveTarifaVolteoMillar(tarifasMillar, tipoBifronte) : null
-  const draftPrecioTinta = useMemo(() => {
-    if (!activePlancha || !canSaveDraft) {
-      return {
-        cantidadTintasColorBasico: 0,
-        cantidadTintasPantone: 0,
-        millaresColorBasico: 0,
-        millaresPantone: 0,
-        millaresTotal: 0,
-        colorBasico: 0,
-        pantone: 0,
-        total: 0,
-        millaresVolteo: 0,
-        volteo: 0,
-        grandTotal: 0,
-      }
-    }
-    const precioColorBasico =
-      tarifaColorBasico?.precio ?? activeRegistro?.precioColorBasicoMillar ?? 0
-    const precioPantone =
-      tarifaPantone?.precio ?? activeRegistro?.precioPantoneMillar ?? 0
-    const precioVolteo =
-      conVolteo ? (tarifaVolteo?.precio ?? activeRegistro?.precioVolteoMillar ?? 0) : 0
-    return computeImpresionPrecioTintaBreakdown(
-      draftTiro,
-      draftRetiro,
+  const volteoMillarRulesColorBasico = getImpresionVolteoMillarRulesFromTarifa(tarifaColorBasico)
+  const volteoMillarRulesPantone = getImpresionVolteoMillarRulesFromTarifa(tarifaPantone)
+  const defaultVolteoPrecioColorBasico = resolveTarifaMillarPrecioVolteoPorTipo(
+    tarifaColorBasico,
+    draftTarifa.tipoBifronteColorBasico
+  )
+  const defaultVolteoPrecioPantone = resolveTarifaMillarPrecioVolteoPorTipo(
+    tarifaPantone,
+    draftTarifa.tipoBifrontePantone
+  )
+  const showComposerForm = !hasActiveEntrada || Boolean(editingEntradaId)
+
+  const buildBreakdownInput = (): ImpresionPrecioTintaBreakdownInput => ({
+    precioColorBasicoMillar: draftTarifa.precioColorBasicoMillar || tarifaColorBasico?.precio || 0,
+    precioPantoneMillar: draftTarifa.precioPantoneMillar || tarifaPantone?.precio || 0,
+    precioVolteoColorBasicoMillar:
+      draftTarifa.precioVolteoColorBasicoMillar || defaultVolteoPrecioColorBasico,
+    precioVolteoPantoneMillar:
+      draftTarifa.precioVolteoPantoneMillar || defaultVolteoPrecioPantone,
+    conVolteoColorBasico: isImpresionConVolteo(draftTarifa.tipoBifronteColorBasico),
+    conVolteoPantone: isImpresionConVolteo(draftTarifa.tipoBifrontePantone),
+    millarMinimoVentaColorBasico: tarifaColorBasico?.millarMinimoVenta,
+    topeMinimoMillarColorBasico: tarifaColorBasico?.topeMinimoMillar,
+    umbralDecimalMillarColorBasico: tarifaColorBasico?.umbralDecimalMillar,
+    millarMinimoVentaPantone: tarifaPantone?.millarMinimoVenta,
+    topeMinimoMillarPantone: tarifaPantone?.topeMinimoMillar,
+    umbralDecimalMillarPantone: tarifaPantone?.umbralDecimalMillar,
+    millarMinimoVentaVolteoColorBasico: volteoMillarRulesColorBasico.millarMinimoVenta,
+    topeMinimoMillarVolteoColorBasico: volteoMillarRulesColorBasico.topeMinimoMillar,
+    umbralDecimalMillarVolteoColorBasico: volteoMillarRulesColorBasico.umbralDecimalMillar,
+    millarMinimoVentaVolteoPantone: volteoMillarRulesPantone.millarMinimoVenta,
+    topeMinimoMillarVolteoPantone: volteoMillarRulesPantone.topeMinimoMillar,
+    umbralDecimalMillarVolteoPantone: volteoMillarRulesPantone.umbralDecimalMillar,
+  })
+
+  const millaresPreviewColorBasico = useMemo(() => {
+    if (!activePlancha || !showColorBasicoTarifa) return null
+    const tintasTiro = countDistinctNonPantoneInLado(draftTiro)
+    const tintasRetiro = countDistinctNonPantoneInLado(draftRetiro)
+    if (tintasTiro + tintasRetiro <= 0) return null
+    const conVolteo = isImpresionConVolteo(draftTarifa.tipoBifronteColorBasico)
+    const pricing = conVolteo
+      ? resolveImpresionTarifaMillarPricing(
+          draftTarifa.precioVolteoColorBasicoMillar || defaultVolteoPrecioColorBasico,
+          volteoMillarRulesColorBasico.millarMinimoVenta,
+          volteoMillarRulesColorBasico.topeMinimoMillar,
+          volteoMillarRulesColorBasico.umbralDecimalMillar
+        )
+      : resolveImpresionTarifaMillarPricing(
+          draftTarifa.precioColorBasicoMillar || tarifaColorBasico?.precio || 0,
+          tarifaColorBasico?.millarMinimoVenta,
+          tarifaColorBasico?.topeMinimoMillar,
+          tarifaColorBasico?.umbralDecimalMillar
+        )
+    return buildImpresionGrupoMillaresPreview(
+      'colorBasico',
+      tintasTiro,
+      tintasRetiro,
       resolveTamanosBuenosForItem(activePlancha),
-      precioColorBasico,
-      precioPantone,
-      precioVolteo
+      pricing
     )
   }, [
     activePlancha,
-    activeRegistro?.precioColorBasicoMillar,
-    activeRegistro?.precioPantoneMillar,
-    activeRegistro?.precioVolteoMillar,
-    canSaveDraft,
-    conVolteo,
+    defaultVolteoPrecioColorBasico,
     draftRetiro,
+    draftTarifa.precioColorBasicoMillar,
+    draftTarifa.precioVolteoColorBasicoMillar,
+    draftTarifa.tipoBifronteColorBasico,
     draftTiro,
+    showColorBasicoTarifa,
     tarifaColorBasico,
-    tarifaPantone,
-    tarifaVolteo,
+    volteoMillarRulesColorBasico,
   ])
+
+  const millaresPreviewPantone = useMemo(() => {
+    if (!activePlancha || !showPantoneTarifa) return null
+    const tintasTiro = countDistinctPantoneInLado(draftTiro)
+    const tintasRetiro = countDistinctPantoneInLado(draftRetiro)
+    if (tintasTiro + tintasRetiro <= 0) return null
+    const conVolteo = isImpresionConVolteo(draftTarifa.tipoBifrontePantone)
+    const pricing = conVolteo
+      ? resolveImpresionTarifaMillarPricing(
+          draftTarifa.precioVolteoPantoneMillar || defaultVolteoPrecioPantone,
+          volteoMillarRulesPantone.millarMinimoVenta,
+          volteoMillarRulesPantone.topeMinimoMillar,
+          volteoMillarRulesPantone.umbralDecimalMillar
+        )
+      : resolveImpresionTarifaMillarPricing(
+          draftTarifa.precioPantoneMillar || tarifaPantone?.precio || 0,
+          tarifaPantone?.millarMinimoVenta,
+          tarifaPantone?.topeMinimoMillar,
+          tarifaPantone?.umbralDecimalMillar
+        )
+    return buildImpresionGrupoMillaresPreview(
+      'pantone',
+      tintasTiro,
+      tintasRetiro,
+      resolveTamanosBuenosForItem(activePlancha),
+      pricing
+    )
+  }, [
+    activePlancha,
+    defaultVolteoPrecioPantone,
+    draftRetiro,
+    draftTarifa.precioPantoneMillar,
+    draftTarifa.precioVolteoPantoneMillar,
+    draftTarifa.tipoBifrontePantone,
+    draftTiro,
+    showPantoneTarifa,
+    tarifaPantone,
+    volteoMillarRulesPantone,
+  ])
+
+  const canCommitEntrada =
+    canSaveDraft &&
+    (!showColorBasicoTarifa || (millaresPreviewColorBasico?.millaresCalculados ?? 0) > 0) &&
+    (!showPantoneTarifa || (millaresPreviewPantone?.millaresCalculados ?? 0) > 0)
 
   const clearDraft = () => {
     setDraftTiro(emptyImpresionLadoTintas())
     setDraftRetiro(emptyImpresionLadoTintas())
+    setDraftTarifa(emptyImpresionTintasDraftTarifa())
     setEditingEntradaId(null)
     setDraftError(null)
   }
 
-  const loadDraftFromEntrada = (entrada: ImpresionTiroRetiroEntrada) => {
+  const loadDraftFromEntrada = (entrada: ImpresionTiroRetiroEntrada, registro: ImpresionTintasRegistro) => {
     setEditingEntradaId(entrada.id)
     setDraftTiro({
       cantidad: entrada.tiro.cantidad,
@@ -169,6 +255,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       cantidad: entrada.retiro.cantidad,
       tintas: [...entrada.retiro.tintas],
     })
+    setDraftTarifa(readImpresionTintasDraftTarifa(registro))
     setDraftError(null)
   }
 
@@ -181,8 +268,14 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       skipReloadAfterSaveRef.current = false
       return
     }
+    if (!hasDraftContent) return
     clearDraft()
   }, [activeColorPlanchaId, activeEntrada?.id])
+
+  useEffect(() => {
+    if (tarifasMillarLoading || !showComposerForm) return
+    setDraftTarifa(prev => syncImpresionTintasDraftTarifa(prev, tarifasMillar, draftTiro, draftRetiro))
+  }, [draftTiro, draftRetiro, showComposerForm, tarifasMillar, tarifasMillarLoading])
 
   const persistRegistro = (registro: ImpresionTintasRegistro) => {
     onRegistroChange(registro)
@@ -196,24 +289,15 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   const handleSaveDraft = () => {
     if (!activeRegistro || !activePlancha) return
-    if (!canSaveDraft) {
+    if (!canCommitEntrada) {
       setDraftError(entradasCopy.validationError(maxColoresPlancha))
       return
     }
-    const tamanosBuenos = resolveTamanosBuenosForItem(activePlancha)
-    const precioColorBasico =
-      tarifaColorBasico?.precio ?? activeRegistro.precioColorBasicoMillar ?? 0
-    const precioPantone =
-      tarifaPantone?.precio ?? activeRegistro.precioPantoneMillar ?? 0
-    const precioVolteo =
-      conVolteo ? (tarifaVolteo?.precio ?? activeRegistro.precioVolteoMillar ?? 0) : 0
     const precioTintaBreakdown = computeImpresionPrecioTintaBreakdown(
       draftTiro,
       draftRetiro,
-      tamanosBuenos,
-      precioColorBasico,
-      precioPantone,
-      precioVolteo
+      resolveTamanosBuenosForItem(activePlancha),
+      buildBreakdownInput()
     )
     const entrada = clampImpresionEntradaToPlanchaColores(
       {
@@ -237,82 +321,54 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
     persistRegistro({
       ...activeRegistro,
+      ...draftTarifa,
       entradas: [entrada],
     })
     skipReloadAfterSaveRef.current = true
     clearDraft()
   }
 
-  const handleTipoBifronteChange = (tipoBifronte: ImpresionTipoBifronte | '') => {
-    if (!activeRegistro) return
-    persistRegistro({
-      ...activeRegistro,
-      tipoBifronte,
-      ...resolvePrecioVolteoMillarPatch(tarifasMillar, tipoBifronte),
-    })
+  const handleTipoBifronteColorBasicoChange = (tipoBifronte: ImpresionTipoBifronte | '') => {
+    setDraftTarifa(prev =>
+      patchImpresionTintasDraftTarifaVolteo(prev, tarifasMillar, 'colorBasico', tipoBifronte)
+    )
     if (draftError) setDraftError(null)
   }
 
-  useEffect(() => {
-    if (!activeRegistro || tarifasMillarLoading) return
-    const patch = resolveTintasMillarPatchForEntrada(
-      tarifasMillar,
-      draftTiro,
-      draftRetiro,
-      maxColoresPlancha
+  const handleTipoBifrontePantoneChange = (tipoBifronte: ImpresionTipoBifronte | '') => {
+    setDraftTarifa(prev =>
+      patchImpresionTintasDraftTarifaVolteo(prev, tarifasMillar, 'pantone', tipoBifronte)
     )
-    if (
-      activeRegistro.tarifaColorBasicoMillarId === patch.tarifaColorBasicoMillarId &&
-      activeRegistro.precioColorBasicoMillar === patch.precioColorBasicoMillar &&
-      activeRegistro.tarifaPantoneMillarId === patch.tarifaPantoneMillarId &&
-      activeRegistro.precioPantoneMillar === patch.precioPantoneMillar
-    ) {
-      return
-    }
-    onRegistroChange({
-      ...activeRegistro,
-      ...patch,
-    })
-  }, [
-    activeRegistro,
-    draftTiro,
-    draftRetiro,
-    maxColoresPlancha,
-    tarifasMillar,
-    tarifasMillarLoading,
-    onRegistroChange,
-  ])
+    if (draftError) setDraftError(null)
+  }
 
-  useEffect(() => {
-    if (!activeRegistro || tarifasMillarLoading || tarifasMillar.length === 0) return
-    const tipoBifronte = activeRegistro.tipoBifronte ?? ''
-    if (!isImpresionConVolteo(tipoBifronte)) return
-    const tarifa = resolveTarifaVolteoMillar(tarifasMillar, tipoBifronte)
-    if (!tarifa) return
-    if (
-      activeRegistro.tarifaVolteoMillarId === tarifa.id &&
-      activeRegistro.precioVolteoMillar === tarifa.precio
-    ) {
-      return
-    }
-    onRegistroChange({
-      ...activeRegistro,
-      tarifaVolteoMillarId: tarifa.id,
-      precioVolteoMillar: tarifa.precio,
-    })
-  }, [activeRegistro, tarifasMillar, tarifasMillarLoading, onRegistroChange])
+  const handlePrecioVolteoColorBasicoChange = (precio: number) => {
+    setDraftTarifa(prev => ({ ...prev, precioVolteoColorBasicoMillar: precio }))
+  }
+
+  const handlePrecioVolteoPantoneChange = (precio: number) => {
+    setDraftTarifa(prev => ({ ...prev, precioVolteoPantoneMillar: precio }))
+  }
+
+  const handlePrecioColorBasicoMillarChange = (precio: number) => {
+    setDraftTarifa(prev => ({ ...prev, precioColorBasicoMillar: precio }))
+  }
+
+  const handlePrecioPantoneMillarChange = (precio: number) => {
+    setDraftTarifa(prev => ({ ...prev, precioPantoneMillar: precio }))
+  }
 
   const handleEditEntrada = (colorPlanchaId: string, entradaId: string) => {
     const registro = registros.find(item => item.colorPlanchaId === colorPlanchaId)
     const entrada = registro?.entradas.find(item => item.id === entradaId)
-    if (!entrada) return
+    if (!entrada || !registro) return
 
     if (colorPlanchaId !== activeColorPlanchaId) {
       skipResetOnPlanchaChangeRef.current = true
       onActiveColorPlanchaIdChange(colorPlanchaId)
     }
 
-    loadDraftFromEntrada(entrada)
+    loadDraftFromEntrada(entrada, registro)
   }
 
   const handleRemoveEntrada = (colorPlanchaId: string, entradaId: string) => {
@@ -321,6 +377,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     persistRegistro({
       ...registro,
       entradas: registro.entradas.filter(item => item.id !== entradaId),
+      ...emptyImpresionTintasDraftTarifa(),
     })
     if (editingEntradaId === entradaId) {
       clearDraft()
@@ -382,11 +439,6 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                   <ImpresionPlanchaDetalleFields
                     cantidad={activePlancha.cantidad}
                     numeroCavidades={activePlancha.numeroCavidades}
-                    tipoBifronte={activeRegistro.tipoBifronte ?? ''}
-                    precioVolteoMillar={activeRegistro.precioVolteoMillar}
-                    tarifasMillar={tarifasMillar}
-                    tarifasMillarLoading={tarifasMillarLoading}
-                    onTipoBifronteChange={handleTipoBifronteChange}
                   />
                 </section>
               ) : null}
@@ -403,132 +455,153 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                       </span>
                     </header>
 
-                    <div className="production-plancha-draft__body production-impresion-tintas-draft__body">
-                      <p className="production-plancha-draft__intro">
-                        {editingEntradaId || hasActiveEntrada
-                          ? entradasCopy.editTitle
-                          : entradasCopy.addTitle}
-                        .{' '}
-                        {editingEntradaId || hasActiveEntrada
-                          ? entradasCopy.editHint
-                          : entradasCopy.addHint}
-                      </p>
-
-                      {draftError ? (
-                        <p className="production-impresion-tintas-composer__error" role="alert">
-                          {draftError}
-                        </p>
-                      ) : null}
-
-                      <p
-                        className={[
-                          'production-impresion-tintas-registro__limite',
-                          draftTotal > maxColoresPlancha
-                            ? 'production-impresion-tintas-registro__limite--excedido'
-                            : draftTotal < maxColoresPlancha
-                              ? 'production-impresion-tintas-registro__limite--incompleto'
-                              : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                        role="status"
-                      >
-                        {registroCopy.limiteColores(draftTotal, maxColoresPlancha)}
-                      </p>
-
-                      <div className="production-impresion-tintas-lados">
-                        <ImpresionLadoTintasFields
-                          idPrefix="prod-impresion-tiro"
-                          title={ladoCopy.tiro}
-                          hint={ladoCopy.tiroHint}
-                          lado={draftTiro}
-                          maxColoresPlancha={maxColoresPlancha}
-                          otherLadoCantidad={draftRetiro.cantidad}
-                          onChange={tiro => {
-                            applyDraftSides(tiro, draftRetiro)
-                            if (draftError) setDraftError(null)
-                          }}
-                        />
-                        <ImpresionLadoTintasFields
-                          idPrefix="prod-impresion-retiro"
-                          title={ladoCopy.retiro}
-                          hint={ladoCopy.retiroHint}
-                          lado={draftRetiro}
-                          maxColoresPlancha={maxColoresPlancha}
-                          otherLadoCantidad={draftTiro.cantidad}
-                          onChange={retiro => {
-                            applyDraftSides(draftTiro, retiro)
-                            if (draftError) setDraftError(null)
-                          }}
+                    {!showComposerForm && hasActiveEntrada && activeEntrada ? (
+                      <div className="production-impresion-tintas-draft__body">
+                        <p className="production-diseno-cliente-hint">{entradasCopy.planchaCompletaHint}</p>
+                        <ImpresionTiroRetiroDiagram
+                          tiro={activeEntrada.tiro}
+                          retiro={activeEntrada.retiro}
+                          tipoBifronteColorBasico={activeRegistro?.tipoBifronteColorBasico}
+                          tipoBifrontePantone={activeRegistro?.tipoBifrontePantone}
+                          showColorBasico={entradaUsesPrimaryOrSecondaryInks(
+                            activeEntrada.tiro,
+                            activeEntrada.retiro
+                          )}
+                          showPantone={entradaUsesPantoneInks(activeEntrada.tiro, activeEntrada.retiro)}
                         />
                       </div>
+                    ) : null}
 
-                      {showColorBasicoTarifa || showPantoneTarifa ? (
-                        <div className="production-impresion-tintas-tarifas">
-                          {showColorBasicoTarifa ? (
-                            <ImpresionTintasTarifaFields
-                              variant="colorBasico"
-                              tarifa={tarifaColorBasico}
-                              precioMillar={activeRegistro.precioColorBasicoMillar}
-                              tarifasMillarLoading={tarifasMillarLoading}
-                            />
-                          ) : null}
-                          {showPantoneTarifa ? (
-                            <ImpresionTintasTarifaFields
-                              variant="pantone"
-                              tarifa={tarifaPantone}
-                              precioMillar={activeRegistro.precioPantoneMillar}
-                              tarifasMillarLoading={tarifasMillarLoading}
-                            />
-                          ) : null}
+                    {showComposerForm ? (
+                      <div className="production-plancha-draft__body production-impresion-tintas-draft__body">
+                        <p className="production-plancha-draft__intro">
+                          {editingEntradaId ? entradasCopy.editTitle : entradasCopy.addTitle}.{' '}
+                          {editingEntradaId ? entradasCopy.editHint : entradasCopy.addHint}
+                        </p>
+
+                        {draftError ? (
+                          <p className="production-impresion-tintas-composer__error" role="alert">
+                            {draftError}
+                          </p>
+                        ) : null}
+
+                        <p
+                          className={[
+                            'production-impresion-tintas-registro__limite',
+                            draftTotal > maxColoresPlancha
+                              ? 'production-impresion-tintas-registro__limite--excedido'
+                              : draftTotal < maxColoresPlancha
+                                ? 'production-impresion-tintas-registro__limite--incompleto'
+                                : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          role="status"
+                        >
+                          {registroCopy.limiteColores(draftTotal, maxColoresPlancha)}
+                        </p>
+
+                        <div className="production-impresion-tintas-lados">
+                          <ImpresionLadoTintasFields
+                            idPrefix="prod-impresion-tiro"
+                            title={ladoCopy.tiro}
+                            hint={ladoCopy.tiroHint}
+                            lado={draftTiro}
+                            maxColoresPlancha={maxColoresPlancha}
+                            otherLadoCantidad={draftRetiro.cantidad}
+                            onChange={tiro => {
+                              applyDraftSides(tiro, draftRetiro)
+                              if (draftError) setDraftError(null)
+                            }}
+                          />
+                          <ImpresionLadoTintasFields
+                            idPrefix="prod-impresion-retiro"
+                            title={ladoCopy.retiro}
+                            hint={ladoCopy.retiroHint}
+                            lado={draftRetiro}
+                            maxColoresPlancha={maxColoresPlancha}
+                            otherLadoCantidad={draftTiro.cantidad}
+                            onChange={retiro => {
+                              applyDraftSides(draftTiro, retiro)
+                              if (draftError) setDraftError(null)
+                            }}
+                          />
                         </div>
-                      ) : null}
 
-                      {canSaveDraft ? (
-                        <div className="production-impresion-precio-tinta-preview">
-                          <span className="production-form-label">
-                            {entradasCopy.calcularMillaresLabel}
-                          </span>
-                          <ImpresionPrecioTintaBreakdownDisplay breakdown={draftPrecioTinta} />
-                          <span className="production-plancha-draft__field-hint">
-                            {entradasCopy.millaresFormula}
-                          </span>
-                          <span className="production-plancha-draft__field-hint">
-                            {entradasCopy.millaresFormulaColorBasico}
-                          </span>
-                          <span className="production-plancha-draft__field-hint">
-                            {entradasCopy.millaresFormulaPantone}
-                          </span>
-                          {conVolteo ? (
-                            <span className="production-plancha-draft__field-hint">
-                              {entradasCopy.millaresFormulaVolteo}
-                            </span>
+                        {showColorBasicoTarifa || showPantoneTarifa ? (
+                          <ImpresionTintasVolteoSection
+                            hasColorBasico={showColorBasicoTarifa}
+                            hasPantone={showPantoneTarifa}
+                            tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
+                            tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
+                            tarifaColorBasico={tarifaColorBasico}
+                            tarifaPantone={tarifaPantone}
+                            precioColorBasicoMillar={draftTarifa.precioColorBasicoMillar}
+                            millarMinimoVentaColorBasico={tarifaColorBasico?.millarMinimoVenta}
+                            topeMinimoMillarColorBasico={tarifaColorBasico?.topeMinimoMillar}
+                            umbralDecimalMillarColorBasico={tarifaColorBasico?.umbralDecimalMillar}
+                            precioPantoneMillar={draftTarifa.precioPantoneMillar}
+                            millarMinimoVentaPantone={tarifaPantone?.millarMinimoVenta}
+                            topeMinimoMillarPantone={tarifaPantone?.topeMinimoMillar}
+                            umbralDecimalMillarPantone={tarifaPantone?.umbralDecimalMillar}
+                            precioVolteoColorBasicoMillar={draftTarifa.precioVolteoColorBasicoMillar}
+                            millarMinimoVentaVolteoColorBasico={
+                              volteoMillarRulesColorBasico.millarMinimoVenta
+                            }
+                            topeMinimoMillarVolteoColorBasico={
+                              volteoMillarRulesColorBasico.topeMinimoMillar
+                            }
+                            umbralDecimalMillarVolteoColorBasico={
+                              volteoMillarRulesColorBasico.umbralDecimalMillar
+                            }
+                            precioVolteoPantoneMillar={draftTarifa.precioVolteoPantoneMillar}
+                            millarMinimoVentaVolteoPantone={volteoMillarRulesPantone.millarMinimoVenta}
+                            topeMinimoMillarVolteoPantone={volteoMillarRulesPantone.topeMinimoMillar}
+                            umbralDecimalMillarVolteoPantone={
+                              volteoMillarRulesPantone.umbralDecimalMillar
+                            }
+                            tarifasMillarLoading={tarifasMillarLoading}
+                            millaresPreviewColorBasico={millaresPreviewColorBasico}
+                            millaresPreviewPantone={millaresPreviewPantone}
+                            onTipoBifronteColorBasicoChange={handleTipoBifronteColorBasicoChange}
+                            onTipoBifrontePantoneChange={handleTipoBifrontePantoneChange}
+                            onPrecioColorBasicoMillarChange={handlePrecioColorBasicoMillarChange}
+                            onPrecioPantoneMillarChange={handlePrecioPantoneMillarChange}
+                            onPrecioVolteoColorBasicoMillarChange={handlePrecioVolteoColorBasicoChange}
+                            onPrecioVolteoPantoneMillarChange={handlePrecioVolteoPantoneChange}
+                          />
+                        ) : null}
+
+                        <ImpresionTiroRetiroDiagram
+                          tiro={draftTiro}
+                          retiro={draftRetiro}
+                          tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
+                          tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
+                          showColorBasico={showColorBasicoTarifa}
+                          showPantone={showPantoneTarifa}
+                        />
+
+                        <div className="production-plancha-draft__actions production-impresion-tintas-draft__actions">
+                          {editingEntradaId ? (
+                            <button
+                              type="button"
+                              className="production-plancha-draft__btn production-plancha-draft__btn--ghost"
+                              onClick={handleCancelEdit}
+                            >
+                              {entradasCopy.cancelEdit}
+                            </button>
                           ) : null}
-                        </div>
-                      ) : null}
-
-                      <div className="production-plancha-draft__actions production-impresion-tintas-draft__actions">
-                        {editingEntradaId ? (
                           <button
                             type="button"
-                            className="production-plancha-draft__btn production-plancha-draft__btn--ghost"
-                            onClick={handleCancelEdit}
+                            className="production-plancha-draft__btn production-plancha-draft__btn--primary"
+                            disabled={!canCommitEntrada}
+                            onClick={handleSaveDraft}
                           >
-                            {entradasCopy.cancelEdit}
+                            {editingEntradaId ? entradasCopy.saveEdit : entradasCopy.addButton}
                           </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="production-plancha-draft__btn production-plancha-draft__btn--primary"
-                          disabled={!canSaveDraft}
-                          onClick={handleSaveDraft}
-                        >
-                          {editingEntradaId || hasActiveEntrada
-                            ? entradasCopy.saveEdit
-                            : entradasCopy.addButton}
-                        </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : null}
                   </div>
                 </section>
               ) : null}
@@ -556,8 +629,6 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
           <ProductionImpresionTintasResumen
             coloresPlanchas={coloresPlanchas}
             registros={registros}
-            activeColorPlanchaId={activeColorPlanchaId}
-            onSelectPlancha={onActiveColorPlanchaIdChange}
           />
         ) : null}
       </div>

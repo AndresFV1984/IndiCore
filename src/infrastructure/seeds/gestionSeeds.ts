@@ -1,3 +1,9 @@
+import {
+  normalizeUserPermissions,
+  normalizeUserRole,
+  type UserPermission,
+  type UserRole,
+} from '../../core/domain/auth/userPermissions.js'
 import { Client } from '../../core/domain/entities/Client.js'
 import { User, type DocumentType } from '../../core/domain/entities/User.js'
 import { Vendedor } from '../../core/domain/entities/Vendedor.js'
@@ -33,6 +39,8 @@ export interface PersonSeed {
   department?: string
   cityCode?: string
   state?: boolean
+  role?: UserRole
+  permissions?: UserPermission[]
 }
 
 export const CLIENTS_SEED: ClientSeed[] = [
@@ -128,6 +136,7 @@ export const USERS_SEED: PersonSeed[] = [
     address: 'Calle 100 # 19-54',
     mail: 'maria.garcia@indicolors.com',
     contact: '601 555 0100',
+    role: 'Administrador',
   },
   {
     id: 'user-2',
@@ -138,6 +147,8 @@ export const USERS_SEED: PersonSeed[] = [
     address: 'Av. El Poblado # 5-23',
     mail: 'juan.herrera@indicolors.com',
     contact: '604 555 0200',
+    role: 'Operador',
+    permissions: ['production.view', 'production.edit'],
   },
   {
     id: 'user-3',
@@ -148,6 +159,7 @@ export const USERS_SEED: PersonSeed[] = [
     address: 'Av. 6N # 28-45',
     mail: 'bayron.morales@indicolors.com',
     contact: '602 555 0300',
+    role: 'Supervisor',
   },
   {
     id: 'user-4',
@@ -158,6 +170,8 @@ export const USERS_SEED: PersonSeed[] = [
     address: 'Cra. 50 # 72-18',
     mail: 'laura.vargas@indicolors.com',
     contact: '605 555 0400',
+    role: 'Operador',
+    permissions: ['production.view', 'production.edit'],
   },
   {
     id: 'user-5',
@@ -168,6 +182,8 @@ export const USERS_SEED: PersonSeed[] = [
     address: 'Calle 37 # 19-08',
     mail: 'diego.castillo@indicolors.com',
     contact: '607 555 0500',
+    role: 'Operador',
+    permissions: ['production.view', 'production.edit'],
   },
 ]
 
@@ -264,7 +280,9 @@ export const createUserSeeds = (): User[] =>
       seed.mail,
       seed.contact,
       DEMO_USER_PASSWORD_HASH,
-      seed.state ?? true
+      seed.state ?? true,
+      normalizeUserRole(seed.role),
+      normalizeUserPermissions(seed.permissions, seed.role)
     )
   })
 

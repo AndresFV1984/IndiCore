@@ -149,6 +149,11 @@ export const TARIFA_MILLAR_SEED = [
     descripcion:
       'Impresión estándar en cuatricromía (CMYK), utilizada para la mayoría de trabajos comunes.',
     state: true,
+    millarMinimoVenta: 500,
+    topeMinimoMillar: 600,
+    umbralDecimalMillar: 0.2,
+    precioVolteoPinza: 20_000,
+    precioVolteoEscuadra: 20_000,
   },
   {
     id: 'tm-4',
@@ -159,26 +164,11 @@ export const TARIFA_MILLAR_SEED = [
     descripcion:
       'Tinta directa especial que asegura fidelidad exacta de color en logotipos y marcas corporativas.',
     state: true,
-  },
-  {
-    id: 'tm-2',
-    name: 'Volteo por pinza',
-    unidadMedida: 1000,
-    precio: 20000,
-    categoria: 'Volteos',
-    descripcion:
-      'Proceso de girar la hoja para imprimir el reverso, requiere ajuste adicional en máquina.',
-    state: true,
-  },
-  {
-    id: 'tm-3',
-    name: 'Volteo por escuadra',
-    unidadMedida: 1000,
-    precio: 20000,
-    categoria: 'Volteos',
-    descripcion:
-      'Rotación de la hoja en otro ángulo para completar la impresión, usado en trabajos complejos.',
-    state: true,
+    millarMinimoVenta: 500,
+    topeMinimoMillar: 600,
+    umbralDecimalMillar: 0.2,
+    precioVolteoPinza: 70_000,
+    precioVolteoEscuadra: 70_000,
   },
 ] as const
 
@@ -231,6 +221,11 @@ export const createTarifaMillarSeeds = (): TarifaMillar[] =>
         s.precio,
         s.categoria,
         s.descripcion,
-        s.state
+        s.state,
+        s.millarMinimoVenta,
+        s.topeMinimoMillar,
+        s.umbralDecimalMillar,
+        s.precioVolteoPinza,
+        s.precioVolteoEscuadra
       )
   )

@@ -68,6 +68,17 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
     )
   }
 
+  /** Responsable asignado por etapa */
+  if (id === 'responsable') {
+    return (
+      <svg {...props}>
+        <circle cx="12" cy="8.25" r="3.25" {...s} />
+        <path d="M6.25 19.25c0-2.9 2.35-4.75 5.75-4.75s5.75 1.85 5.75 4.75" {...s} />
+        <path d="M16.75 6.5l1.5 1.5M18.25 5l1.5 1.5" {...s} strokeWidth={1.5} />
+      </svg>
+    )
+  }
+
   /** Especificaciones — cantidad y datos de la OP */
   if (id === 'detalle-op') {
     return (

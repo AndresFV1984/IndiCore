@@ -73,11 +73,18 @@ const ImpresionPrecioTintaBreakdownDisplay: React.FC<ImpresionPrecioTintaBreakdo
         millares={breakdown.millaresPantone}
         precio={breakdown.pantone}
       />
-      {breakdown.volteo > 0 ? (
+      {breakdown.volteoColorBasico > 0 ? (
         <MillaresGrupoRow
-          grupoLabel={entradasCopy.millaresVolteoLabel}
-          millares={breakdown.millaresVolteo}
-          precio={breakdown.volteo}
+          grupoLabel={copy.tintas.tintasVolteo.volteoColorBasicoLabel}
+          millares={breakdown.millaresVolteoColorBasico}
+          precio={breakdown.volteoColorBasico}
+        />
+      ) : null}
+      {breakdown.volteoPantone > 0 ? (
+        <MillaresGrupoRow
+          grupoLabel={copy.tintas.tintasVolteo.volteoPantoneLabel}
+          millares={breakdown.millaresVolteoPantone}
+          precio={breakdown.volteoPantone}
         />
       ) : null}
     </div>

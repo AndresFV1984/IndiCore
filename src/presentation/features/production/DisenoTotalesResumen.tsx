@@ -19,7 +19,7 @@ const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) =
 
   const filas = [
     {
-      label: 'Registrar costo del diseño',
+      label: 'Costo del diseño',
       value: resumen.costoDiseno,
       inactive: !diseno.aplicaCostoDiseno,
     },
@@ -37,10 +37,8 @@ const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) =
 
   return (
     <ProductionWorkspaceSection
-      className="production-diseno-resumen"
-      tag="Resumen"
-      title="Resumen del diseño"
-      subtitle="Costo del diseño, planchas y montaje de esta orden"
+      className="production-diseno-resumen production-diseno-nuevo-panel production-diseno-nuevo-panel--resumen"
+      title="Resumen"
       tone={2}
     >
       <ul className="production-diseno-resumen__rows">
@@ -63,8 +61,7 @@ const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) =
       </ul>
       <div className="production-diseno-resumen__total" aria-live="polite">
         <div className="production-diseno-resumen__total-info">
-          <span className="production-diseno-resumen__total-label">Total por diseño</span>
-          <span className="production-diseno-resumen__total-hint">Suma de los tres conceptos</span>
+          <span className="production-diseno-resumen__total-label">Total</span>
         </div>
         <strong className="production-diseno-resumen__total-value">
           {formatValor(resumen.totalDiseno)}

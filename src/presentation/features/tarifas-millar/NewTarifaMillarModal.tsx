@@ -4,8 +4,11 @@ import FormSection from '../../components/directory/FormSection'
 import FormField from '../../components/directory/FormField'
 import {
   CreateTarifaMillarDTO,
+  DEFAULT_MILLAR_MINIMO_VENTA,
   DEFAULT_TARIFA_MILLAR_CATEGORIA,
-  TARIFA_MILLAR_CATEGORIAS,
+  DEFAULT_TOPE_MINIMO_MILLAR,
+  DEFAULT_UMBRAL_DECIMAL_MILLAR,
+  describeTarifaMillarReglaDecimales,
   TARIFA_MILLAR_UNIDAD,
   TarifaMillar,
 } from '../../../core/domain/entities/TarifaMillar'
@@ -13,17 +16,31 @@ import {
 export interface TarifaMillarFormValues {
   name: string
   precio: string
-  categoria: string
-  descripcion: string
+  millarMinimoVenta: string
+  topeMinimoMillar: string
+  umbralDecimalMillar: string
+  precioVolteoPinza: string
+  precioVolteoEscuadra: string
   state: boolean
 }
 
 const defaultValues: TarifaMillarFormValues = {
   name: '',
   precio: '',
-  categoria: DEFAULT_TARIFA_MILLAR_CATEGORIA,
-  descripcion: '',
+  millarMinimoVenta: String(DEFAULT_MILLAR_MINIMO_VENTA),
+  topeMinimoMillar: String(DEFAULT_TOPE_MINIMO_MILLAR),
+  umbralDecimalMillar: String(DEFAULT_UMBRAL_DECIMAL_MILLAR),
+  precioVolteoPinza: '',
+  precioVolteoEscuadra: '',
   state: true,
+}
+
+const parseNonNegativeInteger = (raw: string): number | null => {
+  const normalized = raw.trim()
+  if (!normalized) return null
+  const value = Number(normalized)
+  if (!Number.isInteger(value) || value < 0) return null
+  return value
 }
 
 interface NewTarifaMillarModalProps {
@@ -51,8 +68,13 @@ const NewTarifaMillarModal: React.FC<NewTarifaMillarModalProps> = ({
         ? {
             name: item.name,
             precio: String(item.precio),
-            categoria: item.categoria,
-            descripcion: item.descripcion,
+            millarMinimoVenta: String(item.millarMinimoVenta),
+            topeMinimoMillar: String(item.topeMinimoMillar),
+            umbralDecimalMillar: String(item.umbralDecimalMillar),
+            precioVolteoPinza:
+              item.precioVolteoPinza > 0 ? String(item.precioVolteoPinza) : '',
+            precioVolteoEscuadra:
+              item.precioVolteoEscuadra > 0 ? String(item.precioVolteoEscuadra) : '',
             state: item.state,
           }
         : defaultValues
@@ -71,20 +93,54 @@ const NewTarifaMillarModal: React.FC<NewTarifaMillarModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const name = values.name.trim()
-    const categoria = values.categoria.trim()
-    const descripcion = values.descripcion.trim()
     const precio = Number(values.precio)
+    const umbralDecimalMillar = Number(values.umbralDecimalMillar.replace(',', '.'))
+    const millarMinimoVenta = parseNonNegativeInteger(values.millarMinimoVenta)
+    const topeMinimoMillar = parseNonNegativeInteger(values.topeMinimoMillar)
+    const precioVolteoPinzaRaw = values.precioVolteoPinza.trim()
+    const precioVolteoEscuadraRaw = values.precioVolteoEscuadra.trim()
+    const precioVolteoPinza =
+      precioVolteoPinzaRaw === '' ? 0 : Number(precioVolteoPinzaRaw)
+    const precioVolteoEscuadra =
+      precioVolteoEscuadraRaw === '' ? 0 : Number(precioVolteoEscuadraRaw)
 
     if (!name) {
       setError('El nombre es obligatorio.')
       return
     }
-    if (!categoria) {
-      setError('La categoría es obligatoria.')
-      return
-    }
     if (values.precio.trim() === '' || Number.isNaN(precio) || precio < 0) {
       setError('Ingrese un precio válido (número mayor o igual a cero).')
+      return
+    }
+    if (millarMinimoVenta === null) {
+      setError('Ingrese un millar mínimo válido (entero mayor o igual a cero).')
+      return
+    }
+    if (topeMinimoMillar === null) {
+      setError('Ingrese un tope mínimo millar válido (entero mayor o igual a cero).')
+      return
+    }
+    if (
+      values.umbralDecimalMillar.trim() === '' ||
+      Number.isNaN(umbralDecimalMillar) ||
+      umbralDecimalMillar < 0 ||
+      umbralDecimalMillar > 1
+    ) {
+      setError('Ingrese un umbral decimal válido entre 0 y 1 (ej. 0,2).')
+      return
+    }
+    if (
+      precioVolteoPinzaRaw !== '' &&
+      (Number.isNaN(precioVolteoPinza) || precioVolteoPinza < 0)
+    ) {
+      setError('Ingrese un precio de volteo por pinza válido (número mayor o igual a cero).')
+      return
+    }
+    if (
+      precioVolteoEscuadraRaw !== '' &&
+      (Number.isNaN(precioVolteoEscuadra) || precioVolteoEscuadra < 0)
+    ) {
+      setError('Ingrese un precio de volteo por escuadra válido (número mayor o igual a cero).')
       return
     }
 
@@ -95,8 +151,13 @@ const NewTarifaMillarModal: React.FC<NewTarifaMillarModalProps> = ({
         id: item?.id,
         name,
         precio,
-        categoria,
-        descripcion,
+        categoria: item?.categoria ?? DEFAULT_TARIFA_MILLAR_CATEGORIA,
+        descripcion: item?.descripcion ?? '',
+        millarMinimoVenta,
+        topeMinimoMillar,
+        umbralDecimalMillar,
+        precioVolteoPinza,
+        precioVolteoEscuadra,
         state: values.state,
       })
       onClose()
@@ -110,6 +171,10 @@ const NewTarifaMillarModal: React.FC<NewTarifaMillarModalProps> = ({
       setSubmitting(false)
     }
   }
+
+  const umbralHint = describeTarifaMillarReglaDecimales(
+    Number(values.umbralDecimalMillar.replace(',', '.')) || DEFAULT_UMBRAL_DECIMAL_MILLAR
+  )
 
   return (
     <Modal
@@ -159,30 +224,6 @@ const NewTarifaMillarModal: React.FC<NewTarifaMillarModalProps> = ({
               placeholder="Ej. 17500"
             />
           </FormField>
-          <FormField id="tm-categoria" label="Categoría" required fullWidth>
-            <select
-              id="tm-categoria"
-              className="record-form-input"
-              value={values.categoria}
-              onChange={handleChange('categoria')}
-            >
-              {TARIFA_MILLAR_CATEGORIAS.map(categoria => (
-                <option key={categoria} value={categoria}>
-                  {categoria}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField id="tm-descripcion" label="Descripción" fullWidth>
-            <textarea
-              id="tm-descripcion"
-              className="record-form-input"
-              value={values.descripcion}
-              onChange={handleChange('descripcion')}
-              placeholder="Descripción opcional de la tarifa"
-              rows={3}
-            />
-          </FormField>
           <FormField id="tm-estado" label="Estado" required fullWidth>
             <select
               id="tm-estado"
@@ -195,6 +236,98 @@ const NewTarifaMillarModal: React.FC<NewTarifaMillarModalProps> = ({
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
             </select>
+          </FormField>
+        </FormSection>
+
+        <FormSection title="Reglas de millar y volteo">
+          <FormField
+            id="tm-tope-minimo"
+            label="Tope mínimo millar"
+            required
+            fullWidth
+            hint="Cantidad mínima en unidades para aplicar reglas de cobro por millar."
+          >
+            <input
+              id="tm-tope-minimo"
+              type="number"
+              min={0}
+              step={1}
+              className="record-form-input"
+              value={values.topeMinimoMillar}
+              onChange={handleChange('topeMinimoMillar')}
+              placeholder={`Ej. ${DEFAULT_TOPE_MINIMO_MILLAR}`}
+            />
+          </FormField>
+          <FormField
+            id="tm-millar-minimo"
+            label="Millar mínimo"
+            required
+            fullWidth
+            hint="Millar mínimo de venta asociado a la tarifa."
+          >
+            <input
+              id="tm-millar-minimo"
+              type="number"
+              min={0}
+              step={1}
+              className="record-form-input"
+              value={values.millarMinimoVenta}
+              onChange={handleChange('millarMinimoVenta')}
+              placeholder={`Ej. ${DEFAULT_MILLAR_MINIMO_VENTA}`}
+            />
+          </FormField>
+          <FormField
+            id="tm-umbral-decimal"
+            label="Umbral decimal"
+            required
+            fullWidth
+            hint={umbralHint}
+          >
+            <input
+              id="tm-umbral-decimal"
+              type="number"
+              min={0}
+              max={1}
+              step={0.1}
+              className="record-form-input"
+              value={values.umbralDecimalMillar}
+              onChange={handleChange('umbralDecimalMillar')}
+              placeholder="Ej. 0,2"
+            />
+          </FormField>
+          <FormField
+            id="tm-volteo-pinza"
+            label="Volteo por pinza"
+            fullWidth
+            hint="Precio por millar con volteo por pinza. Déjelo vacío si no aplica."
+          >
+            <input
+              id="tm-volteo-pinza"
+              type="number"
+              min={0}
+              step={1}
+              className="record-form-input"
+              value={values.precioVolteoPinza}
+              onChange={handleChange('precioVolteoPinza')}
+              placeholder="Ej. 20000"
+            />
+          </FormField>
+          <FormField
+            id="tm-volteo-escuadra"
+            label="Volteo por escuadra"
+            fullWidth
+            hint="Precio por millar con volteo por escuadra. Déjelo vacío si no aplica."
+          >
+            <input
+              id="tm-volteo-escuadra"
+              type="number"
+              min={0}
+              step={1}
+              className="record-form-input"
+              value={values.precioVolteoEscuadra}
+              onChange={handleChange('precioVolteoEscuadra')}
+              placeholder="Ej. 20000"
+            />
           </FormField>
         </FormSection>
 

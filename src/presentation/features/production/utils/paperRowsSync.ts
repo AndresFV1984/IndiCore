@@ -125,6 +125,7 @@ export interface CorteRegistroResumenLine {
   tipoPapel: string
   piezasPorPliego: number
   valorCorteUnitario: number
+  valorHoja: number
   cantidadHojas: number
   valorPapel: number
   valorCorte: number
@@ -239,6 +240,7 @@ export const buildCorteResumenConsolidado = (
       tipoPapel: row.type?.trim() || tipo?.name?.trim() || '',
       piezasPorPliego: row.despiece?.piezasPorPliego ?? 0,
       valorCorteUnitario: valores.valorCorteUnitario,
+      valorHoja: valores.valorHoja,
       cantidadHojas: valores.cantidadHojas,
       valorPapel: valores.valorPapel,
       valorCorte: valores.valorCorte,

@@ -1,6 +1,25 @@
 import React from 'react'
 import { YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
-import DisenoSiNoChoice from './DisenoSiNoChoice'
+import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
+
+const copy = PREPRENSA_DISENO_COPY.nuevo.costoDiseno
+
+const COSTO_OPTIONS: {
+  value: YesNoChoice
+  title: string
+  description: string
+}[] = [
+  {
+    value: 'no',
+    title: copy.opciones.sinCosto.title,
+    description: copy.opciones.sinCosto.description,
+  },
+  {
+    value: 'si',
+    title: copy.opciones.conCosto.title,
+    description: copy.opciones.conCosto.description,
+  },
+]
 
 interface DisenoCrearCostoPanelProps {
   incluir: YesNoChoice
@@ -17,35 +36,42 @@ const DisenoCrearCostoPanel: React.FC<DisenoCrearCostoPanelProps> = ({
   onCostoInputChange,
   onCostoKeyDown,
 }) => (
-  <div
-    className={`production-diseno-cost-panel${incluir === 'si' ? ' production-diseno-cost-panel--on' : ''}`}
-  >
-    <div className="production-diseno-cost-panel__header">
-      <div className="production-diseno-cost-panel__intro">
-        <span className="production-diseno-cost-panel__icon" aria-hidden>
-          $
-        </span>
-        <span className="production-diseno-cost-panel__copy">
-          <span className="production-diseno-cost-panel__title">
-            Registrar costo del diseño
-          </span>
-          <span className="production-diseno-cost-panel__desc">
-            ¿Incluir el costo del diseño en esta orden?
-          </span>
-        </span>
+  <div className="production-diseno-costo">
+    <div
+      className="production-diseno-modo production-diseno-costo__modo"
+      role="radiogroup"
+      aria-label={copy.ariaLabel}
+    >
+      <div className="production-diseno-modo__grid">
+        {COSTO_OPTIONS.map(opt => {
+          const selected = incluir === opt.value
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={[
+                'production-diseno-modo__card',
+                `production-diseno-modo__card--${opt.value}`,
+                selected ? 'production-diseno-modo__card--selected' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => onIncluirChange(opt.value)}
+            >
+              <span className="production-diseno-modo__title">{opt.title}</span>
+              <span className="production-diseno-modo__desc">{opt.description}</span>
+            </button>
+          )
+        })}
       </div>
-      <DisenoSiNoChoice
-        className="production-diseno-cost-panel__sino"
-        name="Incluir costo del diseño"
-        value={incluir}
-        onChange={onIncluirChange}
-      />
     </div>
 
     {incluir === 'si' && (
-      <div className="production-diseno-cost-panel__valor">
-        <label className="production-diseno-cost-panel__label" htmlFor="diseno-costo">
-          Valor (COP)
+      <div className="production-diseno-costo__valor">
+        <label className="production-diseno-costo__label" htmlFor="diseno-costo">
+          {copy.valorLabel}
         </label>
         <div className="production-diseno-cost-input-wrap">
           <span className="production-diseno-cost-input-wrap__prefix" aria-hidden>

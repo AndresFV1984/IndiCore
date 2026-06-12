@@ -5,81 +5,62 @@ import {
   DISENO_COLORES_COUNT_OPTIONS,
   DISENO_INK_COUNT_PALETTE_SIZE,
   DISENO_INK_PALETTE,
-  DISENO_INK_PANTONE_MIX_COLORS,
   getDisenoColoresCountMeta,
   isDisenoInkPantoneMix,
   type DisenoColoresCountMeta,
 } from './constants/preprensaDisenoColors'
 
-const INK_LIGHT_SWATCHES = new Set(['#ffd400', '#FFD400'])
+const LIGHT_SWATCHES = new Set(['#ffd400', '#FFD400'])
 
-interface ColoresInkIconProps {
+interface ColoresSwatchIconProps {
   swatch: string
   name: string
-  size?: 'sm' | 'md'
+  size?: 'xs' | 'sm' | 'md'
 }
 
-const INK_DROP_PATH =
-  'M10 2.25c-4.1 5.35-6.5 9.05-6.5 12.5a6.5 6.5 0 1 0 13 0C16.5 11.3 14.1 7.6 10 2.25z'
+const swatchBorder = (swatch: string): string =>
+  LIGHT_SWATCHES.has(swatch) ? '#94a3b8' : `color-mix(in srgb, ${swatch} 55%, #fff)`
 
-/** Icono de gota de tinta relleno con el color de la paleta */
-export const ColoresInkIcon: React.FC<ColoresInkIconProps> = ({
+/** Muestra un color de la paleta como pastilla redondeada (sin icono de gota). */
+export const ColoresSwatchIcon: React.FC<ColoresSwatchIconProps> = ({
   swatch,
   name,
   size = 'sm',
 }) => {
-  const gradientId = React.useId()
   const isMix = isDisenoInkPantoneMix(swatch)
-  const light = !isMix && INK_LIGHT_SWATCHES.has(swatch)
 
   return (
     <span
-      className={`production-colores-ink-icon production-colores-ink-icon--${size}${isMix ? ' production-colores-ink-icon--pantone-mix' : ''}`}
+      className={clsx(
+        'production-colores-swatch-icon',
+        `production-colores-swatch-icon--${size}`,
+        isMix && 'production-colores-swatch-icon--pantone-mix'
+      )}
+      style={
+        isMix
+          ? undefined
+          : ({
+              '--colores-swatch-color': swatch,
+              '--colores-swatch-border': swatchBorder(swatch),
+            } as React.CSSProperties)
+      }
       title={name}
       aria-hidden
-    >
-      <svg viewBox="0 0 20 24" focusable="false">
-        {isMix ? (
-          <>
-            <defs>
-              <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-                {DISENO_INK_PANTONE_MIX_COLORS.map((color, index, colors) => (
-                  <stop
-                    key={color}
-                    offset={`${(index / (colors.length - 1)) * 100}%`}
-                    stopColor={color}
-                  />
-                ))}
-              </linearGradient>
-            </defs>
-            <path
-              d={INK_DROP_PATH}
-              fill={`url(#${gradientId})`}
-              stroke="rgba(15, 23, 42, 0.18)"
-              strokeWidth={0.6}
-            />
-          </>
-        ) : (
-          <path
-            d={INK_DROP_PATH}
-            fill={swatch}
-            stroke={light ? '#64748b' : 'rgba(15, 23, 42, 0.12)'}
-            strokeWidth={light ? 1.1 : 0.6}
-          />
-        )}
-      </svg>
-    </span>
+    />
   )
 }
 
+/** @deprecated Usar ColoresSwatchIcon */
+export const ColoresInkIcon = ColoresSwatchIcon
+
 interface ColoresCountIconsProps {
   count: number
-  size?: 'sm' | 'md'
+  size?: 'xs' | 'sm' | 'md'
   /** Muestra «+» tras los 7 iconos (opción 7-Colores o más) */
   showPlusSuffix?: boolean
 }
 
-/** Muestra N iconos de tinta (Cian → Pantone) en fila; «+» si es 7 o más */
+/** Muestra N swatches de tinta (Cian → Pantone) en fila; «+» si es 7 o más */
 export const ColoresCountIcons: React.FC<ColoresCountIconsProps> = ({
   count,
   size = 'sm',
@@ -91,11 +72,15 @@ export const ColoresCountIcons: React.FC<ColoresCountIconsProps> = ({
 
   return (
     <span
-      className={`production-colores-icons production-colores-icons--${size}${showPlus ? ' production-colores-icons--with-plus' : ''}`}
+      className={clsx(
+        'production-colores-icons',
+        `production-colores-icons--${size}`,
+        showPlus && 'production-colores-icons--with-plus'
+      )}
       aria-hidden
     >
       {DISENO_INK_PALETTE.slice(0, n).map((ink, i) => (
-        <ColoresInkIcon key={i} swatch={ink.swatch} name={ink.name} size={size} />
+        <ColoresSwatchIcon key={i} swatch={ink.swatch} name={ink.name} size={size} />
       ))}
       {showPlus && <span className="production-colores-icons__plus">+</span>}
     </span>
@@ -104,6 +89,60 @@ export const ColoresCountIcons: React.FC<ColoresCountIconsProps> = ({
 
 /** @deprecated Usar ColoresCountIcons */
 export const ColoresCountDots = ColoresCountIcons
+
+interface ColoresSpectrumBarProps {
+  count: number
+  /** Muestra indicador «+» para 7 colores o más */
+  showPlusSuffix?: boolean
+  compact?: boolean
+}
+
+/** Barra continua segmentada por tinta — visualización moderna para el selector */
+export const ColoresSpectrumBar: React.FC<ColoresSpectrumBarProps> = ({
+  count,
+  showPlusSuffix = false,
+  compact = false,
+}) => {
+  const n = Math.min(Math.max(count, 0), DISENO_INK_COUNT_PALETTE_SIZE)
+  if (n === 0) return null
+
+  return (
+    <span
+      className={clsx(
+        'production-colores-spectrum',
+        compact && 'production-colores-spectrum--compact',
+        showPlusSuffix && 'production-colores-spectrum--extended'
+      )}
+      aria-hidden
+    >
+      <span className="production-colores-spectrum__track">
+        {DISENO_INK_PALETTE.slice(0, n).map((ink, i) => {
+          const isMix = isDisenoInkPantoneMix(ink.swatch)
+          return (
+            <span
+              key={i}
+              className={clsx(
+                'production-colores-spectrum__segment',
+                isMix && 'production-colores-spectrum__segment--pantone-mix'
+              )}
+              style={
+                isMix
+                  ? undefined
+                  : ({ '--colores-spectrum-color': ink.swatch } as React.CSSProperties)
+              }
+              title={ink.name}
+            />
+          )
+        })}
+      </span>
+      {showPlusSuffix ? (
+        <span className="production-colores-spectrum__more" title="7 colores o más">
+          +
+        </span>
+      ) : null}
+    </span>
+  )
+}
 
 interface DisenoColoresPickerProps {
   id: string
@@ -145,7 +184,7 @@ const DisenoColoresPicker: React.FC<DisenoColoresPickerProps> = ({
         <p className="production-colores-picker__lead">{placeholder}</p>
       ) : null}
 
-      <div className="production-colores-picks production-colores-picks--grid">
+      <div className="production-colores-picks production-colores-picks--modern">
         {options.map(option => {
           const isSelected = value === option.value
           const isSevenPlus = option.value === '7-colores-o-mas'
@@ -156,25 +195,33 @@ const DisenoColoresPicker: React.FC<DisenoColoresPickerProps> = ({
               type="button"
               role="radio"
               aria-checked={isSelected}
+              aria-label={`${option.label}${isSelected ? ', seleccionado' : ''}`}
               className={clsx(
-                'production-colores-pick production-colores-pick--grid-card',
+                'production-colores-pick production-colores-pick--modern-card',
                 isSelected && 'production-colores-pick--selected'
               )}
               disabled={disabled}
               onClick={() => onChange(option.value)}
             >
-              <span className="production-colores-pick__row">
-                <span className="production-colores-pick__head">
-                  <span className="production-colores-pick__label">{option.label}</span>
-                </span>
-                <span className="production-colores-pick__icons">
-                  <ColoresCountIcons
-                    count={option.count}
-                    size="sm"
-                    showPlusSuffix={isSevenPlus}
-                  />
-                </span>
+              <span className="production-colores-pick__headline" aria-hidden>
+                <span className="production-colores-pick__count">{option.shortLabel}</span>
+                <ColoresSpectrumBar count={option.count} showPlusSuffix={isSevenPlus} />
               </span>
+              <span className="production-colores-pick__label">{option.label}</span>
+              {isSelected ? (
+                <span className="production-colores-pick__check" aria-hidden>
+                  <svg viewBox="0 0 12 12" focusable="false">
+                    <path
+                      d="M2.25 6.25 4.75 8.75 9.75 3.75"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              ) : null}
             </button>
           )
         })}
