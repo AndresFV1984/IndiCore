@@ -5,7 +5,7 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import { useOrdersHook } from '../../hooks/useOrders'
 import { Container } from '../../../di/container'
 import { Money } from '../../../core/domain/value-objects/Money'
-import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro, type TerminadosProduccionRegistro } from '../../../core/domain/entities/Order'
+import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro, type TerminadosProduccionRegistro, type AcabadosProduccionRegistro } from '../../../core/domain/entities/Order'
 import { ROUTES } from '../../../config/appRoutes'
 import { formatProductionOrderId } from '../../../core/domain/value-objects/ProductionOrderId'
 import {
@@ -26,7 +26,7 @@ import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
 import ProductionTerminadosPanel from './ProductionTerminadosPanel'
 import ProductionAcabadosPanel from './ProductionAcabadosPanel'
 import ProductionClientPicker from './ProductionClientPicker'
-import ProductionVendedorPicker from './ProductionVendedorPicker'
+import ProductionDetalleOpPanel from './ProductionDetalleOpPanel'
 import ProductionOperadorAssignmentSection from './ProductionOperadorAssignmentSection'
 import { SpecsSubTabId } from './productionSpecsSubTabs'
 import { PreprensaSubTabId } from './productionPreprensaSubTabs'
@@ -62,6 +62,7 @@ import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import { useTerminadosHook } from '../../hooks/useTerminados'
+import { useOperacionesHook } from '../../hooks/useOperaciones'
 import ProductionCortePapelForm from './ProductionCortePapelForm'
 import { emptyPaperRow, normalizeTipoPapelList } from './utils/tipoPapelDisplay'
 import { DEFAULT_MARGEN_REDONDEO, normalizeMargenRedondeo } from './utils/cortePapelCalculations'
@@ -101,6 +102,11 @@ import {
   syncTerminadosRegistros,
   terminadosRegistrosEqual,
 } from './utils/terminadosUtils'
+import {
+  buildOperationsFromAcabadosRegistros,
+  syncAcabadosRegistros,
+  acabadosRegistrosEqual,
+} from './utils/acabadosUtils'
 import { confirmAction } from '../../utils/actionFeedback'
 
 const parseQuantityDigits = (value: string): number => {
@@ -145,6 +151,7 @@ const emptySpecs = (): OrderSpecs => ({
   inks: '',
   impresionTintasRegistros: [],
   terminadosRegistros: [],
+  acabadosRegistros: [],
   machineOutputValue: new Money(0),
   chapoliado: false,
   finishes: [],
@@ -158,6 +165,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   const { orders, loading: ordersLoading, createOrder } = useOrdersHook()
   const { items: tiposPapelStore, loading: loadingTiposPapel } = useTipoPapelHook()
   const { items: terminadosCatalog, quickAccessItems: quickAccessTerminados } = useTerminadosHook()
+  const { items: acabadosCatalog, quickAccessItems: quickAccessAcabados } = useOperacionesHook()
   const { users } = useUsersHook()
   const [tiposPapelCatalog, setTiposPapelCatalog] = useState<TipoPapel[]>([])
 
@@ -179,6 +187,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   const [activeCorteColorPlanchaId, setActiveCorteColorPlanchaId] = useState('')
   const [activeImpresionColorPlanchaId, setActiveImpresionColorPlanchaId] = useState('')
   const [activeTerminadosCorteRowKey, setActiveTerminadosCorteRowKey] = useState('')
+  const [activeAcabadosCorteRowKey, setActiveAcabadosCorteRowKey] = useState('')
   const [clients, setClients] = useState<Client[]>([])
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [planchas, setPlanchas] = useState<TamanoPlancha[]>([])
@@ -415,6 +424,33 @@ const ProductionOrderWorkspace: React.FC = () => {
   ])
 
   useEffect(() => {
+    setSpecs(prev => {
+      const next = syncAcabadosRegistros(
+        prev.preprensaDiseno.coloresPlanchas,
+        prev.paperRows,
+        tiposPapel,
+        normalizeMargenRedondeo(prev.margenRedondeo),
+        prev.clienteSuministraPapel ?? 'no',
+        prev.acabadosRegistros ?? []
+      )
+      if (acabadosRegistrosEqual(next, prev.acabadosRegistros ?? [])) {
+        return prev
+      }
+      return {
+        ...prev,
+        acabadosRegistros: next,
+        operations: buildOperationsFromAcabadosRegistros(next),
+      }
+    })
+  }, [
+    specs.preprensaDiseno.coloresPlanchas,
+    specs.paperRows,
+    specs.margenRedondeo,
+    specs.clienteSuministraPapel,
+    tiposPapel,
+  ])
+
+  useEffect(() => {
     if (paperRowsMatchColoresPlanchas(specs.preprensaDiseno.coloresPlanchas, specs.paperRows)) {
       return
     }
@@ -461,6 +497,16 @@ const ProductionOrderWorkspace: React.FC = () => {
             normalizeMargenRedondeo(existingOrder.specs.margenRedondeo),
             existingOrder.specs.clienteSuministraPapel ?? 'no',
             existingOrder.specs.terminadosRegistros ?? []
+          ),
+          acabadosRegistros: syncAcabadosRegistros(
+            preprensaDiseno.coloresPlanchas,
+            existingOrder.specs.paperRows?.length
+              ? existingOrder.specs.paperRows
+              : [row],
+            tiposPapel,
+            normalizeMargenRedondeo(existingOrder.specs.margenRedondeo),
+            existingOrder.specs.clienteSuministraPapel ?? 'no',
+            existingOrder.specs.acabadosRegistros ?? []
           ),
           paperRows: existingOrder.specs.paperRows?.length
             ? existingOrder.specs.paperRows
@@ -568,6 +614,28 @@ const ProductionOrderWorkspace: React.FC = () => {
           ...prev,
           terminadosRegistros: next,
           finishes: buildFinishesFromTerminadosRegistros(next),
+        }
+      })
+    },
+    []
+  )
+
+  const handleAcabadosRegistrosChange = useCallback(
+    (
+      updater:
+        | AcabadosProduccionRegistro[]
+        | ((prev: AcabadosProduccionRegistro[]) => AcabadosProduccionRegistro[])
+    ) => {
+      setSpecs(prev => {
+        const current = prev.acabadosRegistros ?? []
+        const next = typeof updater === 'function' ? updater(current) : updater
+        if (acabadosRegistrosEqual(next, current)) {
+          return prev
+        }
+        return {
+          ...prev,
+          acabadosRegistros: next,
+          operations: buildOperationsFromAcabadosRegistros(next),
         }
       })
     },
@@ -846,63 +914,19 @@ const ProductionOrderWorkspace: React.FC = () => {
                   id="production-specs-panel-detalle-op"
                   aria-labelledby="production-specs-subtab-detalle-op"
                 >
-                  <div className="production-ws-sections-stack">
-                    <ProductionWorkspaceSection
-                      tag="Trabajo"
-                      title="Identificación del pedido"
-                      tone={0}
-                    >
-                      <div className="production-form-grid production-form-grid--detalle-op">
-                        <div className="production-form-field production-form-field--full">
-                          <label className="production-form-label" htmlFor="prod-work">
-                            Nombre del trabajo
-                          </label>
-                          <input
-                            id="prod-work"
-                            className="production-form-input"
-                            value={workName}
-                            onChange={e => setWorkName(e.target.value)}
-                            placeholder="Ej. Catálogo corporativo 2026"
-                          />
-                        </div>
-                        <div className="production-form-field">
-                          <label className="production-form-label" htmlFor="prod-qty">
-                            Cantidad
-                          </label>
-                          <input
-                            id="prod-qty"
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            className="production-form-input"
-                            value={specs.quantity > 0 ? String(specs.quantity) : ''}
-                            onChange={e =>
-                              updateSpecs('quantity', parseQuantityDigits(e.target.value))
-                            }
-                            onKeyDown={blockNonDigitKey}
-                            onPaste={e => {
-                              e.preventDefault()
-                              const pasted = e.clipboardData.getData('text')
-                              updateSpecs('quantity', parseQuantityDigits(pasted))
-                            }}
-                            placeholder="Ej. 5000"
-                            aria-label="Cantidad numérica"
-                          />
-                        </div>
-                      </div>
-                    </ProductionWorkspaceSection>
-                    <ProductionWorkspaceSection
-                      tag="Comercial"
-                      title="Vendedor asignado"
-                      tone={1}
-                    >
-                      <ProductionVendedorPicker
-                        vendedores={vendedores}
-                        selectedId={vendedorId}
-                        onSelect={v => setVendedorId(v?.id ?? '')}
-                      />
-                    </ProductionWorkspaceSection>
-                  </div>
+                  <ProductionDetalleOpPanel
+                    workName={workName}
+                    onWorkNameChange={setWorkName}
+                    quantity={specs.quantity}
+                    onQuantityChange={value => updateSpecs('quantity', value)}
+                    onQuantityPaste={text =>
+                      updateSpecs('quantity', parseQuantityDigits(text))
+                    }
+                    onQuantityKeyDown={blockNonDigitKey}
+                    vendedores={vendedores}
+                    vendedorId={vendedorId}
+                    onVendedorSelect={v => setVendedorId(v?.id ?? '')}
+                  />
                 </div>
               )}
                 </div>
@@ -1153,7 +1177,19 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-acabados-panel-acabado"
                       aria-labelledby="production-acabados-subtab-acabado"
                     >
-                      <ProductionAcabadosPanel />
+                      <ProductionAcabadosPanel
+                        coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
+                        paperRows={specs.paperRows}
+                        tiposPapel={tiposPapel}
+                        margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
+                        clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
+                        acabadosCatalog={acabadosCatalog}
+                        quickAccessAcabados={quickAccessAcabados}
+                        registros={specs.acabadosRegistros ?? []}
+                        activeCorteRowKey={activeAcabadosCorteRowKey}
+                        onActiveCorteRowKeyChange={setActiveAcabadosCorteRowKey}
+                        onRegistrosChange={handleAcabadosRegistrosChange}
+                      />
                     </div>
                   )}
                 </div>

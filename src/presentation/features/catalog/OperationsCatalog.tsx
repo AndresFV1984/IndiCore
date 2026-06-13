@@ -2,16 +2,14 @@ import React, { useMemo, useState } from 'react'
 import ActionIcon from '../../components/ui/ActionIcon'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
+import { useOperacionesHook } from '../../hooks/useOperaciones'
 import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
 import CatalogRecordModal from './CatalogRecordModal'
 import type { CatalogRecord, CatalogRecordFormValues } from './catalogRecord'
 import {
-  buildCatalogRecordFromFormValues,
   CATALOG_VALOR_CM2_LABEL,
   displayCatalogValorCmCuadrado,
-  normalizeCatalogRecordList,
 } from './catalogRecord'
-import { OPERACIONES_SEED } from './catalogSeeds'
 import CatalogRecordCost from './CatalogRecordCost'
 import {
   confirmDelete,
@@ -22,10 +20,6 @@ import {
 import './Catalog.css'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
-
-function toRecord(values: CatalogRecordFormValues, id?: string): CatalogRecord {
-  return buildCatalogRecordFromFormValues(values, 'o', id)
-}
 
 interface OperationCardProps {
   item: CatalogRecord
@@ -93,7 +87,13 @@ const OperationCard: React.FC<OperationCardProps> = ({ item, onEdit, onExport, o
 )
 
 const OperationsCatalog: React.FC = () => {
-  const [items, setItems] = useState<CatalogRecord[]>(() => normalizeCatalogRecordList(OPERACIONES_SEED))
+  const {
+    items,
+    loading,
+    createOperacion,
+    updateOperacion,
+    removeItem,
+  } = useOperacionesHook()
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CatalogRecord | null>(null)
 
@@ -136,19 +136,17 @@ const OperationsCatalog: React.FC = () => {
     const isEditing = Boolean(editingItem)
     if (!(await confirmSave(name, isEditing))) return
     if (editingItem) {
-      setItems(prev =>
-        prev.map(i => (i.id === editingItem.id ? toRecord(values, editingItem.id) : i))
-      )
+      updateOperacion(editingItem.id, values)
       notifySuccess('Operación actualizada correctamente.')
     } else {
-      setItems(prev => [...prev, toRecord(values)])
+      createOperacion(values)
       notifySuccess('Operación creada correctamente.')
     }
   }
 
   const handleDelete = async (item: CatalogRecord) => {
     if (!(await confirmDelete(item.name))) return
-    setItems(prev => prev.filter(i => i.id !== item.id))
+    removeItem(item.id)
     notifySuccess(`Operación «${item.name}» eliminada.`)
   }
 
@@ -163,6 +161,14 @@ const OperationsCatalog: React.FC = () => {
   }
 
   const modalOpen = isNewOpen || editingItem !== null
+
+  if (loading) {
+    return (
+      <div className="catalog-page">
+        <p className="catalog-sub">Cargando catálogo de operaciones…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="catalog-page">

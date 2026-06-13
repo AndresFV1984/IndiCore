@@ -48,16 +48,16 @@ export const TERMINADOS_SEED: CatalogRecordSeed[] = [
 export const OPERACIONES_SEED: CatalogRecordSeed[] = [
   { id: 'o1', name: 'Levantar', cost: '3.500', valorCmCuadrado: '3500' },
   { id: 'o2', name: 'Contar', cost: '2.800', valorCmCuadrado: '2800' },
-  { id: 'o3', name: 'Plegar', cost: '4.200', valorCmCuadrado: '4200' },
-  { id: 'o4', name: 'Embolcar', cost: '3.800', valorCmCuadrado: '3800' },
+  { id: 'o3', name: 'Plegar', quickAccess: true, cost: '4.200', valorCmCuadrado: '4200' },
+  { id: 'o4', name: 'Embolcar', quickAccess: true, cost: '3.800', valorCmCuadrado: '3800' },
   { id: 'o5', name: 'Sanduchar', cost: '5.500', valorCmCuadrado: '5500' },
-  { id: 'o6', name: 'Argollar', cost: '6.200', valorCmCuadrado: '6200' },
+  { id: 'o6', name: 'Argollar', quickAccess: true, cost: '6.200', valorCmCuadrado: '6200' },
   { id: 'o7', name: 'Coser', cost: '7.500', valorCmCuadrado: '7500' },
   { id: 'o8', name: 'Despuntar', cost: '2.500', valorCmCuadrado: '2500' },
   { id: 'o9', name: 'Perforar', cost: '4.800', valorCmCuadrado: '4800' },
   { id: 'o10', name: 'Descolillar', cost: '3.200', valorCmCuadrado: '3200' },
   { id: 'o11', name: 'Refile final', cost: '4.500', valorCmCuadrado: '4500' },
-  { id: 'o12', name: 'Empaque', cost: '5.000', valorCmCuadrado: '5000' },
+  { id: 'o12', name: 'Empaque', quickAccess: true, cost: '5.000', valorCmCuadrado: '5000' },
 ]
 
 export const DESPIECE_PLIEGO_SEED = [

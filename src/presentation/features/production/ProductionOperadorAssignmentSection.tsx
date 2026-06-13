@@ -27,17 +27,23 @@ const ProductionOperadorAssignmentSection: React.FC<ProductionOperadorAssignment
   permissionFilters,
   onSelect,
   onRoleFilterChange,
-  onPermissionFiltersChange,
   etapa,
   tone = 0,
   inputId,
 }) => (
   <ProductionWorkspaceSection
-    tag="Asignación"
+    tag="Responsable"
     title={`Responsable de ${etapa}`}
-    subtitle="Filtre por rol y permisos, luego seleccione el usuario para esta etapa"
+    subtitle="Filtre por rol y seleccione el usuario asignado a esta etapa."
     tone={tone}
-    className="production-operador-assignment"
+    className={[
+      'production-operador-assignment',
+      'production-detalle-op__section',
+      'production-detalle-op__section--vendedor',
+      selectedId ? 'production-detalle-op__section--vendedor-filled' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')}
   >
     <ProductionOperadorPicker
       users={users}
@@ -45,7 +51,6 @@ const ProductionOperadorAssignmentSection: React.FC<ProductionOperadorAssignment
       roleFilter={roleFilter}
       permissionFilters={permissionFilters}
       onRoleFilterChange={onRoleFilterChange}
-      onPermissionFiltersChange={onPermissionFiltersChange}
       selectedId={selectedId}
       onSelect={user => onSelect(user?.id ?? '')}
       inputId={inputId}

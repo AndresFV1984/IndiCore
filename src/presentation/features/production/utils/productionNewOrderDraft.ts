@@ -114,6 +114,7 @@ export const hydrateOrderSpecsFromDraft = (raw: SerializedOrderSpecs): OrderSpec
     raw.impresionTintasRegistros ?? []
   ),
   terminadosRegistros: raw.terminadosRegistros ?? [],
+  acabadosRegistros: raw.acabadosRegistros ?? [],
   mountingValue: raw.mountingValue ? fromSerializedMoney(raw.mountingValue) : undefined,
   platesValue: raw.platesValue ? fromSerializedMoney(raw.platesValue) : new Money(0),
   machineOutputValue: raw.machineOutputValue
@@ -164,6 +165,7 @@ export const productionDraftHasContent = (draft: ProductionNewOrderDraft): boole
   }
   if (specs.plates > 0 || specs.platesValue.value > 0) return true
   if ((specs.terminadosRegistros?.length ?? 0) > 0) return true
+  if ((specs.acabadosRegistros?.length ?? 0) > 0) return true
   if (specs.finishes.length > 0 || specs.operations.length > 0) return true
   return false
 }
