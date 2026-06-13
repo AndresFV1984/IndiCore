@@ -89,7 +89,7 @@ export function buildCatalogRecordFromFormValues(
   return {
     id: id ?? `${idPrefix}-${crypto.randomUUID()}`,
     name: values.name.trim(),
-    ...(values.quickAccess ? { quickAccess: true } : {}),
+    quickAccess: values.quickAccess,
     cost: cost || '—',
     valorCmCuadrado: normalizeCatalogValorCmCuadrado(values.valorCmCuadrado),
   }

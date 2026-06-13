@@ -11,9 +11,9 @@ import {
 
 const copy = CORTE_PAPEL_COPY.sections.papel.pliegoDiagram
 
-const MAX_DIAGRAM_WIDTH = 390
-const MAX_DIAGRAM_HEIGHT = 244
-const LABEL_PADDING = 14
+const MAX_DIAGRAM_WIDTH = 450
+const MAX_DIAGRAM_HEIGHT = 282
+const LABEL_PADDING = 18
 
 interface ProductionCortePliegoDiagramProps {
   tipoPapel: TipoPapel
@@ -65,7 +65,7 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
   const unit = layout.unidadMedida.toLowerCase()
   const pieceAncho = formatCortePliegoDimension(layout.pieceWidth)
   const pieceLargo = formatCortePliegoDimension(layout.pieceHeight)
-  const labelSize = Math.max(layout.paperWidth, layout.paperHeight) * 0.045
+  const labelSize = Math.max(layout.paperWidth, layout.paperHeight) * 0.058
   const pieceLabelSize = Math.min(layout.pieceWidth, layout.pieceHeight) * 0.2
   const viewMinX = -LABEL_PADDING
   const viewMinY = -LABEL_PADDING

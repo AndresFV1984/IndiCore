@@ -23,6 +23,8 @@ export interface TerminadosCorteContext {
   corteRowKey: string
   row: PaperRow
   label: string
+  /** Sin prefijo «Registro N —» (tablas de asignados). */
+  shortLabel: string
   tipoPapel: string
   despieceNombre: string
   despieceMedida: string
@@ -67,6 +69,7 @@ export const buildTerminadosCorteContexts = (
       corteRowKey: line.corteRowId ?? line.colorPlanchaId,
       row,
       label: line.label,
+      shortLabel: line.shortLabel,
       tipoPapel: line.tipoPapel,
       despieceNombre: despiece?.name?.trim() ?? '—',
       despieceMedida: despiece ? despieceAsociadoMedida(despiece) : '—',
@@ -348,7 +351,7 @@ export const buildTerminadosAsignadosRows = (
   contexts.flatMap(context =>
     resolveTerminadosEntradasForContext(registros, context).map(entrada => ({
       corteRowKey: context.corteRowKey,
-      planchaLabel: context.label,
+      planchaLabel: context.shortLabel,
       entrada,
     }))
   )
@@ -381,7 +384,7 @@ export const buildTerminadosCobroResumen = (
     return [
       {
         corteRowKey: context.corteRowKey,
-        planchaLabel: context.label,
+        planchaLabel: context.shortLabel,
         registrosCount: entradas.length,
         totalCobro,
       },

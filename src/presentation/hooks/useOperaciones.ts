@@ -26,7 +26,7 @@ export const useOperacionesHook = () => {
   const updateOperacion = (id: string, values: CatalogRecordFormValues): CatalogRecord =>
     updateFromForm(id, values)
 
-  const quickAccessItems = items.filter(item => item.quickAccess)
+  const quickAccessItems = items.filter(item => item.quickAccess === true)
 
   return {
     items,

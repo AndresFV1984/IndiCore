@@ -284,7 +284,7 @@ export const buildAcabadosAsignadosRows = (
   contexts.flatMap(context =>
     resolveAcabadosEntradasForContext(registros, context).map(entrada => ({
       corteRowKey: context.corteRowKey,
-      planchaLabel: context.label,
+      planchaLabel: context.shortLabel,
       entrada,
     }))
   )
@@ -317,7 +317,7 @@ export const buildAcabadosCobroResumen = (
     return [
       {
         corteRowKey: context.corteRowKey,
-        planchaLabel: context.label,
+        planchaLabel: context.shortLabel,
         registrosCount: entradas.length,
         totalCobro,
       },

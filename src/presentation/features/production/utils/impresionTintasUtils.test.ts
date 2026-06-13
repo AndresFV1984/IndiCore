@@ -42,8 +42,9 @@ const plancha = (id: string): DisenoColorPlanchaItem => ({
 })
 
 describe('normalizeImpresionInkIndex', () => {
-  it('migra índices legacy de Pantone al índice actual', () => {
-    expect(normalizeImpresionInkIndex(6)).toBe(7)
+  it('conserva Verde (6) y Pantone (7) como índices distintos', () => {
+    expect(normalizeImpresionInkIndex(6)).toBe(6)
+    expect(normalizeImpresionInkIndex(7)).toBe(7)
     expect(normalizeImpresionInkIndex(5)).toBe(5)
     expect(normalizeImpresionInkIndex(-1)).toBe(-1)
   })
@@ -143,9 +144,9 @@ describe('updateImpresionLadoTinta', () => {
     expect(updateImpresionLadoTinta(lado, 0, 4).tintas).toEqual([4, 1])
   })
 
-  it('normaliza índices legacy de Pantone', () => {
+  it('conserva Verde al asignar el índice 6', () => {
     const lado = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 5)
-    expect(updateImpresionLadoTinta(lado, 4, 6).tintas).toEqual([0, 1, 2, 3, 7])
+    expect(updateImpresionLadoTinta(lado, 4, 6).tintas).toEqual([0, 1, 2, 3, 6])
   })
 })
 
@@ -322,7 +323,7 @@ describe('syncImpresionTintasRegistros', () => {
     expect(synced[0]?.entradas[0]?.retiro).toEqual({ cantidad: 1, tintas: [2] })
   })
 
-  it('normaliza índices legacy de Pantone al sincronizar', () => {
+  it('conserva Verde (índice 6) al sincronizar registros existentes', () => {
     const synced = syncImpresionTintasRegistros(
       [plancha('a')],
       [
@@ -337,7 +338,7 @@ describe('syncImpresionTintasRegistros', () => {
         },
       ]
     )
-    expect(synced[0]?.entradas[0]?.tiro.tintas).toEqual([7])
+    expect(synced[0]?.entradas[0]?.tiro.tintas).toEqual([6])
   })
 
   it('recorta entradas al sincronizar si superan los colores de la plancha', () => {

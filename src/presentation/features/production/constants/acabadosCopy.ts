@@ -63,6 +63,19 @@ export const ACABADOS_COPY = {
       remove: 'Quitar',
       subtotal: 'Subtotal borrador',
       cobroMinimoHint: 'Aplica costo mínimo',
+      formula: {
+        summary: 'Ver fórmula de cálculo',
+        pasoCostoTitulo: 'Costo calculado',
+        pasoCobroTitulo: 'Valor a cobrar',
+        pasoTotalTitulo: 'Total a cobrar',
+        costoCalculadoRule:
+          'Costo calculado = redondeo al entero más cercano de (Ancho ÷ 100) × (Alto ÷ 100) × Valor cm² × Tamaños buenos',
+        cobroRule:
+          'Si el costo calculado es igual o mayor al costo mínimo del acabado en catálogo, el valor a cobrar es el costo calculado. Si es menor, se cobra el costo mínimo. Ambos valores se redondean al entero más cercano.',
+        totalRule:
+          'Total a cobrar = suma del valor a cobrar de todos los acabados confirmados',
+        hint: 'Ancho y alto provienen del despiece del corte; tamaños buenos del mismo registro.',
+      },
     },
     registros: {
       tag: 'Confirmados',

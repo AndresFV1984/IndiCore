@@ -13,6 +13,7 @@ import TerminadosPlanchaSelect from './TerminadosPlanchaSelect'
 import TerminadosPlanchaDetalleFields from './TerminadosPlanchaDetalleFields'
 import TerminadosRegistrosList from './TerminadosRegistrosList'
 import ProductionTerminadosCobroResumen from './ProductionTerminadosCobroResumen'
+import TerminadosCobroFormulaDetails from './TerminadosCobroFormulaDetails'
 import { TERMINADOS_COPY as copy } from './constants/terminadosCopy'
 import {
   buildTerminadoProduccionLinea,
@@ -462,9 +463,15 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
               <p className="production-diseno-cliente-hint">
                 {asignacionCopy.asignados.planchaCompletaHint}
               </p>
-            ) : draftLineas.length === 0 ? (
-              <p className="production-empty-hint">{asignacionCopy.asignados.empty}</p>
             ) : (
+              <>
+                <TerminadosCobroFormulaDetails
+                  formulaCopy={asignacionCopy.asignados.formula}
+                  className="production-terminados-asignados__formula"
+                />
+                {draftLineas.length === 0 ? (
+                  <p className="production-empty-hint">{asignacionCopy.asignados.empty}</p>
+                ) : (
               <div className="production-terminados-asignados">
                 <div className="production-terminados-asignados__table-wrap">
                   <table className="production-terminados-asignados__table">
@@ -541,6 +548,8 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
                   </button>
                 </footer>
               </div>
+                )}
+              </>
             )}
           </ProductionWorkspaceSection>
         </>

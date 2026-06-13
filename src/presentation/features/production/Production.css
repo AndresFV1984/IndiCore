@@ -4472,11 +4472,12 @@ button.orders-link {
 
 .production-corte-pliego-diagram__dim-label {
   fill: #4a5568;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .production-corte-pliego-diagram__dim-label--vertical {
   fill: #4a5568;
+  font-weight: 700;
 }
 
 .production-corte-pliego-diagram__caption {
@@ -8807,24 +8808,48 @@ button.orders-link {
   line-height: 1.4;
 }
 
+.production-impresion-tiro-retiro-diagram-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #d5d9e0;
+  background: #f0f2f5;
+}
+
+.production-impresion-tiro-retiro-diagram-panel__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+
+.production-impresion-tiro-retiro-diagram-panel__title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4a5568;
+}
+
+.production-impresion-tiro-retiro-diagram-panel__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 4.5rem;
+}
+
 .production-impresion-tiro-retiro-diagram {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   width: 100%;
   max-width: 42rem;
-  margin: 0.75rem auto 0;
-  padding: 0.35rem 0.15rem 0.25rem;
-}
-
-.production-impresion-tiro-retiro-diagram--empty {
-  align-items: center;
-  justify-content: center;
-  min-height: 5rem;
-  padding: 0.75rem;
-  border-radius: 10px;
-  border: 1px dashed var(--border);
-  background: #f8fafc;
+  margin: 0;
+  padding: 0.15rem 0.1rem 0.1rem;
 }
 
 .production-impresion-tiro-retiro-diagram__empty {
@@ -12079,18 +12104,75 @@ button.orders-link {
   vertical-align: top;
 }
 
+.production-terminados-asignados__table td {
+  color: #475569;
+}
+
 .production-terminados-asignados__table th {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-muted, #64748b);
+  color: #1e293b;
+  background: #f1f5f9;
 }
 
 .production-terminados-asignados__formula {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.78rem;
-  color: var(--color-text-muted, #64748b);
+  margin-bottom: 0.75rem;
+}
+
+.production-terminados-cobro-formula {
+  font-size: 0.72rem;
+  color: var(--txt-2, #64748b);
+}
+
+.production-terminados-cobro-formula > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.production-terminados-cobro-formula > summary::-webkit-details-marker {
+  display: none;
+}
+
+.production-terminados-cobro-formula__steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.production-terminados-cobro-formula__step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.production-terminados-cobro-formula__step-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.production-terminados-cobro-formula__step-rule {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-text, #334155);
+}
+
+.production-terminados-cobro-formula__hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--txt-3, #94a3b8);
+}
+
+.production-terminados-cobro-resumen__formula {
+  margin-top: 0.35rem;
 }
 
 .production-terminados-asignados__minimo {
@@ -12442,6 +12524,10 @@ button.orders-link {
   color: #b91c1c;
 }
 
+.production-acabados-asignados__formula {
+  margin-bottom: 0.75rem;
+}
+
 .production-acabados-asignados__table-wrap {
   overflow-x: auto;
 }
@@ -12460,12 +12546,17 @@ button.orders-link {
   vertical-align: top;
 }
 
+.production-acabados-asignados__table td {
+  color: #475569;
+}
+
 .production-acabados-asignados__table th {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-muted, #64748b);
+  color: #1e293b;
+  background: #f1f5f9;
 }
 
 .production-acabados-asignados__minimo {

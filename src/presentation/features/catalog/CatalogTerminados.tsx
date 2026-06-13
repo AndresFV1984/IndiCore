@@ -41,7 +41,7 @@ const FinishedCard: React.FC<FinishedCardProps> = ({ item, onEdit, onExport, onD
             {displayCatalogValorCmCuadrado(item.valorCmCuadrado)}
           </span>
         </div>
-        {item.quickAccess ? (
+        {item.quickAccess === true ? (
           <span className="catalog-quick-access-badge catalog-quick-access-badge--orange">
             <span className="catalog-quick-access-badge__icon" aria-hidden>
               ⚡

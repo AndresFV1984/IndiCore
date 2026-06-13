@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import clsx from 'clsx'
 import type { TerminadosProduccionRegistro } from '../../../core/domain/entities/Order'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
+import TerminadosCobroFormulaDetails from './TerminadosCobroFormulaDetails'
 import { TERMINADOS_COPY as copy } from './constants/terminadosCopy'
 import {
   buildTerminadosCobroResumen,
@@ -64,6 +65,11 @@ const ProductionTerminadosCobroResumen: React.FC<ProductionTerminadosCobroResume
           <span className="production-terminados-cobro-resumen__total-hint">
             {resumenCopy.totalHint}
           </span>
+          <TerminadosCobroFormulaDetails
+            formulaCopy={copy.asignacion.asignados.formula}
+            className="production-terminados-cobro-resumen__formula"
+            showTotalStep
+          />
         </div>
         <strong className="production-terminados-cobro-resumen__total-value">
           {formatTerminadoPrecioCop(resumen.totalCobro)}

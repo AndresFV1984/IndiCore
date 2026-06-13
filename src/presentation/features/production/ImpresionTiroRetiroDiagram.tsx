@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useId, useMemo } from 'react'
 import clsx from 'clsx'
 import type { ImpresionLadoTintas, ImpresionTipoBifronte } from '../../../core/domain/entities/Order'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
@@ -356,6 +356,7 @@ const ImpresionTiroRetiroDiagram: React.FC<ImpresionTiroRetiroDiagramProps> = ({
   showColorBasico = false,
   showPantone = false,
 }) => {
+  const titleId = useId()
   const totalTintas = useMemo(() => tiro.cantidad + retiro.cantidad, [tiro.cantidad, retiro.cantidad])
 
   const flipMode = resolveDiagramFlipMode(
@@ -371,50 +372,59 @@ const ImpresionTiroRetiroDiagram: React.FC<ImpresionTiroRetiroDiagramProps> = ({
   const showBridgePinzaLabel =
     layouts.retiro.pinza === 'left' && flipMode !== 'volteo-escuadra'
 
-  if (totalTintas <= 0) {
-    return (
-      <div className="production-impresion-tiro-retiro-diagram production-impresion-tiro-retiro-diagram--empty">
-        <p className="production-impresion-tiro-retiro-diagram__empty">{diagramCopy.empty}</p>
-      </div>
-    )
-  }
-
   return (
-    <figure className="production-impresion-tiro-retiro-diagram" aria-label={diagramCopy.title}>
-      <div
-        className={clsx(
-          'production-impresion-tiro-retiro-diagram__stage',
-          `production-impresion-tiro-retiro-diagram__stage--${flipMode}`
-        )}
-      >
-        <SheetSvg
-          side="tiro"
-          mechanics={layouts.tiro}
-          bars={tiroBars}
-          showLeftPinzaLabel
-          showRightPinzaLabel={false}
-        />
-        <FlipBridge flipMode={flipMode} showBridgePinzaLabel={showBridgePinzaLabel} />
-        <SheetSvg
-          side="retiro"
-          mechanics={layouts.retiro}
-          bars={retiroBars}
-          showLeftPinzaLabel={false}
-          showRightPinzaLabel={layouts.retiro.pinza === 'right'}
-        />
+    <section
+      className="production-impresion-tiro-retiro-diagram-panel"
+      aria-labelledby={titleId}
+    >
+      <div className="production-impresion-tiro-retiro-diagram-panel__head">
+        <h4 id={titleId} className="production-impresion-tiro-retiro-diagram-panel__title">
+          {diagramCopy.title}
+        </h4>
       </div>
 
-      {(showColorBasico || showPantone) && (
-        <figcaption className="production-impresion-tiro-retiro-diagram__legend">
-          {showColorBasico ? (
-            <VolteoChip label={volteoCopy.badgeColorBasico} tipo={tipoBifronteColorBasico} />
-          ) : null}
-          {showPantone ? (
-            <VolteoChip label={volteoCopy.badgePantone} tipo={tipoBifrontePantone} />
-          ) : null}
-        </figcaption>
-      )}
-    </figure>
+      <div className="production-impresion-tiro-retiro-diagram-panel__body">
+        {totalTintas <= 0 ? (
+          <p className="production-impresion-tiro-retiro-diagram__empty">{diagramCopy.empty}</p>
+        ) : (
+          <figure className="production-impresion-tiro-retiro-diagram">
+            <div
+              className={clsx(
+                'production-impresion-tiro-retiro-diagram__stage',
+                `production-impresion-tiro-retiro-diagram__stage--${flipMode}`
+              )}
+            >
+              <SheetSvg
+                side="tiro"
+                mechanics={layouts.tiro}
+                bars={tiroBars}
+                showLeftPinzaLabel
+                showRightPinzaLabel={false}
+              />
+              <FlipBridge flipMode={flipMode} showBridgePinzaLabel={showBridgePinzaLabel} />
+              <SheetSvg
+                side="retiro"
+                mechanics={layouts.retiro}
+                bars={retiroBars}
+                showLeftPinzaLabel={false}
+                showRightPinzaLabel={layouts.retiro.pinza === 'right'}
+              />
+            </div>
+
+            {(showColorBasico || showPantone) && (
+              <figcaption className="production-impresion-tiro-retiro-diagram__legend">
+                {showColorBasico ? (
+                  <VolteoChip label={volteoCopy.badgeColorBasico} tipo={tipoBifronteColorBasico} />
+                ) : null}
+                {showPantone ? (
+                  <VolteoChip label={volteoCopy.badgePantone} tipo={tipoBifrontePantone} />
+                ) : null}
+              </figcaption>
+            )}
+          </figure>
+        )}
+      </div>
+    </section>
   )
 }
 

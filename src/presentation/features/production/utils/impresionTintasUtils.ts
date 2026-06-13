@@ -38,8 +38,6 @@ export const isValidImpresionTintaIndex = (value: number): boolean =>
 /** Normaliza índices legacy de paletas anteriores. */
 export const normalizeImpresionInkIndex = (value: number): number => {
   if (!Number.isInteger(value)) return -1
-  // Legacy: Verde Pantone o Pantone único en paleta de 6/7 colores.
-  if (value === 6) return IMPRESION_INK_PANTONE_INDEX
   return value
 }
 

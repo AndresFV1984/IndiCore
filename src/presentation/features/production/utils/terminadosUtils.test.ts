@@ -141,6 +141,8 @@ describe('buildTerminadosAsignadosRows', () => {
 
     expect(rows).toHaveLength(2)
     expect(rows.map(row => row.corteRowKey)).toEqual(['a', 'b'])
+    expect(rows[0]?.planchaLabel).not.toMatch(/^Registro \d+ —/)
+    expect(rows[0]?.planchaLabel).toContain('Frente')
   })
 })
 
@@ -182,6 +184,8 @@ describe('buildTerminadosCobroResumen', () => {
     const resumen = buildTerminadosCobroResumen(contexts, registros)
 
     expect(resumen.lineas).toHaveLength(2)
+    expect(resumen.lineas[0]?.planchaLabel).not.toMatch(/^Registro \d+ —/)
+    expect(resumen.lineas[0]?.planchaLabel).toContain('Frente')
     expect(resumen.totalCobro).toBe(
       resumen.lineas.reduce((sum, linea) => sum + linea.totalCobro, 0)
     )

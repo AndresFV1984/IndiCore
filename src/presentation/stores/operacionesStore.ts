@@ -22,16 +22,24 @@ interface OperacionesStoreState {
 
 const seedItems = (): CatalogRecord[] => normalizeCatalogRecordList(OPERACIONES_SEED)
 
-const mergeOperacionesQuickAccessFromSeed = (items: CatalogRecord[]): CatalogRecord[] => {
-  const seedQuickAccessIds = new Set(
-    seedItems().filter(item => item.quickAccess).map(item => item.id)
+const seedQuickAccessById = (): Map<string, boolean> =>
+  new Map(
+    seedItems()
+      .filter(item => item.quickAccess)
+      .map(item => [item.id, true])
   )
-  if (seedQuickAccessIds.size === 0) return normalizeCatalogRecordList(items)
+
+/** Migra acceso rápido del seed solo en registros legacy sin el flag definido. */
+const mergeOperacionesQuickAccessFromSeed = (items: CatalogRecord[]): CatalogRecord[] => {
+  const seedQuickAccess = seedQuickAccessById()
+  if (seedQuickAccess.size === 0) return normalizeCatalogRecordList(items)
 
   return normalizeCatalogRecordList(
-    items.map(item =>
-      seedQuickAccessIds.has(item.id) ? { ...item, quickAccess: true } : item
-    )
+    items.map(item => {
+      if (item.quickAccess !== undefined) return item
+      if (!seedQuickAccess.has(item.id)) return item
+      return { ...item, quickAccess: true }
+    })
   )
 }
 

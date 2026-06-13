@@ -41,7 +41,7 @@ const OperationCard: React.FC<OperationCardProps> = ({ item, onEdit, onExport, o
             {displayCatalogValorCmCuadrado(item.valorCmCuadrado)}
           </span>
         </div>
-        {item.quickAccess ? (
+        {item.quickAccess === true ? (
           <span className="catalog-quick-access-badge catalog-quick-access-badge--purple">
             <span className="catalog-quick-access-badge__icon" aria-hidden>
               ⚡
