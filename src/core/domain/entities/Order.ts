@@ -24,6 +24,8 @@ export interface OrderSpecs {
   inks: string;
   /** Tintas por plancha (tiro / retiro) en Impresión. */
   impresionTintasRegistros: ImpresionTintasRegistro[];
+  /** Terminados asignados por fila de corte de papel. */
+  terminadosRegistros: TerminadosProduccionRegistro[];
   machineOutputValue: Money;
   chapoliado: boolean;
   finishes: FinishItem[];
@@ -91,6 +93,41 @@ export interface FinishItem {
   quantity: number;
   unitPrice: Money;
   total: Money;
+}
+
+/** Línea de terminado asociada a una fila de corte en producción. */
+export type TerminadoProduccionOrigen = 'catalogo' | 'acceso-directo'
+
+export interface TerminadoProduccionLinea {
+  id: string;
+  terminadoId: string;
+  terminadoNombre: string;
+  valorCmCuadrado: number;
+  costoMinimo: number;
+  areaFactor: number;
+  tamanosBuenos: number;
+  precioCalculado: number;
+  precioCobro: number;
+  origen?: TerminadoProduccionOrigen;
+}
+
+/** Registro confirmado de terminados vinculados a una plancha. */
+export interface TerminadosProduccionEntrada {
+  id: string;
+  lineas: TerminadoProduccionLinea[];
+}
+
+/** Terminados configurados para una plancha / fila de corte de papel. */
+export interface TerminadosProduccionRegistro {
+  /** Id activo de la fila (colorPlanchaId o corteRowId). */
+  corteRowKey: string;
+  colorPlanchaId?: string;
+  corteRowId?: string;
+  entradas?: TerminadosProduccionEntrada[];
+  /** @deprecated Migrado a {@link entradas}. */
+  lineas?: TerminadoProduccionLinea[];
+  /** Plancha con al menos un registro confirmado. */
+  completo?: boolean;
 }
 
 export interface OperationItem {

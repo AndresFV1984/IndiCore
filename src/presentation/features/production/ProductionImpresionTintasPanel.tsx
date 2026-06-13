@@ -237,6 +237,8 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     (!showColorBasicoTarifa || (millaresPreviewColorBasico?.millaresCalculados ?? 0) > 0) &&
     (!showPantoneTarifa || (millaresPreviewPantone?.millaresCalculados ?? 0) > 0)
 
+  const showRegistrosSection = tableRows.length > 0
+
   const clearDraft = () => {
     setDraftTiro(emptyImpresionLadoTintas())
     setDraftRetiro(emptyImpresionLadoTintas())
@@ -606,21 +608,23 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                 </section>
               ) : null}
 
-              <section
-                className="production-plancha-workspace__list"
-                aria-labelledby={registrosLabelId}
-              >
-                <span className="production-plancha-workspace__zone-label" id={registrosLabelId}>
-                  {entradasCopy.pasoRegistros}
-                </span>
-                <ImpresionTintasEntradasList
-                  rows={tableRows}
-                  activeColorPlanchaId={activeColorPlanchaId}
-                  editingEntradaId={editingEntradaId}
-                  onEdit={handleEditEntrada}
-                  onRemove={handleRemoveEntrada}
-                />
-              </section>
+              {showRegistrosSection ? (
+                <section
+                  className="production-plancha-workspace__list"
+                  aria-labelledby={registrosLabelId}
+                >
+                  <span className="production-plancha-workspace__zone-label" id={registrosLabelId}>
+                    {entradasCopy.pasoRegistros}
+                  </span>
+                  <ImpresionTintasEntradasList
+                    rows={tableRows}
+                    activeColorPlanchaId={activeColorPlanchaId}
+                    editingEntradaId={editingEntradaId}
+                    onEdit={handleEditEntrada}
+                    onRemove={handleRemoveEntrada}
+                  />
+                </section>
+              ) : null}
             </div>
           )}
         </ProductionWorkspaceSection>

@@ -17,8 +17,8 @@ const CATALOG_LINKS: CatalogLink[] = [
   },
   {
     to: APP_ROUTES.catalogOperaciones,
-    title: 'Operaciones',
-    description: 'Impresión, montaje, corte, revisión y empaque',
+    title: 'Acabados',
+    description: 'Operaciones de acabado para órdenes de producción',
   },
   {
     to: APP_ROUTES.catalogTipoPapel,

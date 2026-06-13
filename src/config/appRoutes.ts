@@ -78,8 +78,8 @@ export const ROUTES = {
   catalogOperaciones: {
     id: 'CATALOG_OPERATIONS',
     path: '/catalog/operaciones',
-    label: 'Operaciones',
-    purpose: 'Catálogo de operaciones productivas y costos asociados.',
+    label: 'Acabados',
+    purpose: 'Catálogo de acabados y operaciones asignables a órdenes de producción.',
   },
   catalogTipoPapel: {
     id: 'CATALOG_PAPER_TYPE',

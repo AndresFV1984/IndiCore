@@ -33,31 +33,31 @@ export interface CortePapelSeed {
 }
 
 export const TERMINADOS_SEED: CatalogRecordSeed[] = [
-  { id: 't1', name: 'Brillo UV', quickAccess: true, cost: '18.000' },
-  { id: 't2', name: 'Laminado mate', quickAccess: true, cost: '22.000' },
-  { id: 't3', name: 'Laminado brillante', quickAccess: true, cost: '24.000' },
-  { id: 't4', name: 'Estampado', quickAccess: true, cost: '35.000' },
-  { id: 't5', name: 'Reserva UV', quickAccess: true, cost: '28.000' },
-  { id: 't6', name: 'Encaucheteado', quickAccess: true, cost: '12.000' },
-  { id: 't7', name: 'Troquel existente', cost: '45.000' },
-  { id: 't8', name: 'Troquel nuevo', cost: '120.000' },
-  { id: 't9', name: 'Pretroquelado', cost: '55.000' },
-  { id: 't10', name: 'Grafado', cost: '15.000' },
+  { id: 't1', name: 'Brillo UV', quickAccess: true, cost: '18.000', valorCmCuadrado: '1200' },
+  { id: 't2', name: 'Laminado mate', quickAccess: true, cost: '22.000', valorCmCuadrado: '1500' },
+  { id: 't3', name: 'Laminado brillante', quickAccess: true, cost: '24.000', valorCmCuadrado: '1600' },
+  { id: 't4', name: 'Estampado', quickAccess: true, cost: '35.000', valorCmCuadrado: '2800' },
+  { id: 't5', name: 'Reserva UV', quickAccess: true, cost: '28.000', valorCmCuadrado: '2200' },
+  { id: 't6', name: 'Encaucheteado', quickAccess: true, cost: '12.000', valorCmCuadrado: '0800' },
+  { id: 't7', name: 'Troquel existente', cost: '45.000', valorCmCuadrado: '3500' },
+  { id: 't8', name: 'Troquel nuevo', cost: '120.000', valorCmCuadrado: '9000' },
+  { id: 't9', name: 'Pretroquelado', cost: '55.000', valorCmCuadrado: '4200' },
+  { id: 't10', name: 'Grafado', cost: '15.000', valorCmCuadrado: '1000' },
 ]
 
 export const OPERACIONES_SEED: CatalogRecordSeed[] = [
-  { id: 'o1', name: 'Levantar', cost: '3.500' },
-  { id: 'o2', name: 'Contar', cost: '2.800' },
-  { id: 'o3', name: 'Plegar', cost: '4.200' },
-  { id: 'o4', name: 'Embolcar', cost: '3.800' },
-  { id: 'o5', name: 'Sanduchar', cost: '5.500' },
-  { id: 'o6', name: 'Argollar', cost: '6.200' },
-  { id: 'o7', name: 'Coser', cost: '7.500' },
-  { id: 'o8', name: 'Despuntar', cost: '2.500' },
-  { id: 'o9', name: 'Perforar', cost: '4.800' },
-  { id: 'o10', name: 'Descolillar', cost: '3.200' },
-  { id: 'o11', name: 'Refile final', cost: '4.500' },
-  { id: 'o12', name: 'Empaque', cost: '5.000' },
+  { id: 'o1', name: 'Levantar', cost: '3.500', valorCmCuadrado: '3500' },
+  { id: 'o2', name: 'Contar', cost: '2.800', valorCmCuadrado: '2800' },
+  { id: 'o3', name: 'Plegar', cost: '4.200', valorCmCuadrado: '4200' },
+  { id: 'o4', name: 'Embolcar', cost: '3.800', valorCmCuadrado: '3800' },
+  { id: 'o5', name: 'Sanduchar', cost: '5.500', valorCmCuadrado: '5500' },
+  { id: 'o6', name: 'Argollar', cost: '6.200', valorCmCuadrado: '6200' },
+  { id: 'o7', name: 'Coser', cost: '7.500', valorCmCuadrado: '7500' },
+  { id: 'o8', name: 'Despuntar', cost: '2.500', valorCmCuadrado: '2500' },
+  { id: 'o9', name: 'Perforar', cost: '4.800', valorCmCuadrado: '4800' },
+  { id: 'o10', name: 'Descolillar', cost: '3.200', valorCmCuadrado: '3200' },
+  { id: 'o11', name: 'Refile final', cost: '4.500', valorCmCuadrado: '4500' },
+  { id: 'o12', name: 'Empaque', cost: '5.000', valorCmCuadrado: '5000' },
 ]
 
 export const DESPIECE_PLIEGO_SEED = [

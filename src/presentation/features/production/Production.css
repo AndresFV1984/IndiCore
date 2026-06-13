@@ -8143,22 +8143,21 @@ button.orders-link {
 .production-impresion-tiro-retiro-diagram {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  max-width: 26rem;
-  margin: 0 auto;
-  padding: 0.75rem 0.85rem 0.8rem;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--corp-primary) 12%, var(--border));
-  background: linear-gradient(180deg, #fafbfd 0%, #fff 100%);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 6px 18px rgba(15, 23, 42, 0.05);
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 42rem;
+  margin: 0.75rem auto 0;
+  padding: 0.35rem 0.15rem 0.25rem;
 }
 
 .production-impresion-tiro-retiro-diagram--empty {
   align-items: center;
   justify-content: center;
   min-height: 5rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: #f8fafc;
 }
 
 .production-impresion-tiro-retiro-diagram__empty {
@@ -8168,200 +8167,77 @@ button.orders-link {
   text-align: center;
 }
 
-.production-impresion-tiro-retiro-diagram__caption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.production-impresion-tiro-retiro-diagram__title {
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.production-impresion-tiro-retiro-diagram__modo {
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.production-impresion-tiro-retiro-diagram__modo--sin {
-  color: var(--corp-primary-strong);
-  background: color-mix(in srgb, var(--corp-primary-soft) 48%, #fff);
-  border: 1px solid color-mix(in srgb, var(--corp-primary) 18%, var(--border));
-}
-
-.production-impresion-tiro-retiro-diagram__modo--con {
-  color: var(--plancha-green-strong, #15803d);
-  background: color-mix(in srgb, var(--plancha-green-soft, #dcfce7) 62%, #fff);
-  border: 1px solid color-mix(in srgb, var(--plancha-green-border, #86efac) 52%, var(--border));
-}
-
 .production-impresion-tiro-retiro-diagram__stage {
   display: flex;
-  align-items: stretch;
-  gap: 0.45rem;
-  padding: 0.5rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface) 65%, #eef2f7);
-  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
-}
-
-.production-impresion-tiro-retiro-diagram__stage--volteo {
-  flex-direction: column;
-  gap: 0.35rem;
-  background: color-mix(in srgb, var(--plancha-green-soft, #dcfce7) 18%, #fff);
-  border-color: color-mix(in srgb, var(--plancha-green-border, #86efac) 40%, var(--border));
-}
-
-.production-impresion-tiro-retiro-diagram__stage--sin-volteo {
-  align-items: center;
-}
-
-.production-impresion-tiro-retiro-diagram__paper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  flex: 1;
-  min-width: 0;
-  padding: 0.35rem;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 3px 8px rgba(15, 23, 42, 0.07);
-}
-
-.production-impresion-tiro-retiro-diagram__paper--tiro {
-  border-top: 3px solid var(--corp-primary);
-}
-
-.production-impresion-tiro-retiro-diagram__paper--retiro {
-  border-top: 3px solid #64748b;
-}
-
-.production-impresion-tiro-retiro-diagram__paper--back {
-  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
-  border-style: dashed;
-  border-color: #94a3b8;
-}
-
-.production-impresion-tiro-retiro-diagram__paper-tab {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
-  min-height: 1.1rem;
-}
-
-.production-impresion-tiro-retiro-diagram__paper-tab > span:first-child {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--corp-primary-strong);
-}
-
-.production-impresion-tiro-retiro-diagram__paper--retiro .production-impresion-tiro-retiro-diagram__paper-tab > span:first-child {
-  color: #475569;
-}
-
-.production-impresion-tiro-retiro-diagram__paper-face {
-  font-size: 0.56rem;
-  font-weight: 700;
-  color: var(--txt-2);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.production-impresion-tiro-retiro-diagram__print {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 4.75rem;
-  padding: 3px;
-  border-radius: 5px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.production-impresion-tiro-retiro-diagram__print--empty {
   align-items: center;
   justify-content: center;
-  font-size: 0.64rem;
-  color: var(--txt-2);
-  background: repeating-linear-gradient(
-    -45deg,
-    #f8fafc,
-    #f8fafc 5px,
-    #fff 5px,
-    #fff 10px
-  );
+  gap: 0;
+  width: 100%;
 }
 
-.production-impresion-tiro-retiro-diagram__stripe {
-  flex: 1;
-  min-height: 1rem;
-  display: flex;
-  align-items: flex-end;
-  padding: 0.2rem 0.35rem;
-  border-radius: 2px;
-  position: relative;
-  overflow: hidden;
+.production-impresion-tiro-retiro-diagram__sheet-svg {
+  display: block;
+  width: 100%;
+  max-width: 11.5rem;
+  height: auto;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.production-impresion-tiro-retiro-diagram__stripe::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(15, 23, 42, 0.06) 100%);
-  pointer-events: none;
-}
-
-.production-impresion-tiro-retiro-diagram__stripe--pantone {
-  background: conic-gradient(
-    from 135deg,
-    #00a9e0,
-    #d6007a,
-    #ffd400,
-    #1a1a1a,
-    #e4002b,
-    #005eb8,
-    #00a651,
-    #00a9e0
-  );
-}
-
-.production-impresion-tiro-retiro-diagram__stripe-meta {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  max-width: 100%;
-  padding: 0.08rem 0.35rem 0.08rem 0.2rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.production-impresion-tiro-retiro-diagram__stripe-name {
-  font-size: 0.58rem;
+.production-impresion-tiro-retiro-diagram__svg-title {
+  fill: #1e293b;
+  font-size: 11px;
   font-weight: 800;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-grid {
+  fill: #fff;
+  stroke: #cbd5e1;
+  stroke-width: 1;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-pinza {
+  fill: #2563eb;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-escuadra {
+  fill: #ea580c;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-ink-bar {
+  opacity: 1;
+  stroke: rgba(15, 23, 42, 0.12);
+  stroke-width: 0.5;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-face-letter {
+  fill: #cbd5e1;
+  font-size: 52px;
+  font-weight: 700;
+  dominant-baseline: middle;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-face-label {
+  fill: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  dominant-baseline: middle;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-edge-label {
+  font-size: 10px;
+  font-weight: 700;
+  dominant-baseline: middle;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-edge-label--pinza {
+  fill: #2563eb;
+}
+
+.production-impresion-tiro-retiro-diagram__svg-edge-label--escuadra {
+  fill: #ea580c;
 }
 
 .production-impresion-tiro-retiro-diagram__bridge {
@@ -8369,104 +8245,59 @@ button.orders-link {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  flex-shrink: 0;
-  padding: 0.15rem 0;
-  color: var(--plancha-green-strong, #15803d);
+  gap: 0.28rem;
+  flex: 0 0 5.5rem;
+  align-self: center;
+  padding: 0 0.15rem;
 }
 
-.production-impresion-tiro-retiro-diagram__bridge-core {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-}
-
-.production-impresion-tiro-retiro-diagram__bridge-core span {
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.production-impresion-tiro-retiro-diagram__arc {
-  width: 3.25rem;
-  height: 1.35rem;
-}
-
-.production-impresion-tiro-retiro-diagram__grip {
+.production-impresion-tiro-retiro-diagram__bridge-line {
   display: block;
-  border-radius: 2px;
-  background: #64748b;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  width: 100%;
+  height: 1px;
+  background: #94a3b8;
 }
 
-.production-impresion-tiro-retiro-diagram__grip--top,
-.production-impresion-tiro-retiro-diagram__grip--bottom {
-  width: 2.4rem;
-  height: 0.28rem;
-}
-
-.production-impresion-tiro-retiro-diagram__grip--side {
-  width: 0.28rem;
-  height: 1.6rem;
-}
-
-.production-impresion-tiro-retiro-diagram__bridge--escuadra .production-impresion-tiro-retiro-diagram__bridge-core {
-  flex-direction: row;
-  gap: 0.35rem;
-}
-
-.production-impresion-tiro-retiro-diagram__separate {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  flex-shrink: 0;
-  width: 2.2rem;
-  color: var(--txt-2);
+.production-impresion-tiro-retiro-diagram__bridge-label,
+.production-impresion-tiro-retiro-diagram__bridge-sub-label,
+.production-impresion-tiro-retiro-diagram__bridge-pinza-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.2;
   text-align: center;
+  color: #64748b;
 }
 
-.production-impresion-tiro-retiro-diagram__separate-icon {
-  width: 1.1rem;
-  height: 1.1rem;
-  opacity: 0.75;
-}
-
-.production-impresion-tiro-retiro-diagram__separate span {
-  font-size: 0.52rem;
+.production-impresion-tiro-retiro-diagram__bridge-pinza-label {
+  color: #2563eb;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  line-height: 1.15;
 }
 
 .production-impresion-tiro-retiro-diagram__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  padding-top: 0.2rem;
-  border-top: 1px dashed color-mix(in srgb, var(--border) 88%, transparent);
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
 }
 
 .production-impresion-tiro-retiro-diagram__chip {
   display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.08rem;
   padding: 0.28rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.64rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.62rem;
+  line-height: 1.25;
   color: var(--txt-2);
   background: #fff;
-  border: 1px solid var(--border);
 }
 
 .production-impresion-tiro-retiro-diagram__chip strong {
-  font-size: 0.58rem;
+  font-size: 0.64rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -8481,15 +8312,34 @@ button.orders-link {
   background: color-mix(in srgb, var(--corp-primary-soft) 32%, #fff);
 }
 
-@media (max-width: 520px) {
-  .production-impresion-tiro-retiro-diagram__stage--sin-volteo {
+@media (max-width: 640px) {
+  .production-impresion-tiro-retiro-diagram__stage {
     flex-direction: column;
+    gap: 0.35rem;
   }
 
-  .production-impresion-tiro-retiro-diagram__separate {
+  .production-impresion-tiro-retiro-diagram__sheet-svg {
+    max-width: 10.5rem;
+  }
+
+  .production-impresion-tiro-retiro-diagram__bridge {
     flex-direction: row;
+    flex-wrap: wrap;
     width: 100%;
-    padding: 0.15rem 0;
+    max-width: 16rem;
+    gap: 0.35rem 0.5rem;
+    padding: 0;
+  }
+
+  .production-impresion-tiro-retiro-diagram__bridge-line {
+    flex: 1;
+    min-width: 1.5rem;
+  }
+
+  .production-impresion-tiro-retiro-diagram__bridge-label,
+  .production-impresion-tiro-retiro-diagram__bridge-sub-label,
+  .production-impresion-tiro-retiro-diagram__bridge-pinza-label {
+    flex: 0 0 auto;
   }
 }
 
@@ -11386,5 +11236,353 @@ button.orders-link {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   white-space: nowrap;
+}
+
+/* Terminados — asignación por plancha */
+.production-terminados-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.production-acabados-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.production-terminados-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.production-terminados-quick-access__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+}
+
+.production-terminados-quick-access__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.production-terminados-quick-access__hint {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.production-terminados-quick-access__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.production-terminados-quick-access__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--orange) 32%, transparent);
+  background: var(--orange-lt);
+  color: var(--orange);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.production-terminados-quick-access__chip:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--orange-md) 42%, var(--orange-lt));
+  border-color: color-mix(in srgb, var(--orange) 52%, transparent);
+}
+
+.production-terminados-quick-access__chip--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.production-terminados-quick-access__chip--from-select.production-terminados-quick-access__chip--disabled {
+  opacity: 0.72;
+}
+
+.production-terminados-quick-access__chip--from-select {
+  border-color: color-mix(in srgb, var(--teal) 38%, var(--border));
+  background: var(--teal-lt);
+  color: #0f766e;
+}
+
+.production-terminados-quick-access__chip--from-select:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--teal-lt) 55%, var(--teal) 14%);
+  border-color: color-mix(in srgb, var(--teal) 52%, var(--border));
+}
+
+.production-terminados-quick-access__chip-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.production-terminados-selector__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.production-terminados-selector-section .production-form-select:not(.production-form-select--placeholder) {
+  border-color: color-mix(in srgb, var(--teal) 42%, var(--border));
+  background: color-mix(in srgb, var(--teal-lt) 65%, #fff);
+}
+
+.production-terminados-selector__row .production-form-select {
+  width: 100%;
+}
+
+.production-terminados-selector__error {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #b91c1c;
+}
+
+.production-terminados-asignados__table-wrap {
+  overflow-x: auto;
+}
+
+.production-terminados-asignados__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.production-terminados-asignados__table th,
+.production-terminados-asignados__table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  text-align: left;
+  vertical-align: top;
+}
+
+.production-terminados-asignados__table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #64748b);
+}
+
+.production-terminados-asignados__formula {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.production-terminados-asignados__minimo {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+.production-terminados-asignados__cobro {
+  white-space: nowrap;
+}
+
+.production-terminados-asignados__cobro strong {
+  font-size: 0.92rem;
+}
+
+.production-terminados-asignados__actions-cell {
+  width: 2.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.production-terminados-asignados__subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 0.92rem;
+}
+
+.production-terminados-asignados__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.production-terminados-asignados__hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.production-terminados-registros-list__table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.production-terminados-registros-list__table .production-plancha-table__th--desc:nth-child(1),
+.production-terminados-registros-list__table .production-terminados-registros-list__plancha {
+  width: 18%;
+  min-width: 7.5rem;
+}
+
+.production-terminados-registros-list__table .production-plancha-table__th--desc:nth-child(2),
+.production-terminados-registros-list__table .production-terminados-registros-list__terminados {
+  width: auto;
+}
+
+.production-terminados-registros-list__terminados-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.production-terminados-registros-list__table .production-plancha-table__th--num,
+.production-terminados-registros-list__table .production-plancha-table__td--num {
+  width: 8.5rem;
+  max-width: 8.5rem;
+}
+
+.production-terminados-registros-list__table .production-plancha-table__th--act,
+.production-terminados-registros-list__table .production-plancha-table__td--act {
+  width: 4.25rem;
+  max-width: 4.25rem;
+}
+
+.production-terminados-registros-list__total {
+  display: inline-block;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.production-terminados-registros-list__row--editing {
+  background: color-mix(in srgb, var(--corp-primary-soft, #dbeafe) 38%, #fff);
+}
+
+.production-terminados-registros-list__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.86rem;
+}
+
+.production-terminados-registros-list__empty strong {
+  color: var(--color-text, #0f172a);
+  font-size: 0.92rem;
+}
+
+.production-terminados-asignados__subtotal strong {
+  font-size: 1.05rem;
+  color: #0f766e;
+}
+
+.production-terminados-cobro-resumen.production-ws-section .production-ws-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.production-terminados-cobro-resumen__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.production-terminados-cobro-resumen__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+}
+
+.production-terminados-cobro-resumen__row--active {
+  border-color: rgba(15, 118, 110, 0.35);
+  background: rgba(240, 253, 250, 0.55);
+}
+
+.production-terminados-cobro-resumen__row-label {
+  min-width: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-text, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.production-terminados-cobro-resumen__row-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f766e;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.production-terminados-cobro-resumen__total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(204, 251, 241, 0.45) 0%, #fff 78%);
+}
+
+.production-terminados-cobro-resumen__total-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.production-terminados-cobro-resumen__total-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text, #0f172a);
+}
+
+.production-terminados-cobro-resumen__total-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.production-terminados-cobro-resumen__total-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f766e;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 

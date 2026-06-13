@@ -5,7 +5,7 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import { useOrdersHook } from '../../hooks/useOrders'
 import { Container } from '../../../di/container'
 import { Money } from '../../../core/domain/value-objects/Money'
-import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro } from '../../../core/domain/entities/Order'
+import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro, type TerminadosProduccionRegistro } from '../../../core/domain/entities/Order'
 import { ROUTES } from '../../../config/appRoutes'
 import { formatProductionOrderId } from '../../../core/domain/value-objects/ProductionOrderId'
 import {
@@ -23,6 +23,8 @@ import ProductionCortePapelSubNav from './ProductionCortePapelSubNav'
 import ProductionTerminadosSubNav from './ProductionTerminadosSubNav'
 import ProductionAcabadosSubNav from './ProductionAcabadosSubNav'
 import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
+import ProductionTerminadosPanel from './ProductionTerminadosPanel'
+import ProductionAcabadosPanel from './ProductionAcabadosPanel'
 import ProductionClientPicker from './ProductionClientPicker'
 import ProductionVendedorPicker from './ProductionVendedorPicker'
 import ProductionOperadorAssignmentSection from './ProductionOperadorAssignmentSection'
@@ -59,6 +61,7 @@ import { patchCorteClienteSuministraPapel } from './utils/corteClienteSuministra
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
+import { useTerminadosHook } from '../../hooks/useTerminados'
 import ProductionCortePapelForm from './ProductionCortePapelForm'
 import { emptyPaperRow, normalizeTipoPapelList } from './utils/tipoPapelDisplay'
 import { DEFAULT_MARGEN_REDONDEO, normalizeMargenRedondeo } from './utils/cortePapelCalculations'
@@ -82,6 +85,7 @@ import {
   resolveActiveTabFromDraft,
   resolveCortePapelSubTabFromDraft,
   resolveImpresionSubTabFromDraft,
+  resolvePreprensaSubTabFromDraft,
 } from './utils/productionNewOrderDraft'
 import {
   impresionTintasRegistrosEqual,
@@ -92,6 +96,11 @@ import {
   hasPersistedProductionNewOrderDraft,
   useProductionNewOrderDraftStore,
 } from '../../stores/productionNewOrderDraftStore'
+import {
+  buildFinishesFromTerminadosRegistros,
+  syncTerminadosRegistros,
+  terminadosRegistrosEqual,
+} from './utils/terminadosUtils'
 import { confirmAction } from '../../utils/actionFeedback'
 
 const parseQuantityDigits = (value: string): number => {
@@ -135,6 +144,7 @@ const emptySpecs = (): OrderSpecs => ({
   thousands: 0,
   inks: '',
   impresionTintasRegistros: [],
+  terminadosRegistros: [],
   machineOutputValue: new Money(0),
   chapoliado: false,
   finishes: [],
@@ -147,6 +157,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   const isNew = orderId === 'new'
   const { orders, loading: ordersLoading, createOrder } = useOrdersHook()
   const { items: tiposPapelStore, loading: loadingTiposPapel } = useTipoPapelHook()
+  const { items: terminadosCatalog, quickAccessItems: quickAccessTerminados } = useTerminadosHook()
   const { users } = useUsersHook()
   const [tiposPapelCatalog, setTiposPapelCatalog] = useState<TipoPapel[]>([])
 
@@ -163,10 +174,11 @@ const ProductionOrderWorkspace: React.FC = () => {
   const [preprensaSubTab, setPreprensaSubTab] = useState<PreprensaSubTabId>('diseno')
   const [cortePapelSubTab, setCortePapelSubTab] = useState<CortePapelSubTabId>('corte')
   const [impresionSubTab, setImpresionSubTab] = useState<ImpresionSubTabId>('tintas')
-  const [terminadosSubTab, setTerminadosSubTab] = useState<TerminadosSubTabId>('catalogo')
-  const [acabadosSubTab, setAcabadosSubTab] = useState<AcabadosSubTabId>('operaciones')
+  const [terminadosSubTab, setTerminadosSubTab] = useState<TerminadosSubTabId>('asignacion')
+  const [acabadosSubTab, setAcabadosSubTab] = useState<AcabadosSubTabId>('acabado')
   const [activeCorteColorPlanchaId, setActiveCorteColorPlanchaId] = useState('')
   const [activeImpresionColorPlanchaId, setActiveImpresionColorPlanchaId] = useState('')
+  const [activeTerminadosCorteRowKey, setActiveTerminadosCorteRowKey] = useState('')
   const [clients, setClients] = useState<Client[]>([])
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [planchas, setPlanchas] = useState<TamanoPlancha[]>([])
@@ -264,7 +276,7 @@ const ProductionOrderWorkspace: React.FC = () => {
     setWorkName(draft.workName)
     setActiveTab(resolveActiveTabFromDraft(draft))
     setSpecsSubTab(draft.specsSubTab)
-    setPreprensaSubTab(draft.preprensaSubTab)
+    setPreprensaSubTab(resolvePreprensaSubTabFromDraft(draft.preprensaSubTab))
     setCortePapelSubTab(resolveCortePapelSubTabFromDraft(draft.cortePapelSubTab))
     setImpresionSubTab(resolveImpresionSubTabFromDraft(draft))
     setActiveCorteColorPlanchaId(draft.activeCorteColorPlanchaId)
@@ -376,6 +388,33 @@ const ProductionOrderWorkspace: React.FC = () => {
   }, [impresionColoresPlanchas])
 
   useEffect(() => {
+    setSpecs(prev => {
+      const next = syncTerminadosRegistros(
+        prev.preprensaDiseno.coloresPlanchas,
+        prev.paperRows,
+        tiposPapel,
+        normalizeMargenRedondeo(prev.margenRedondeo),
+        prev.clienteSuministraPapel ?? 'no',
+        prev.terminadosRegistros ?? []
+      )
+      if (terminadosRegistrosEqual(next, prev.terminadosRegistros ?? [])) {
+        return prev
+      }
+      return {
+        ...prev,
+        terminadosRegistros: next,
+        finishes: buildFinishesFromTerminadosRegistros(next),
+      }
+    })
+  }, [
+    specs.preprensaDiseno.coloresPlanchas,
+    specs.paperRows,
+    specs.margenRedondeo,
+    specs.clienteSuministraPapel,
+    tiposPapel,
+  ])
+
+  useEffect(() => {
     if (paperRowsMatchColoresPlanchas(specs.preprensaDiseno.coloresPlanchas, specs.paperRows)) {
       return
     }
@@ -412,6 +451,16 @@ const ProductionOrderWorkspace: React.FC = () => {
           impresionTintasRegistros: syncImpresionTintasRegistros(
             preprensaDiseno.coloresPlanchas,
             existingOrder.specs.impresionTintasRegistros ?? []
+          ),
+          terminadosRegistros: syncTerminadosRegistros(
+            preprensaDiseno.coloresPlanchas,
+            existingOrder.specs.paperRows?.length
+              ? existingOrder.specs.paperRows
+              : [row],
+            tiposPapel,
+            normalizeMargenRedondeo(existingOrder.specs.margenRedondeo),
+            existingOrder.specs.clienteSuministraPapel ?? 'no',
+            existingOrder.specs.terminadosRegistros ?? []
           ),
           paperRows: existingOrder.specs.paperRows?.length
             ? existingOrder.specs.paperRows
@@ -502,6 +551,28 @@ const ProductionOrderWorkspace: React.FC = () => {
       ),
     }))
   }, [])
+
+  const handleTerminadosRegistrosChange = useCallback(
+    (
+      updater:
+        | TerminadosProduccionRegistro[]
+        | ((prev: TerminadosProduccionRegistro[]) => TerminadosProduccionRegistro[])
+    ) => {
+      setSpecs(prev => {
+        const current = prev.terminadosRegistros ?? []
+        const next = typeof updater === 'function' ? updater(current) : updater
+        if (terminadosRegistrosEqual(next, current)) {
+          return prev
+        }
+        return {
+          ...prev,
+          terminadosRegistros: next,
+          finishes: buildFinishesFromTerminadosRegistros(next),
+        }
+      })
+    },
+    []
+  )
 
   const updatePreprensaDiseno = (patch: Partial<PreprensaDisenoSpecs>) => {
     setSpecs(prev => {
@@ -902,81 +973,6 @@ const ProductionOrderWorkspace: React.FC = () => {
                       />
                     </div>
                   )}
-
-                  {preprensaSubTab === 'detalle' && (
-                    <div
-                      className="production-specs-panel production-specs-panel--sections"
-                      role="tabpanel"
-                      id="production-preprensa-panel-detalle"
-                      aria-labelledby="production-preprensa-subtab-detalle"
-                    >
-                      <div className="production-ws-sections-stack">
-                        <ProductionWorkspaceSection
-                          tag="Planchas"
-                          title="Planchas y montaje"
-                          tone={0}
-                        >
-                      <div className="production-form-grid production-form-grid--3">
-                        <div className="production-form-field">
-                          <label className="production-form-label" htmlFor="prod-plates">
-                            Nº planchas
-                          </label>
-                  <input
-                    id="prod-plates"
-                    type="number"
-                    min={0}
-                    className="production-form-input"
-                    value={specs.plates || ''}
-                    onChange={e => updateSpecs('plates', Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="production-form-field">
-                  <label className="production-form-label" htmlFor="prod-plates-value">
-                    Valor planchas
-                  </label>
-                  <input
-                    id="prod-plates-value"
-                    type="number"
-                    min={0}
-                    className="production-form-input"
-                    value={specs.platesValue.getValue() || ''}
-                    onChange={e =>
-                      updateSpecs('platesValue', new Money(Number(e.target.value) || 0))
-                    }
-                  />
-                </div>
-                <div className="production-form-field">
-                  <label className="production-form-label">
-                    <input
-                      type="checkbox"
-                      checked={specs.mounting}
-                      onChange={e => updateSpecs('mounting', e.target.checked)}
-                    />{' '}
-                    Montaje
-                  </label>
-                </div>
-                {specs.mounting && (
-                  <div className="production-form-field">
-                    <label className="production-form-label" htmlFor="prod-mounting-value">
-                      Valor montaje
-                    </label>
-                    <input
-                      id="prod-mounting-value"
-                      type="number"
-                      min={0}
-                      className="production-form-input"
-                      value={specs.mountingValue?.getValue() ?? ''}
-                      onChange={e =>
-                        updateSpecs('mountingValue', new Money(Number(e.target.value) || 0))
-                      }
-                    />
-                  </div>
-                )}
-                      </div>
-                        </ProductionWorkspaceSection>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </>
@@ -1078,54 +1074,6 @@ const ProductionOrderWorkspace: React.FC = () => {
                       />
                     </div>
                   )}
-
-                  {impresionSubTab === 'maquina' && (
-                    <div
-                      className="production-specs-panel production-specs-panel--sections"
-                      role="tabpanel"
-                      id="production-impresion-panel-maquina"
-                      aria-labelledby="production-impresion-subtab-maquina"
-                    >
-                      <p className="production-workspace-panel-desc">
-                        Parámetros de máquina, salida y acabados en línea de impresión.
-                      </p>
-                      <div className="production-ws-sections-stack">
-                        <ProductionWorkspaceSection
-                          tag="Máquina"
-                          title="Salida de impresión"
-                          tone={2}
-                        >
-                          <div className="production-form-field">
-                            <label className="production-form-label" htmlFor="prod-machine">
-                              Valor salida máquina
-                            </label>
-                            <input
-                              id="prod-machine"
-                              type="number"
-                              min={0}
-                              className="production-form-input"
-                              value={specs.machineOutputValue.getValue() || ''}
-                              onChange={e =>
-                                updateSpecs('machineOutputValue', new Money(Number(e.target.value) || 0))
-                              }
-                            />
-                          </div>
-                        </ProductionWorkspaceSection>
-                        <ProductionWorkspaceSection tag="Acabado" title="En línea" tone={0}>
-                          <div className="production-form-field">
-                            <label className="production-form-label">
-                              <input
-                                type="checkbox"
-                                checked={specs.chapoliado}
-                                onChange={e => updateSpecs('chapoliado', e.target.checked)}
-                              />{' '}
-                              Chapoliado
-                            </label>
-                          </div>
-                        </ProductionWorkspaceSection>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </>
@@ -1139,6 +1087,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                 <ProductionTerminadosSubNav
                   active={terminadosSubTab}
                   onChange={setTerminadosSubTab}
+                  isNewOrder={isNew}
                 />
 
                 <div className="production-specs-content">
@@ -1152,31 +1101,26 @@ const ProductionOrderWorkspace: React.FC = () => {
                       {renderOperadorSection('terminados', 'Terminados', 1, 'terminados-operador')}
                     </div>
                   )}
-                  {terminadosSubTab === 'catalogo' && (
+                  {terminadosSubTab === 'asignacion' && (
                     <div
                       className="production-specs-panel production-specs-panel--sections"
                       role="tabpanel"
-                      id="production-terminados-panel-catalogo"
-                      aria-labelledby="production-terminados-subtab-catalogo"
+                      id="production-terminados-panel-asignacion"
+                      aria-labelledby="production-terminados-subtab-asignacion"
                     >
-                      <p className="production-workspace-panel-desc">
-                        Terminaciones del catálogo asignadas a esta orden (laminado, troquel, etc.).
-                      </p>
-                      <ProductionWorkspaceSection tag="Catálogo" title="Terminados vinculados" tone={1}>
-                        {specs.finishes.length > 0 ? (
-                          <ul className="production-ws-list">
-                            {specs.finishes.map((f, i) => (
-                              <li key={i}>
-                                {f.name} · Cant: {f.quantity} · {f.total.toString()}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="production-empty-hint">
-                            Aún no hay terminados asignados. Podrás vincularlos desde el catálogo de Terminados.
-                          </p>
-                        )}
-                      </ProductionWorkspaceSection>
+                      <ProductionTerminadosPanel
+                        coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
+                        paperRows={specs.paperRows}
+                        tiposPapel={tiposPapel}
+                        margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
+                        clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
+                        terminadosCatalog={terminadosCatalog}
+                        quickAccessTerminados={quickAccessTerminados}
+                        registros={specs.terminadosRegistros ?? []}
+                        activeCorteRowKey={activeTerminadosCorteRowKey}
+                        onActiveCorteRowKeyChange={setActiveTerminadosCorteRowKey}
+                        onRegistrosChange={handleTerminadosRegistrosChange}
+                      />
                     </div>
                   )}
                 </div>
@@ -1202,31 +1146,14 @@ const ProductionOrderWorkspace: React.FC = () => {
                       {renderOperadorSection('acabados', 'Acabados', 2, 'acabados-operador')}
                     </div>
                   )}
-                  {acabadosSubTab === 'operaciones' && (
+                  {acabadosSubTab === 'acabado' && (
                     <div
                       className="production-specs-panel production-specs-panel--sections"
                       role="tabpanel"
-                      id="production-acabados-panel-operaciones"
-                      aria-labelledby="production-acabados-subtab-operaciones"
+                      id="production-acabados-panel-acabado"
+                      aria-labelledby="production-acabados-subtab-acabado"
                     >
-                      <p className="production-workspace-panel-desc">
-                        Operaciones de acabado y mano de obra asociada a la orden.
-                      </p>
-                      <ProductionWorkspaceSection tag="Operaciones" title="Acabados vinculados" tone={2}>
-                        {specs.operations.length > 0 ? (
-                          <ul className="production-ws-list">
-                            {specs.operations.map((op, i) => (
-                              <li key={i}>
-                                {op.name} · {op.value.toString()}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="production-empty-hint">
-                            Aún no hay operaciones de acabado. Podrás asignarlas desde el catálogo de Operaciones.
-                          </p>
-                        )}
-                      </ProductionWorkspaceSection>
+                      <ProductionAcabadosPanel />
                     </div>
                   )}
                 </div>

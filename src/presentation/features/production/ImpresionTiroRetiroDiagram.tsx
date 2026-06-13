@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
 import type { ImpresionLadoTintas, ImpresionTipoBifronte } from '../../../core/domain/entities/Order'
-import { ColoresSwatchIcon } from './DisenoColoresPicker'
-import {
-  DISENO_INK_PALETTE,
-  isDisenoInkPantoneMix,
-} from './constants/preprensaDisenoColors'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
 import { isImpresionConVolteo } from './constants/impresionTipoBifronte'
+import {
+  DISENO_INK_PALETTE,
+  DISENO_INK_PANTONE_MIX_COLORS,
+  isDisenoInkPantoneMix,
+} from './constants/preprensaDisenoColors'
 import {
   isValidImpresionTintaIndex,
   normalizeImpresionInkIndex,
@@ -16,6 +16,15 @@ import {
 const diagramCopy = copy.tintas.diagram
 const ladoCopy = copy.tintas.lado
 const volteoCopy = copy.tintas.tintasVolteo
+
+type FlipMode = 'sin-volteo' | 'volteo-pinza' | 'volteo-escuadra'
+type SheetSide = 'tiro' | 'retiro'
+
+type SheetMechanics = {
+  pinza: 'left' | 'right'
+  escuadra: 'bottom' | 'top'
+  registro: 'top' | 'bottom'
+}
 
 interface InkBar {
   name: string
@@ -31,15 +40,20 @@ interface ImpresionTiroRetiroDiagramProps {
   showPantone?: boolean
 }
 
-const LIGHT_BAR_SWATCHES = new Set(['#ffd400'])
-
-const resolveLadoInkBars = (lado: ImpresionLadoTintas): InkBar[] =>
-  lado.tintas.slice(0, lado.cantidad).flatMap(inkIndex => {
-    const normalized = normalizeImpresionInkIndex(inkIndex)
-    if (!isValidImpresionTintaIndex(normalized)) return []
-    const ink = DISENO_INK_PALETTE[normalized]
-    return ink ? [{ name: ink.name, swatch: ink.swatch }] : []
-  })
+const SHEET_LAYOUTS: Record<FlipMode, Record<SheetSide, SheetMechanics>> = {
+  'sin-volteo': {
+    tiro: { pinza: 'left', escuadra: 'bottom', registro: 'top' },
+    retiro: { pinza: 'left', escuadra: 'bottom', registro: 'top' },
+  },
+  'volteo-pinza': {
+    tiro: { pinza: 'left', escuadra: 'bottom', registro: 'top' },
+    retiro: { pinza: 'right', escuadra: 'bottom', registro: 'top' },
+  },
+  'volteo-escuadra': {
+    tiro: { pinza: 'left', escuadra: 'bottom', registro: 'top' },
+    retiro: { pinza: 'left', escuadra: 'top', registro: 'bottom' },
+  },
+}
 
 const resolveVolteoBadge = (tipo: ImpresionTipoBifronte | ''): string => {
   if (!isImpresionConVolteo(tipo)) return volteoCopy.volteoStatusSin
@@ -49,138 +63,269 @@ const resolveVolteoBadge = (tipo: ImpresionTipoBifronte | ''): string => {
   return `${volteoCopy.volteoStatusCon} · ${volteoCopy.volteoPinzaShort}`
 }
 
-const resolveFlipSubtype = (
-  conVolteoColorBasico: boolean,
-  conVolteoPantone: boolean,
+const resolveDiagramFlipMode = (
+  showColorBasico: boolean,
+  showPantone: boolean,
   tipoBifronteColorBasico: ImpresionTipoBifronte | '',
   tipoBifrontePantone: ImpresionTipoBifronte | ''
-): 'pinza' | 'escuadra' => {
-  const tipos: ImpresionTipoBifronte[] = []
-  if (conVolteoColorBasico && isImpresionConVolteo(tipoBifronteColorBasico)) {
-    tipos.push(tipoBifronteColorBasico)
+): FlipMode => {
+  if (showColorBasico && isImpresionConVolteo(tipoBifronteColorBasico)) {
+    return tipoBifronteColorBasico === 'volteo-escuadra' ? 'volteo-escuadra' : 'volteo-pinza'
   }
-  if (conVolteoPantone && isImpresionConVolteo(tipoBifrontePantone)) {
-    tipos.push(tipoBifrontePantone)
+  if (showPantone && isImpresionConVolteo(tipoBifrontePantone)) {
+    return tipoBifrontePantone === 'volteo-escuadra' ? 'volteo-escuadra' : 'volteo-pinza'
   }
-  if (tipos.length > 0 && tipos.every(tipo => tipo === 'volteo-escuadra')) {
-    return 'escuadra'
-  }
-  return 'pinza'
+  return 'sin-volteo'
 }
 
-const InkSheet: React.FC<{ bars: InkBar[]; emptyLabel: string }> = ({ bars, emptyLabel }) => {
-  if (bars.length === 0) {
-    return (
-      <div className="production-impresion-tiro-retiro-diagram__print production-impresion-tiro-retiro-diagram__print--empty">
-        <span>{emptyLabel}</span>
-      </div>
-    )
-  }
+const resolveLadoInkBars = (lado: ImpresionLadoTintas): InkBar[] =>
+  lado.tintas.slice(0, lado.cantidad).flatMap(inkIndex => {
+    const normalized = normalizeImpresionInkIndex(inkIndex)
+    if (!isValidImpresionTintaIndex(normalized)) return []
+    const ink = DISENO_INK_PALETTE[normalized]
+    return ink ? [{ name: ink.name, swatch: ink.swatch }] : []
+  })
 
-  return (
-    <div className="production-impresion-tiro-retiro-diagram__print">
-      {bars.map((bar, index) => (
-        <div
-          key={`${bar.name}-${index}`}
-          className={clsx(
-            'production-impresion-tiro-retiro-diagram__stripe',
-            isDisenoInkPantoneMix(bar.swatch) &&
-              'production-impresion-tiro-retiro-diagram__stripe--pantone',
-            LIGHT_BAR_SWATCHES.has(bar.swatch.toLowerCase()) &&
-              'production-impresion-tiro-retiro-diagram__stripe--light'
-          )}
-          style={
-            isDisenoInkPantoneMix(bar.swatch) ? undefined : { backgroundColor: bar.swatch }
-          }
-          title={bar.name}
-        >
-          <span className="production-impresion-tiro-retiro-diagram__stripe-meta">
-            <ColoresSwatchIcon swatch={bar.swatch} name={bar.name} size="xs" />
-            <span className="production-impresion-tiro-retiro-diagram__stripe-name">{bar.name}</span>
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
+const PantoneGradientDef: React.FC<{ id: string }> = ({ id }) => (
+  <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
+    {DISENO_INK_PANTONE_MIX_COLORS.map((color, index) => (
+      <stop
+        key={color}
+        offset={`${(index / DISENO_INK_PANTONE_MIX_COLORS.length) * 100}%`}
+        stopColor={color}
+      />
+    ))}
+    <stop offset="100%" stopColor={DISENO_INK_PANTONE_MIX_COLORS[0]} />
+  </linearGradient>
+)
 
-const PaperCard: React.FC<{
-  side: 'tiro' | 'retiro'
+const InkBarsSvg: React.FC<{
   bars: InkBar[]
-  face?: 'front' | 'back'
-}> = ({ side, bars, face = 'front' }) => {
-  const label = side === 'tiro' ? ladoCopy.tiro : ladoCopy.retiro
+  x: number
+  y: number
+  width: number
+  height: number
+  idPrefix: string
+}> = ({ bars, x, y, width, height, idPrefix }) => {
+  if (bars.length === 0) return null
+
+  const barGap = 1.5
+  const barHeight = (height - barGap * (bars.length - 1)) / bars.length
 
   return (
-    <div
-      className={clsx(
-        'production-impresion-tiro-retiro-diagram__paper',
-        `production-impresion-tiro-retiro-diagram__paper--${side}`,
-        face === 'back' && 'production-impresion-tiro-retiro-diagram__paper--back'
-      )}
-    >
-      <div className="production-impresion-tiro-retiro-diagram__paper-tab">
-        <span>{label}</span>
-        {face === 'back' ? (
-          <span className="production-impresion-tiro-retiro-diagram__paper-face">{diagramCopy.backFace}</span>
-        ) : null}
-      </div>
-      <InkSheet bars={bars} emptyLabel={copy.tintas.entradas.ladoSinTintas} />
-    </div>
+    <g className="production-impresion-tiro-retiro-diagram__svg-inks">
+      {bars.map((bar, index) => {
+        const barY = y + index * (barHeight + barGap)
+        const pantoneGradientId = `${idPrefix}-pantone-${index}`
+        const fill = isDisenoInkPantoneMix(bar.swatch) ? `url(#${pantoneGradientId})` : bar.swatch
+
+        return (
+          <g key={`${bar.name}-${index}`}>
+            {isDisenoInkPantoneMix(bar.swatch) ? <PantoneGradientDef id={pantoneGradientId} /> : null}
+            <rect
+              x={x}
+              y={barY}
+              width={width}
+              height={barHeight}
+              rx="1.5"
+              fill={fill}
+              className="production-impresion-tiro-retiro-diagram__svg-ink-bar"
+            />
+          </g>
+        )
+      })}
+    </g>
   )
 }
 
-const FlipBridge: React.FC<{ subtype: 'pinza' | 'escuadra' }> = ({ subtype }) => (
-  <div
-    className={clsx(
-      'production-impresion-tiro-retiro-diagram__bridge',
-      `production-impresion-tiro-retiro-diagram__bridge--${subtype}`
-    )}
-    aria-hidden
-  >
-    {subtype === 'pinza' ? (
-      <>
-        <span className="production-impresion-tiro-retiro-diagram__grip production-impresion-tiro-retiro-diagram__grip--top" />
-        <div className="production-impresion-tiro-retiro-diagram__bridge-core">
-          <svg viewBox="0 0 48 24" fill="none" className="production-impresion-tiro-retiro-diagram__arc">
-            <path
-              d="M6 18 C18 6, 30 6, 42 18"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <path d="M38 15l4 3-4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>{volteoCopy.volteoPinzaShort}</span>
-        </div>
-        <span className="production-impresion-tiro-retiro-diagram__grip production-impresion-tiro-retiro-diagram__grip--bottom" />
-      </>
-    ) : (
-      <div className="production-impresion-tiro-retiro-diagram__bridge-core">
-        <span className="production-impresion-tiro-retiro-diagram__grip production-impresion-tiro-retiro-diagram__grip--side" />
-        <svg viewBox="0 0 48 24" fill="none" className="production-impresion-tiro-retiro-diagram__arc">
-          <path
-            d="M6 18 C18 6, 30 6, 42 18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path d="M38 15l4 3-4 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span>{volteoCopy.volteoEscuadraShort}</span>
-      </div>
-    )}
-  </div>
+const RegistroMarkSvg: React.FC<{ x: number; y: number }> = ({ x, y }) => (
+  <g transform={`translate(${x} ${y})`}>
+    <circle cx="10" cy="10" r="9" fill="#22c55e" />
+    <line x1="10" y1="4" x2="10" y2="16" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+    <line x1="4" y1="10" x2="16" y2="10" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="10" cy="10" r="2.2" fill="#fff" />
+  </g>
 )
 
-const SeparateBridge: React.FC = () => (
-  <div className="production-impresion-tiro-retiro-diagram__separate" aria-hidden>
-    <svg viewBox="0 0 24 24" fill="none" className="production-impresion-tiro-retiro-diagram__separate-icon">
-      <path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+const SheetSvg: React.FC<{
+  side: SheetSide
+  mechanics: SheetMechanics
+  bars: InkBar[]
+  showLeftPinzaLabel: boolean
+  showRightPinzaLabel: boolean
+}> = ({ side, mechanics, bars, showLeftPinzaLabel, showRightPinzaLabel }) => {
+  const title = side === 'tiro' ? ladoCopy.tiro : ladoCopy.retiro
+  const faceLetter = side === 'tiro' ? 'A' : 'B'
+  const faceLabel = side === 'tiro' ? diagramCopy.faceA : diagramCopy.faceB
+
+  const gridSize = 120
+  const gridX = mechanics.pinza === 'left' ? 44 : 18
+  const gridY = mechanics.escuadra === 'top' ? 40 : 24
+  const gridCenterX = gridX + gridSize / 2
+  const escuadraY = mechanics.escuadra === 'top' ? gridY : gridY + gridSize - 10
+  const registroX = gridCenterX - 10
+  const registroY = mechanics.registro === 'top' ? gridY + 4 : gridY + gridSize - 24
+  const pinzaX = mechanics.pinza === 'left' ? gridX - 12 : gridX + gridSize
+  const pinzaLabelX =
+    mechanics.pinza === 'left'
+      ? showLeftPinzaLabel
+        ? 10
+        : -999
+      : showRightPinzaLabel
+        ? pinzaX + 18
+        : -999
+  const escuadraLabelY =
+    mechanics.escuadra === 'top' ? gridY - 8 : gridY + gridSize + 22
+
+  const inkInsetX = 16
+  const inkInsetTop = mechanics.escuadra === 'top' ? 24 : mechanics.registro === 'top' ? 26 : 18
+  const inkInsetBottom = mechanics.escuadra === 'bottom' ? 24 : mechanics.registro === 'bottom' ? 28 : 18
+  const inkBlocksX = gridX + inkInsetX
+  const inkBlocksY = gridY + inkInsetTop
+  const inkBlocksWidth = gridSize - inkInsetX * 2
+  const inkBlocksHeight = gridSize - inkInsetTop - inkInsetBottom
+
+  return (
+    <svg
+      viewBox="0 0 182 196"
+      className="production-impresion-tiro-retiro-diagram__sheet-svg"
+      role="img"
+      aria-label={`${title} ${faceLabel}`}
+    >
+      <text x="91" y="16" textAnchor="middle" className="production-impresion-tiro-retiro-diagram__svg-title">
+        {title}
+      </text>
+
+      {showLeftPinzaLabel && mechanics.pinza === 'left' ? (
+        <text
+          x={pinzaLabelX}
+          y={gridY + gridSize / 2}
+          textAnchor="middle"
+          className="production-impresion-tiro-retiro-diagram__svg-edge-label production-impresion-tiro-retiro-diagram__svg-edge-label--pinza"
+          transform={`rotate(-90 ${pinzaLabelX} ${gridY + gridSize / 2})`}
+        >
+          {diagramCopy.pinzaLabel}
+        </text>
+      ) : null}
+
+      <rect
+        x={gridX}
+        y={gridY}
+        width={gridSize}
+        height={gridSize}
+        className="production-impresion-tiro-retiro-diagram__svg-grid"
+      />
+
+      <defs>
+        <pattern id={`grid-dots-${side}`} width="10" height="10" patternUnits="userSpaceOnUse">
+          <circle cx="1.2" cy="1.2" r="0.9" fill="#cbd5e1" />
+        </pattern>
+      </defs>
+      <rect
+        x={gridX + 1}
+        y={gridY + 1}
+        width={gridSize - 2}
+        height={gridSize - 2}
+        fill={`url(#grid-dots-${side})`}
+      />
+
+      <InkBarsSvg
+        bars={bars}
+        x={inkBlocksX}
+        y={inkBlocksY}
+        width={inkBlocksWidth}
+        height={inkBlocksHeight}
+        idPrefix={`ink-${side}`}
+      />
+
+      <rect
+        x={pinzaX}
+        y={gridY}
+        width="12"
+        height={gridSize}
+        className="production-impresion-tiro-retiro-diagram__svg-pinza"
+      />
+
+      <rect
+        x={gridX}
+        y={escuadraY}
+        width={gridSize}
+        height="10"
+        className="production-impresion-tiro-retiro-diagram__svg-escuadra"
+      />
+
+      <text
+        x={gridCenterX}
+        y={gridY + gridSize / 2 - 2}
+        textAnchor="middle"
+        className="production-impresion-tiro-retiro-diagram__svg-face-letter"
+      >
+        {faceLetter}
+      </text>
+      <text
+        x={gridCenterX}
+        y={gridY + gridSize / 2 + 18}
+        textAnchor="middle"
+        className="production-impresion-tiro-retiro-diagram__svg-face-label"
+      >
+        {faceLabel}
+      </text>
+
+      <RegistroMarkSvg x={registroX} y={registroY} />
+
+      {showRightPinzaLabel && mechanics.pinza === 'right' ? (
+        <text
+          x={pinzaLabelX}
+          y={gridY + gridSize / 2}
+          textAnchor="middle"
+          className="production-impresion-tiro-retiro-diagram__svg-edge-label production-impresion-tiro-retiro-diagram__svg-edge-label--pinza"
+          transform={`rotate(-90 ${pinzaLabelX} ${gridY + gridSize / 2})`}
+        >
+          {diagramCopy.pinzaLabel}
+        </text>
+      ) : null}
+
+      <text
+        x={gridCenterX}
+        y={escuadraLabelY}
+        textAnchor="middle"
+        className="production-impresion-tiro-retiro-diagram__svg-edge-label production-impresion-tiro-retiro-diagram__svg-edge-label--escuadra"
+      >
+        {diagramCopy.escuadraLabel}
+      </text>
     </svg>
-    <span>{diagramCopy.separateSheets}</span>
-  </div>
-)
+  )
+}
+
+const FlipBridge: React.FC<{
+  flipMode: FlipMode
+  showBridgePinzaLabel: boolean
+}> = ({ flipMode, showBridgePinzaLabel }) => {
+  const primaryLabel =
+    flipMode === 'volteo-pinza'
+      ? diagramCopy.volteoPinzaLabel
+      : flipMode === 'volteo-escuadra'
+        ? diagramCopy.volteoEscuadraLabel
+        : diagramCopy.voltearLabel
+
+  return (
+    <div className="production-impresion-tiro-retiro-diagram__bridge" aria-hidden>
+      <span className="production-impresion-tiro-retiro-diagram__bridge-line" />
+      <span className="production-impresion-tiro-retiro-diagram__bridge-label">{primaryLabel}</span>
+      <span className="production-impresion-tiro-retiro-diagram__bridge-line" />
+      {flipMode === 'volteo-escuadra' ? (
+        <span className="production-impresion-tiro-retiro-diagram__bridge-sub-label">
+          {diagramCopy.pinzaLabel}
+        </span>
+      ) : null}
+      {showBridgePinzaLabel ? (
+        <span className="production-impresion-tiro-retiro-diagram__bridge-pinza-label">
+          {diagramCopy.pinzaLabel}
+        </span>
+      ) : null}
+    </div>
+  )
+}
 
 const VolteoChip: React.FC<{
   label: string
@@ -211,19 +356,20 @@ const ImpresionTiroRetiroDiagram: React.FC<ImpresionTiroRetiroDiagramProps> = ({
   showColorBasico = false,
   showPantone = false,
 }) => {
-  const tiroBars = useMemo(() => resolveLadoInkBars(tiro), [tiro])
-  const retiroBars = useMemo(() => resolveLadoInkBars(retiro), [retiro])
-  const totalTintas = tiro.cantidad + retiro.cantidad
+  const totalTintas = useMemo(() => tiro.cantidad + retiro.cantidad, [tiro.cantidad, retiro.cantidad])
 
-  const conVolteoColorBasico = showColorBasico && isImpresionConVolteo(tipoBifronteColorBasico)
-  const conVolteoPantone = showPantone && isImpresionConVolteo(tipoBifrontePantone)
-  const conVolteoActivo = conVolteoColorBasico || conVolteoPantone
-  const flipSubtype = resolveFlipSubtype(
-    conVolteoColorBasico,
-    conVolteoPantone,
+  const flipMode = resolveDiagramFlipMode(
+    showColorBasico,
+    showPantone,
     tipoBifronteColorBasico,
     tipoBifrontePantone
   )
+  const layouts = SHEET_LAYOUTS[flipMode]
+  const tiroBars = useMemo(() => resolveLadoInkBars(tiro), [tiro])
+  const retiroBars = useMemo(() => resolveLadoInkBars(retiro), [retiro])
+
+  const showBridgePinzaLabel =
+    layouts.retiro.pinza === 'left' && flipMode !== 'volteo-escuadra'
 
   if (totalTintas <= 0) {
     return (
@@ -235,52 +381,38 @@ const ImpresionTiroRetiroDiagram: React.FC<ImpresionTiroRetiroDiagramProps> = ({
 
   return (
     <figure className="production-impresion-tiro-retiro-diagram" aria-label={diagramCopy.title}>
-      <figcaption className="production-impresion-tiro-retiro-diagram__caption">
-        <span className="production-impresion-tiro-retiro-diagram__title">{diagramCopy.title}</span>
-        <span
-          className={clsx(
-            'production-impresion-tiro-retiro-diagram__modo',
-            conVolteoActivo
-              ? 'production-impresion-tiro-retiro-diagram__modo--con'
-              : 'production-impresion-tiro-retiro-diagram__modo--sin'
-          )}
-        >
-          {conVolteoActivo ? volteoCopy.volteoStatusCon : volteoCopy.volteoStatusSin}
-        </span>
-      </figcaption>
-
       <div
         className={clsx(
           'production-impresion-tiro-retiro-diagram__stage',
-          conVolteoActivo
-            ? 'production-impresion-tiro-retiro-diagram__stage--volteo'
-            : 'production-impresion-tiro-retiro-diagram__stage--sin-volteo'
+          `production-impresion-tiro-retiro-diagram__stage--${flipMode}`
         )}
       >
-        {conVolteoActivo ? (
-          <>
-            <PaperCard side="tiro" bars={tiroBars} face="front" />
-            <FlipBridge subtype={flipSubtype} />
-            <PaperCard side="retiro" bars={retiroBars} face="back" />
-          </>
-        ) : (
-          <>
-            <PaperCard side="tiro" bars={tiroBars} />
-            <SeparateBridge />
-            <PaperCard side="retiro" bars={retiroBars} />
-          </>
-        )}
+        <SheetSvg
+          side="tiro"
+          mechanics={layouts.tiro}
+          bars={tiroBars}
+          showLeftPinzaLabel
+          showRightPinzaLabel={false}
+        />
+        <FlipBridge flipMode={flipMode} showBridgePinzaLabel={showBridgePinzaLabel} />
+        <SheetSvg
+          side="retiro"
+          mechanics={layouts.retiro}
+          bars={retiroBars}
+          showLeftPinzaLabel={false}
+          showRightPinzaLabel={layouts.retiro.pinza === 'right'}
+        />
       </div>
 
       {(showColorBasico || showPantone) && (
-        <div className="production-impresion-tiro-retiro-diagram__legend">
+        <figcaption className="production-impresion-tiro-retiro-diagram__legend">
           {showColorBasico ? (
             <VolteoChip label={volteoCopy.badgeColorBasico} tipo={tipoBifronteColorBasico} />
           ) : null}
           {showPantone ? (
             <VolteoChip label={volteoCopy.badgePantone} tipo={tipoBifrontePantone} />
           ) : null}
-        </div>
+        </figcaption>
       )}
     </figure>
   )

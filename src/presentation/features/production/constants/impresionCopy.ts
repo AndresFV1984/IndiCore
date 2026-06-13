@@ -53,6 +53,13 @@ export const IMPRESION_COPY = {
       empty: 'Asigne tintas para ver el diagrama.',
       flipLabel: 'Volteo',
       separateSheets: 'Planchas distintas',
+      voltearLabel: 'Voltear',
+      volteoPinzaLabel: 'Volteo de pinza',
+      volteoEscuadraLabel: 'Volteo de escuadra',
+      pinzaLabel: 'pinza',
+      escuadraLabel: 'escuadra',
+      faceA: 'cara A',
+      faceB: 'cara B',
       backFace: 'Reverso',
     },
     lado: {

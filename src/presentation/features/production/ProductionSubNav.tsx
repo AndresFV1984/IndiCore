@@ -53,21 +53,6 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
     )
   }
 
-  /** Preprensa — planchas, montaje y valores */
-  if (id === 'detalle') {
-    return (
-      <svg {...props}>
-        <rect x="5" y="6" width="14" height="3.25" rx="0.75" {...s} />
-        <rect x="5" y="10.375" width="14" height="3.25" rx="0.75" {...s} />
-        <rect x="5" y="14.75" width="14" height="3.25" rx="0.75" {...s} />
-        <path d="M8.5 7.6h2.25M8.5 12h4M8.5 16.4h3.5" {...s} strokeWidth={1.5} />
-        <circle cx="17" cy="7.6" r="0.85" fill="currentColor" stroke="none" />
-        <circle cx="17" cy="12" r="0.85" fill="currentColor" stroke="none" />
-        <circle cx="17" cy="16.4" r="0.85" fill="currentColor" stroke="none" />
-      </svg>
-    )
-  }
-
   /** Responsable asignado por etapa */
   if (id === 'responsable') {
     return (
@@ -128,16 +113,6 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
           strokeWidth={1.5}
           opacity={0.7}
         />
-      </svg>
-    )
-  }
-
-  /** Impresión — salida de máquina y acabados en línea */
-  if (id === 'maquina') {
-    return (
-      <svg {...props}>
-        <rect x="6" y="7" width="12" height="10" rx="1.5" {...s} />
-        <path d="M8 5h8v2H8V5zM9 14h6" {...s} strokeWidth={1.5} />
       </svg>
     )
   }

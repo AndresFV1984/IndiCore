@@ -1,5 +1,5 @@
 export const ACABADOS_SUB_TABS = [
-  { id: 'operaciones', label: 'Operaciones' },
+  { id: 'acabado', label: 'Acabado' },
   { id: 'responsable', label: 'Responsable' },
 ] as const
 

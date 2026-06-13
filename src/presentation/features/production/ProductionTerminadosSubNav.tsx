@@ -1,18 +1,20 @@
 import React from 'react'
-import { TERMINADOS_SUB_TABS, TerminadosSubTabId } from './productionTerminadosSubTabs'
+import { getTerminadosSubTabs, TerminadosSubTabId } from './productionTerminadosSubTabs'
 import ProductionSubNav from './ProductionSubNav'
 
 interface ProductionTerminadosSubNavProps {
   active: TerminadosSubTabId
   onChange: (id: TerminadosSubTabId) => void
+  isNewOrder?: boolean
 }
 
 const ProductionTerminadosSubNav: React.FC<ProductionTerminadosSubNavProps> = ({
   active,
   onChange,
+  isNewOrder = false,
 }) => (
   <ProductionSubNav
-    tabs={TERMINADOS_SUB_TABS}
+    tabs={getTerminadosSubTabs(isNewOrder)}
     active={active}
     onChange={onChange}
     ariaLabel="Terminados"

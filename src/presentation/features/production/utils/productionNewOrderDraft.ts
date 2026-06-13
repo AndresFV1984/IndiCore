@@ -48,16 +48,21 @@ export interface ProductionNewOrderDraft {
 }
 
 /** Borradores previos guardaban Tintas bajo Corte de papel. */
+export const resolvePreprensaSubTabFromDraft = (
+  raw: PreprensaSubTabId | 'detalle' | undefined
+): PreprensaSubTabId => (raw === 'detalle' ? 'diseno' : raw ?? 'diseno')
+
 export const resolveCortePapelSubTabFromDraft = (
   raw: CortePapelSubTabId | 'tintas' | undefined
 ): CortePapelSubTabId => (raw === 'tintas' ? 'corte' : raw ?? 'corte')
 
 export const resolveImpresionSubTabFromDraft = (draft: {
-  impresionSubTab?: ImpresionSubTabId
+  impresionSubTab?: ImpresionSubTabId | 'maquina'
   cortePapelSubTab?: CortePapelSubTabId | 'tintas'
-}): ImpresionSubTabId =>
-  draft.impresionSubTab ??
-  (draft.cortePapelSubTab === 'tintas' ? 'tintas' : 'maquina')
+}): ImpresionSubTabId => {
+  if (draft.impresionSubTab === 'maquina') return 'tintas'
+  return draft.impresionSubTab ?? 'tintas'
+}
 
 export const resolveActiveTabFromDraft = (draft: {
   activeTab: ProductionWorkflowTabId
@@ -108,6 +113,7 @@ export const hydrateOrderSpecsFromDraft = (raw: SerializedOrderSpecs): OrderSpec
     }).coloresPlanchas,
     raw.impresionTintasRegistros ?? []
   ),
+  terminadosRegistros: raw.terminadosRegistros ?? [],
   mountingValue: raw.mountingValue ? fromSerializedMoney(raw.mountingValue) : undefined,
   platesValue: raw.platesValue ? fromSerializedMoney(raw.platesValue) : new Money(0),
   machineOutputValue: raw.machineOutputValue
@@ -157,6 +163,7 @@ export const productionDraftHasContent = (draft: ProductionNewOrderDraft): boole
     return true
   }
   if (specs.plates > 0 || specs.platesValue.value > 0) return true
+  if ((specs.terminadosRegistros?.length ?? 0) > 0) return true
   if (specs.finishes.length > 0 || specs.operations.length > 0) return true
   return false
 }

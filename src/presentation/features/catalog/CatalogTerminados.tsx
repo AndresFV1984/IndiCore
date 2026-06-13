@@ -3,15 +3,13 @@ import ActionIcon from '../../components/ui/ActionIcon'
 import Pagination from '../../components/ui/Pagination'
 import { usePagination } from '../../hooks/usePagination'
 import DirectoryKpiGrid from '../../components/directory/DirectoryKpiGrid'
+import { useTerminadosHook } from '../../hooks/useTerminados'
 import CatalogRecordModal from './CatalogRecordModal'
 import type { CatalogRecord, CatalogRecordFormValues } from './catalogRecord'
 import {
-  buildCatalogRecordFromFormValues,
   CATALOG_VALOR_CM2_LABEL,
   displayCatalogValorCmCuadrado,
-  normalizeCatalogRecordList,
 } from './catalogRecord'
-import { TERMINADOS_SEED } from './catalogSeeds'
 import CatalogRecordCost from './CatalogRecordCost'
 import {
   confirmDelete,
@@ -22,10 +20,6 @@ import {
 import './Catalog.css'
 import '../remissions/Remissions.css'
 import '../clients/Clients.css'
-
-function toRecord(values: CatalogRecordFormValues, id?: string): CatalogRecord {
-  return buildCatalogRecordFromFormValues(values, 't', id)
-}
 
 interface FinishedCardProps {
   item: CatalogRecord
@@ -93,7 +87,13 @@ const FinishedCard: React.FC<FinishedCardProps> = ({ item, onEdit, onExport, onD
 )
 
 const CatalogTerminados: React.FC = () => {
-  const [items, setItems] = useState<CatalogRecord[]>(() => normalizeCatalogRecordList(TERMINADOS_SEED))
+  const {
+    items,
+    loading,
+    createTerminado,
+    updateTerminado,
+    removeItem,
+  } = useTerminadosHook()
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CatalogRecord | null>(null)
 
@@ -136,19 +136,17 @@ const CatalogTerminados: React.FC = () => {
     const isEditing = Boolean(editingItem)
     if (!(await confirmSave(name, isEditing))) return
     if (editingItem) {
-      setItems(prev =>
-        prev.map(i => (i.id === editingItem.id ? toRecord(values, editingItem.id) : i))
-      )
+      updateTerminado(editingItem.id, values)
       notifySuccess('Terminado actualizado correctamente.')
     } else {
-      setItems(prev => [...prev, toRecord(values)])
+      createTerminado(values)
       notifySuccess('Terminado creado correctamente.')
     }
   }
 
   const handleDelete = async (item: CatalogRecord) => {
     if (!(await confirmDelete(item.name))) return
-    setItems(prev => prev.filter(i => i.id !== item.id))
+    removeItem(item.id)
     notifySuccess(`Terminado «${item.name}» eliminado.`)
   }
 

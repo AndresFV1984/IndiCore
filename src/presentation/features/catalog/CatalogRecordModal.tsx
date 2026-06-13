@@ -171,7 +171,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
               className="record-form-input"
               value={values.valorCmCuadrado}
               onChange={handleChange('valorCmCuadrado')}
-              placeholder="0"
+              placeholder="Ej. 5000"
             />
           </FormField>
           <div
