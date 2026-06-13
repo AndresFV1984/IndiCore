@@ -4,6 +4,7 @@ import { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import type { PaperRow } from '../../../core/domain/entities/Order'
 import { formatUnidadEmpaqueDisplay } from '../../../core/domain/value-objects/UnidadEmpaque'
 import ProductionCorteCatalogSnapshot from './ProductionCorteCatalogSnapshot'
+import ProductionCortePliegoDiagram from './ProductionCortePliegoDiagram'
 import {
   buildTipoPapelNameCounts,
   clearTipoPapelFromRow,
@@ -164,6 +165,18 @@ const ProductionCorteTipoPapelFields: React.FC<ProductionCorteTipoPapelFieldsPro
 
           {selected ? (
             <div className="production-corte-tipo-papel__catalog">
+              {despieceCatalogo ? (
+                <div className="production-corte-tipo-papel__diagram">
+                  <ProductionCortePliegoDiagram
+                    tipoPapel={selected}
+                    despiece={despieceCatalogo}
+                  />
+                </div>
+              ) : (
+                <p className="production-diseno-cliente-hint production-corte-pliego-diagram__empty">
+                  {papelCopy.pliegoDiagram.emptyDespiece}
+                </p>
+              )}
               <ProductionCorteCatalogSnapshot
                 tipoPapel={selected}
                 despiece={despieceCatalogo}

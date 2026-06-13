@@ -18,11 +18,7 @@ interface ProductionCorteValoresSectionProps {
   clienteSuministra: boolean
   esFaltanteLitografia?: boolean
   papelSinCortar: boolean
-  registroActivo: DisenoColorPlanchaItem | null
-  registroIndex: number
 }
-
-const helpLabels = copy.sections.valores.helpDetalle
 
 const valoresCopy = copy.sections.valores
 
@@ -37,8 +33,6 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
   clienteSuministra,
   esFaltanteLitografia = false,
   papelSinCortar,
-  registroActivo,
-  registroIndex,
 }) => {
   const litografiaSuministra = !clienteSuministra || esFaltanteLitografia
   const unidadEmpaqueDisplay =
@@ -68,8 +62,6 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
         coloresPlanchas,
         clienteSuministra,
         papelSinCortar,
-        registroActivo,
-        registroIndex,
         margenRedondeo,
         cantidadHojasDisplay,
         valorCorteDisplay,
@@ -83,8 +75,6 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
       coloresPlanchas,
       clienteSuministra,
       papelSinCortar,
-      registroActivo,
-      registroIndex,
       margenRedondeo,
       cantidadHojasDisplay,
       valorCorteDisplay,
@@ -212,32 +202,14 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
             <li key={paso.id} className="production-corte-valores__help-step">
               <div className="production-corte-valores__help-step-head">
                 <span className="production-corte-valores__help-step-num">{index + 1}</span>
-                <strong className="production-corte-valores__help-step-campo">{paso.campo}</strong>
+                <strong className="production-corte-valores__help-step-campo">{paso.titulo}</strong>
+                <span className="production-corte-valores__help-step-resultado">{paso.resultado}</span>
               </div>
-              <dl className="production-corte-valores__help-step-dl">
-                <div className="production-corte-valores__help-step-row">
-                  <dt>{helpLabels.etiquetaOrigen}</dt>
-                  <dd className="production-corte-valores__help-step-origen">
-                    {paso.origen.split('\n').map((linea, i) => (
-                      <span key={i}>{linea}</span>
-                    ))}
-                  </dd>
-                </div>
-                <div className="production-corte-valores__help-step-row">
-                  <dt>{helpLabels.etiquetaFormula}</dt>
-                  <dd className="production-corte-valores__help-step-formula">
-                    {paso.formula.split('\n').map((linea, i) => (
-                      <span key={i}>{linea}</span>
-                    ))}
-                  </dd>
-                </div>
-                <div className="production-corte-valores__help-step-row">
-                  <dt>{helpLabels.etiquetaResultado}</dt>
-                  <dd>
-                    <strong className="production-corte-valores__help-step-valor">{paso.resultado}</strong>
-                  </dd>
-                </div>
-              </dl>
+              <div className="production-corte-valores__help-formula">
+                {paso.formula.split('\n').map((linea, i) => (
+                  <p key={i}>{linea}</p>
+                ))}
+              </div>
             </li>
           ))}
         </ol>

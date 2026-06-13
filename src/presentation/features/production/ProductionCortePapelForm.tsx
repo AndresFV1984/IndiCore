@@ -307,8 +307,6 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
           clienteSuministra={clienteSuministra}
           esFaltanteLitografia={esFaltanteLitografia}
           papelSinCortar={papelSinCortar}
-          registroActivo={registroActivo}
-          registroIndex={registroIndex}
         />
       </CorteFormPanel>
     ) : null

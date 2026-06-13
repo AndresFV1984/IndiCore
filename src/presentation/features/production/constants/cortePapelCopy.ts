@@ -120,6 +120,34 @@ export const CORTE_PAPEL_COPY = {
         `Agregue despieces en Catálogos › Tipo de papel para «${nombre}».`,
       agregarDespieces: 'Agregar despieces en catálogo',
       gestionarDespieces: 'Gestionar despieces en catálogo',
+      pliegoDiagram: {
+        title: 'Distribución en el pliego',
+        emptyDespiece: 'Seleccione un despiece para ver cómo quedan las piezas en el papel.',
+        unavailable: 'No se pudo calcular la distribución con las medidas actuales.',
+        rotatedHint: 'Pieza rotada 90°',
+        paperSwappedHint: 'Pliego rotado 90°',
+        algorithmLabel: (algorithm: string) => {
+          if (algorithm === 'strip') return 'Strip packing (bandas horizontales)'
+          if (algorithm === 'skyline') return '2D bin packing (skyline)'
+          return 'Cuadrícula guillotina'
+        },
+        gridLabel: (cols: number, rows: number, total: number, shelfCounts: number[]) => {
+          if (shelfCounts.length > 0) {
+            return `${shelfCounts.length} bandas: ${shelfCounts.join(' + ')} = ${total.toLocaleString('es-CO')} piezas`
+          }
+          return `${cols} columnas × ${rows} filas = ${total.toLocaleString('es-CO')} piezas por pliego`
+        },
+        wasteLabel: (wasteArea: number, wastePercent: number, unit: string) => {
+          const areaUnit = unit.toLowerCase() === 'cm' ? 'cm²' : `${unit}²`
+          const waste = Math.round(wasteArea * 10) / 10
+          const percent = Math.round(wastePercent * 10) / 10
+          if (waste <= 0) return 'Desperdicio mínimo: aprovechamiento total del pliego'
+          return `Desperdicio: ${waste.toLocaleString('es-CO')} ${areaUnit} (${percent.toLocaleString('es-CO')}%)`
+        },
+        dimAnchoLabel: (value: string, unit: string) => `Ancho ${value} ${unit}`,
+        dimLargoLabel: (value: string, unit: string) => `Largo ${value} ${unit}`,
+        pieceDimLabel: (ancho: string, largo: string) => `${ancho}×${largo}`,
+      },
     },
     valores: {
       title: 'Cantidad y valor',
@@ -134,47 +162,33 @@ export const CORTE_PAPEL_COPY = {
       pasoAjuste: 'Ajuste de redondeo',
       awaitDespiece: 'Seleccione tipo de papel y despiece por pliego para ver los cálculos.',
       helpDetalle: {
-        etiquetaCampo: 'Campo en pantalla',
-        etiquetaOrigen: 'Dónde se define',
-        etiquetaFormula: 'Cómo se calcula',
-        etiquetaResultado: 'Valor mostrado',
         cantidadHojas: {
-          campo: 'Cantidad hojas',
-          origenPreprensa: (registro: string) =>
-            `Preprensa › Especificaciones técnicas › Registro «${registro}» › Tamaños buenos + Sobrante`,
-          origenEstadoPapel:
-            'Corte de papel › Cantidad de hojas y valor del corte › Tamaños buenos y sobrante',
-          origenPiezas: 'Tipo de papel (paso 1) › Despiece por pliego › Piezas por pliego',
-          formula: '(Tamaños buenos + Sobrante) ÷ Piezas por pliego',
+          titulo: 'Cantidad hojas',
+          formulaBase:
+            'Se suman Tamaños buenos + Sobrante y se divide entre Piezas por pliego del despiece. El resultado se redondea al entero más cercano.',
           formulaConNumeros: (suma: string, piezas: string, resultado: string) =>
-            `(${suma}) ÷ ${piezas} = ${resultado}`,
-        },
-        unidadEmpaque: {
-          campo: 'Unidad empaque',
-          origen: 'Catálogos › Tipo de papel › Unidad de empaque (cantidad de hojas por empaque)',
-          formula: 'Se toma del tipo de papel seleccionado; no se calcula en esta pantalla',
-        },
-        margenRedondeo: {
-          campo: 'Margen de redondeo',
-          origen: 'Cantidad y valor › Ajuste de redondeo (campo editable en esta sección)',
-          formula:
-            'Se aplica al dividir Cantidad hojas ÷ Unidad empaque antes de multiplicar por el valor corte unitario',
-        },
-        valorCorteUnitario: {
-          campo: 'Valor corte unit.',
-          origen: 'Catálogos › Tipo de papel › Despiece por pliego › Valor corte',
-          formula: 'Tarifa unitaria del despiece elegido en el paso 1',
+            `${suma} ÷ ${piezas} piezas/pliego = ${resultado} hojas`,
         },
         valorCorteTotal: {
-          campo: 'Valor del corte',
-          origen: 'Resultado final de esta sección (barra superior)',
-          formula: 'Cociente (con margen) × Valor corte unitario',
-          formulaConNumeros: (cociente: string, unitario: string, resultado: string) =>
-            `${cociente} × ${unitario} = ${resultado}`,
+          titulo: 'Valor del corte',
+          formulaBase:
+            'Primero se divide Cantidad hojas entre Unidad empaque (aplicando el margen de redondeo al cociente). Luego se multiplica ese cociente por el Valor corte unitario del catálogo.',
+          formulaConNumeros: (
+            cantidadHojas: string,
+            unidadEmpaque: string,
+            cociente: string,
+            margen: string,
+            unitario: string,
+            resultado: string
+          ) =>
+            [
+              `${cantidadHojas} hojas ÷ ${unidadEmpaque} unidad empaque = ${cociente} (margen ${margen})`,
+              `${cociente} × ${unitario} = ${resultado}`,
+            ].join('\n'),
           formulaMinimo:
-            'Si el producto es menor al valor corte del catálogo, se cobra el mínimo del catálogo',
+            'Si el total calculado es menor al valor corte del catálogo, se cobra el mínimo del catálogo.',
           noAplicaCortado:
-            'No aplica en este registro: papel cortado por el cliente (salvo hojas faltantes en registro litografía)',
+            'No aplica en este registro: el papel llega cortado por el cliente.',
         },
       },
     },

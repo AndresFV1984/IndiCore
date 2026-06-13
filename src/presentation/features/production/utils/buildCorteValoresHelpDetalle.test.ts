@@ -15,7 +15,7 @@ const baseValores: CortePapelValores = {
 }
 
 describe('buildCorteValoresHelpDetalle', () => {
-  it('incluye origen de Estado del papel y fórmula con números para cantidad hojas', () => {
+  it('solo expone fórmulas de cantidad hojas y valor del corte', () => {
     const pasos = buildCorteValoresHelpDetalle({
       valores: baseValores,
       row: {
@@ -27,8 +27,6 @@ describe('buildCorteValoresHelpDetalle', () => {
       coloresPlanchas: [],
       clienteSuministra: true,
       papelSinCortar: true,
-      registroActivo: null,
-      registroIndex: -1,
       margenRedondeo: 2,
       cantidadHojasDisplay: '3.100',
       valorCorteDisplay: '$ 7.440',
@@ -37,13 +35,21 @@ describe('buildCorteValoresHelpDetalle', () => {
       cocienteDisplay: '6,2',
     })
 
-    const cantidad = pasos.find(p => p.id === 'cantidad-hojas')
-    expect(cantidad?.campo).toBe('Cantidad hojas')
-    expect(cantidad?.origen).toContain('Tamaños buenos')
-    expect(cantidad?.origen).toContain('Piezas por pliego')
-    expect(cantidad?.formula).toContain('3.100')
-    expect(cantidad?.formula).toContain('24')
-    expect(pasos.some(p => p.id === 'cociente')).toBe(false)
+    expect(pasos).toHaveLength(2)
+    expect(pasos.map(p => p.id)).toEqual(['cantidad-hojas', 'valor-total'])
+
+    const cantidad = pasos[0]
+    expect(cantidad.titulo).toBe('Cantidad hojas')
+    expect(cantidad.formula).toContain('Tamaños buenos + Sobrante')
+    expect(cantidad.formula).toContain('3.100')
+    expect(cantidad.formula).toContain('24')
+    expect(cantidad.resultado).toBe('3.100')
+
+    const total = pasos[1]
+    expect(total.titulo).toBe('Valor del corte')
+    expect(total.formula).toContain('Cantidad hojas')
+    expect(total.formula).toContain('6,2')
+    expect(total.formula).toContain('$ 7.440')
   })
 
   it('indica no aplica cuando el cliente entrega papel cortado', () => {
@@ -53,8 +59,6 @@ describe('buildCorteValoresHelpDetalle', () => {
       coloresPlanchas: [],
       clienteSuministra: true,
       papelSinCortar: false,
-      registroActivo: null,
-      registroIndex: -1,
       margenRedondeo: 2,
       cantidadHojasDisplay: '500',
       valorCorteDisplay: 'No aplica',
@@ -64,6 +68,6 @@ describe('buildCorteValoresHelpDetalle', () => {
     })
 
     const total = pasos.find(p => p.id === 'valor-total')
-    expect(total?.formula).toContain('ya cortado')
+    expect(total?.formula).toContain('cortado por el cliente')
   })
 })
