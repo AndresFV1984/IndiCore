@@ -12,12 +12,18 @@ import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
 import type { CatalogRecord } from '../../catalog/catalogRecord'
 import { parseCatalogNumeric, parseCatalogValorCmCuadrado } from '../../catalog/catalogRecord'
 import { despieceAsociadoMedida } from '../../../../core/domain/entities/CortePapel'
-import { findPaperRowForActiveId, getCorteRowActiveId } from './cortePapelFaltante'
+import { listAllCortePaperRows } from './cortePapelFaltante'
 import { buildCorteResumenConsolidado, isCorteRegistroCompleto } from './paperRowsSync'
 import { computeTerminadoPrecio } from './terminadoPricingUtils'
+import {
+  emptyPaperRow,
+  resolveDespieceForPaperRow,
+  syncPaperRowWithTipoPapelCatalog,
+} from './tipoPapelDisplay'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
 
-export const resolveTerminadosCorteRowKey = (row: PaperRow): string => getCorteRowActiveId(row)
+export const resolveTerminadosCorteRowKey = (row: PaperRow): string =>
+  row.corteRowId ?? row.colorPlanchaId ?? ''
 
 export interface TerminadosCorteContext {
   corteRowKey: string
@@ -50,6 +56,7 @@ export const buildTerminadosCorteContexts = (
   margenRedondeo: number,
   clienteSuministraPapel: YesNoChoice
 ): TerminadosCorteContext[] => {
+  const allRows = listAllCortePaperRows(coloresPlanchas, paperRows)
   const { registros } = buildCorteResumenConsolidado(
     coloresPlanchas,
     paperRows,
@@ -58,16 +65,13 @@ export const buildTerminadosCorteContexts = (
     clienteSuministraPapel
   )
 
-  return registros.map(line => {
-    const activeId = line.corteRowId ?? line.colorPlanchaId
-    const row = activeId
-      ? findPaperRowForActiveId(paperRows, activeId)
-      : ({ colorPlanchaId: line.colorPlanchaId, corteRowId: line.corteRowId } as PaperRow)
+  return registros.map((line, index) => {
+    const syncedRow = syncPaperRowWithTipoPapelCatalog(allRows[index] ?? emptyPaperRow(), tiposPapel)
+    const despiece = resolveDespieceForPaperRow(syncedRow, tiposPapel)
 
-    const despiece = row.despiece
     return {
       corteRowKey: line.corteRowId ?? line.colorPlanchaId,
-      row,
+      row: despiece ? { ...syncedRow, despiece } : syncedRow,
       label: line.label,
       shortLabel: line.shortLabel,
       tipoPapel: line.tipoPapel,

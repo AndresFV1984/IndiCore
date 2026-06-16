@@ -9,6 +9,33 @@ import {
 } from '../../../../core/domain/entities/PreprensaDiseno'
 
 describe('buildPreprensaFromHistorial', () => {
+  it('no copia el costo de diseño del trabajo anterior', () => {
+    const raw: Partial<PreprensaDisenoSpecs> = {
+      aplicaCostoDiseno: true,
+      crearDisenoCost: 250000,
+      coloresPlanchas: [
+        {
+          id: '1',
+          colores: '2-colores',
+          planchaId: 'tp1',
+          planchaNombreMedida: 'Plancha — 70x100',
+          planchaValor: 185000,
+          cantidad: 0,
+          numeroPlanchas: 0,
+          valorTotal: 0,
+          numeroCavidades: 2,
+          tamanosBuenos: 0,
+          sobrante: 0,
+          detalle: 'Cyan',
+          observacion: '',
+        },
+      ],
+    }
+    const result = buildPreprensaFromHistorial(raw as PreprensaDisenoSpecs, 'ord-1', 'work')
+    expect(result.aplicaCostoDiseno).toBe(false)
+    expect(result.crearDisenoCost).toBe(0)
+  })
+
   it('zeros planchaValor on coloresPlanchas items', () => {
     const raw: Partial<PreprensaDisenoSpecs> = {
       coloresPlanchas: [

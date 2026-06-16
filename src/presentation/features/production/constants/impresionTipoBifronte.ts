@@ -34,6 +34,20 @@ export const normalizeImpresionTipoBifronte = (value: unknown): ImpresionTipoBif
 export const isImpresionConVolteo = (value: ImpresionTipoBifronte | ''): boolean =>
   value === 'volteo-pinza' || value === 'volteo-escuadra'
 
+/** Volteo exige cavidades de Preprensa definidas y en número par. */
+export const canUseImpresionVolteo = (numeroCavidades: number): boolean =>
+  Number.isFinite(numeroCavidades) && numeroCavidades > 0 && numeroCavidades % 2 === 0
+
+export const sanitizeImpresionTipoBifronteForCavidades = (
+  tipo: ImpresionTipoBifronte | '',
+  numeroCavidades: number
+): ImpresionTipoBifronte => {
+  if (!canUseImpresionVolteo(numeroCavidades) && isImpresionConVolteo(tipo)) {
+    return 'diferente-plancha'
+  }
+  return (tipo || 'diferente-plancha') as ImpresionTipoBifronte
+}
+
 export const resolveImpresionConVolteoEnabled = (
   enabled: boolean,
   current: ImpresionTipoBifronte | ''

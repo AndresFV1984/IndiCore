@@ -31,6 +31,7 @@ interface VolteoTarifaBlockProps {
   umbralDecimalMillarVolteo?: number
   tarifasMillarLoading?: boolean
   millaresPreview?: ImpresionGrupoMillaresPreview | null
+  conVolteoPermitido?: boolean
   onTipoBifronteChange: (value: ImpresionTipoBifronte | '') => void
   onPrecioMillarChange: (value: number) => void
   onPrecioVolteoMillarChange: (value: number) => void
@@ -73,6 +74,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
   umbralDecimalMillarVolteo,
   tarifasMillarLoading = false,
   millaresPreview = null,
+  conVolteoPermitido = true,
   onTipoBifronteChange,
   onPrecioMillarChange,
   onPrecioVolteoMillarChange,
@@ -204,6 +206,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
           value={tipoBifronte}
           onChange={onTipoBifronteChange}
           disabled={tarifasMillarLoading}
+          conVolteoPermitido={conVolteoPermitido}
         />
 
         <ImpresionTarifaMetricsStrip {...tarifaStripProps} />
@@ -251,6 +254,7 @@ interface ImpresionTintasVolteoSectionProps {
   tarifasMillarLoading?: boolean
   millaresPreviewColorBasico?: ImpresionGrupoMillaresPreview | null
   millaresPreviewPantone?: ImpresionGrupoMillaresPreview | null
+  conVolteoPermitido?: boolean
   onTipoBifronteColorBasicoChange: (value: ImpresionTipoBifronte | '') => void
   onTipoBifrontePantoneChange: (value: ImpresionTipoBifronte | '') => void
   onPrecioColorBasicoMillarChange: (value: number) => void
@@ -285,6 +289,7 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
   tarifasMillarLoading = false,
   millaresPreviewColorBasico = null,
   millaresPreviewPantone = null,
+  conVolteoPermitido = true,
   onTipoBifronteColorBasicoChange,
   onTipoBifrontePantoneChange,
   onPrecioColorBasicoMillarChange,
@@ -313,6 +318,7 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
         umbralDecimalMillarVolteo={umbralDecimalMillarVolteoColorBasico}
         tarifasMillarLoading={tarifasMillarLoading}
         millaresPreview={millaresPreviewColorBasico}
+        conVolteoPermitido={conVolteoPermitido}
         onTipoBifronteChange={onTipoBifronteColorBasicoChange}
         onPrecioMillarChange={onPrecioColorBasicoMillarChange}
         onPrecioVolteoMillarChange={onPrecioVolteoColorBasicoMillarChange}
@@ -333,6 +339,7 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
         umbralDecimalMillarVolteo={umbralDecimalMillarVolteoPantone}
         tarifasMillarLoading={tarifasMillarLoading}
         millaresPreview={millaresPreviewPantone}
+        conVolteoPermitido={conVolteoPermitido}
         onTipoBifronteChange={onTipoBifrontePantoneChange}
         onPrecioMillarChange={onPrecioPantoneMillarChange}
         onPrecioVolteoMillarChange={onPrecioVolteoPantoneMillarChange}

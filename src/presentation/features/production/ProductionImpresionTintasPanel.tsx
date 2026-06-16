@@ -35,7 +35,7 @@ import {
   resolveCompletedPlanchaIds,
   resolvePlanchaColoresMax,
 } from './utils/impresionTintasUtils'
-import { isImpresionConVolteo } from './constants/impresionTipoBifronte'
+import { isImpresionConVolteo, canUseImpresionVolteo, sanitizeImpresionTipoBifronteForCavidades } from './constants/impresionTipoBifronte'
 import {
   entradaUsesPantoneInks,
   entradaUsesPrimaryOrSecondaryInks,
@@ -108,6 +108,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   const hasActiveEntrada = Boolean(activeEntrada)
 
   const maxColoresPlancha = activePlancha ? resolvePlanchaColoresMax(activePlancha) : 0
+  const volteoPermitido = canUseImpresionVolteo(activePlancha?.numeroCavidades ?? 0)
   const draftTotal = draftTiro.cantidad + draftRetiro.cantidad
   const hasDraftContent =
     draftTiro.cantidad > 0 ||
@@ -257,7 +258,21 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       cantidad: entrada.retiro.cantidad,
       tintas: [...entrada.retiro.tintas],
     })
-    setDraftTarifa(readImpresionTintasDraftTarifa(registro))
+    const tarifa = readImpresionTintasDraftTarifa(registro)
+    const plancha =
+      coloresPlanchas.find(item => item.id === registro.colorPlanchaId) ?? activePlancha
+    const cavidades = plancha?.numeroCavidades ?? 0
+    setDraftTarifa({
+      ...tarifa,
+      tipoBifronteColorBasico: sanitizeImpresionTipoBifronteForCavidades(
+        tarifa.tipoBifronteColorBasico,
+        cavidades
+      ),
+      tipoBifrontePantone: sanitizeImpresionTipoBifronteForCavidades(
+        tarifa.tipoBifrontePantone,
+        cavidades
+      ),
+    })
     setDraftError(null)
   }
 
@@ -278,6 +293,28 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     if (tarifasMillarLoading || !showComposerForm) return
     setDraftTarifa(prev => syncImpresionTintasDraftTarifa(prev, tarifasMillar, draftTiro, draftRetiro))
   }, [draftTiro, draftRetiro, showComposerForm, tarifasMillar, tarifasMillarLoading])
+
+  useEffect(() => {
+    if (volteoPermitido) return
+    setDraftTarifa(prev => {
+      const needsColorBasico = isImpresionConVolteo(prev.tipoBifronteColorBasico)
+      const needsPantone = isImpresionConVolteo(prev.tipoBifrontePantone)
+      if (!needsColorBasico && !needsPantone) return prev
+      let next = prev
+      if (needsColorBasico) {
+        next = patchImpresionTintasDraftTarifaVolteo(
+          next,
+          tarifasMillar,
+          'colorBasico',
+          'diferente-plancha'
+        )
+      }
+      if (needsPantone) {
+        next = patchImpresionTintasDraftTarifaVolteo(next, tarifasMillar, 'pantone', 'diferente-plancha')
+      }
+      return next
+    })
+  }, [volteoPermitido, tarifasMillar])
 
   const persistRegistro = (registro: ImpresionTintasRegistro) => {
     onRegistroChange(registro)
@@ -331,15 +368,23 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   }
 
   const handleTipoBifronteColorBasicoChange = (tipoBifronte: ImpresionTipoBifronte | '') => {
+    const tipo = sanitizeImpresionTipoBifronteForCavidades(
+      (tipoBifronte || 'diferente-plancha') as ImpresionTipoBifronte,
+      activePlancha?.numeroCavidades ?? 0
+    )
     setDraftTarifa(prev =>
-      patchImpresionTintasDraftTarifaVolteo(prev, tarifasMillar, 'colorBasico', tipoBifronte)
+      patchImpresionTintasDraftTarifaVolteo(prev, tarifasMillar, 'colorBasico', tipo)
     )
     if (draftError) setDraftError(null)
   }
 
   const handleTipoBifrontePantoneChange = (tipoBifronte: ImpresionTipoBifronte | '') => {
+    const tipo = sanitizeImpresionTipoBifronteForCavidades(
+      (tipoBifronte || 'diferente-plancha') as ImpresionTipoBifronte,
+      activePlancha?.numeroCavidades ?? 0
+    )
     setDraftTarifa(prev =>
-      patchImpresionTintasDraftTarifaVolteo(prev, tarifasMillar, 'pantone', tipoBifronte)
+      patchImpresionTintasDraftTarifaVolteo(prev, tarifasMillar, 'pantone', tipo)
     )
     if (draftError) setDraftError(null)
   }
@@ -565,6 +610,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                             tarifasMillarLoading={tarifasMillarLoading}
                             millaresPreviewColorBasico={millaresPreviewColorBasico}
                             millaresPreviewPantone={millaresPreviewPantone}
+                            conVolteoPermitido={volteoPermitido}
                             onTipoBifronteColorBasicoChange={handleTipoBifronteColorBasicoChange}
                             onTipoBifrontePantoneChange={handleTipoBifrontePantoneChange}
                             onPrecioColorBasicoMillarChange={handlePrecioColorBasicoMillarChange}

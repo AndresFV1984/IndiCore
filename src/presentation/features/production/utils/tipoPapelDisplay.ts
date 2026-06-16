@@ -101,13 +101,25 @@ export const findDespieceInTipoPapel = (
   return tipoPapel.despiecesPliego.find(d => d.despieceId === despieceId)
 }
 
-/** Despiece del catálogo solo si ya fue elegido en el select (sin auto-selección). */
+/** Despiece del catálogo; conserva el guardado en la orden si aún no hay match en catálogo. */
 export const resolveDespieceForTipoPapel = (
   current: DespieceAsociado | undefined,
   tipoPapel: TipoPapel
 ): DespieceAsociado | undefined => {
   if (!current?.despieceId) return undefined
-  return findDespieceInTipoPapel(tipoPapel, current.despieceId)
+  return findDespieceInTipoPapel(tipoPapel, current.despieceId) ?? current
+}
+
+/** Resuelve despiece vigente para mostrar o calcular (catálogo + respaldo en la fila). */
+export const resolveDespieceForPaperRow = (
+  row: PaperRow,
+  tiposPapel: TipoPapel[]
+): DespieceAsociado | undefined => {
+  if (!row.despiece?.despieceId) return row.despiece
+  if (!row.tipoPapelId) return row.despiece
+  const tipo = normalizeTipoPapelList(tiposPapel).find(item => item.id === row.tipoPapelId)
+  if (!tipo) return row.despiece
+  return resolveDespieceForTipoPapel(row.despiece, tipo)
 }
 
 /** Sincroniza fila de corte con datos vigentes del catálogo (despiece y valor corte). */
@@ -120,6 +132,11 @@ export const syncPaperRowWithTipoPapelCatalog = (
   if (!item) return row
   return mergeTipoPapelIntoRow(row, item)
 }
+
+export const syncPaperRowsWithTipoPapelCatalog = (
+  rows: PaperRow[],
+  tiposPapel: TipoPapel[]
+): PaperRow[] => rows.map(row => syncPaperRowWithTipoPapelCatalog(row, tiposPapel))
 
 export const mergeDespiecePliegoIntoRow = (
   row: PaperRow,

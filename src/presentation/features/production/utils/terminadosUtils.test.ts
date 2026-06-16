@@ -72,6 +72,40 @@ describe('buildTerminadosCorteContexts', () => {
     expect(contexts[0]?.corteRowKey).toBe('a')
     expect(contexts[1]?.corteRowKey).toBe('b')
   })
+
+  it('muestra el despiece por pliego configurado en Corte de papel', () => {
+    const colores = [baseItem('a', 'Frente')]
+    const paperRows = syncPaperRowsWithColoresPlanchas(colores, [completeRow('a')])
+    const tiposPapel = [
+      {
+        id: 'tp',
+        name: 'Couché',
+        ancho: '70',
+        alto: '100',
+        unidadMedida: 'cm',
+        valorHoja: 100,
+        unidadEmpaque: 250,
+        valorCorte: 10,
+        active: true,
+        despiecesPliego: [
+          {
+            despieceId: 'dp-a',
+            name: 'Flyer catálogo',
+            ancho: '21',
+            alto: '14.8',
+            unidadMedida: 'cm',
+            piezasPorPliego: 4,
+            valorCorte: 10,
+          },
+        ],
+      },
+    ] as const
+
+    const contexts = buildTerminadosCorteContexts(colores, paperRows, tiposPapel as never, 0, 'no')
+
+    expect(contexts[0]?.despieceNombre).toBe('Flyer catálogo')
+    expect(contexts[0]?.despieceMedida).toContain('21')
+  })
 })
 
 describe('resolveCompletedTerminadosCorteRowKeys', () => {

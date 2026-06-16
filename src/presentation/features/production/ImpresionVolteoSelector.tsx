@@ -45,18 +45,21 @@ interface ImpresionVolteoSelectorProps {
   value: ImpresionTipoBifronte | ''
   onChange: (value: ImpresionTipoBifronte) => void
   disabled?: boolean
+  conVolteoPermitido?: boolean
 }
 
 const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
   value,
   onChange,
   disabled = false,
+  conVolteoPermitido = true,
 }) => {
   const groupId = useId()
   const conVolteo = isImpresionConVolteo(value)
   const subtipoVolteo: Extract<ImpresionTipoBifronte, 'volteo-pinza' | 'volteo-escuadra'> =
     value === 'volteo-escuadra' ? 'volteo-escuadra' : 'volteo-pinza'
   const subtipoGroupId = useId()
+  const conVolteoBloqueado = !conVolteoPermitido
 
   return (
     <fieldset className="production-impresion-volteo-selector" disabled={disabled}>
@@ -64,6 +67,11 @@ const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
         {volteoCopy.volteoSelectLabel}
       </legend>
       <p className="production-impresion-volteo-selector__hint">{volteoCopy.volteoSelectHint}</p>
+      {conVolteoBloqueado ? (
+        <p className="production-impresion-volteo-selector__cavidades-hint" role="status">
+          {volteoCopy.volteoRequiereCavidadesPares}
+        </p>
+      ) : null}
 
       <div className="production-impresion-volteo-selector__modo" role="radiogroup" aria-labelledby={groupId}>
         <label
@@ -100,7 +108,8 @@ const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
           className={clsx(
             'production-impresion-volteo-option',
             'production-impresion-volteo-option--con',
-            conVolteo && 'production-impresion-volteo-option--selected'
+            conVolteo && 'production-impresion-volteo-option--selected',
+            conVolteoBloqueado && 'production-impresion-volteo-option--blocked'
           )}
         >
           <input
@@ -109,7 +118,7 @@ const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
             name={`${groupId}-modo`}
             value="con-volteo"
             checked={conVolteo}
-            disabled={disabled}
+            disabled={disabled || conVolteoBloqueado}
             onChange={() => onChange(subtipoVolteo)}
           />
           <span className="production-impresion-volteo-option__icon-wrap" aria-hidden>

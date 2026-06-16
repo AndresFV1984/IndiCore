@@ -64,7 +64,7 @@ import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import { useTerminadosHook } from '../../hooks/useTerminados'
 import { useOperacionesHook } from '../../hooks/useOperaciones'
 import ProductionCortePapelForm from './ProductionCortePapelForm'
-import { emptyPaperRow, normalizeTipoPapelList } from './utils/tipoPapelDisplay'
+import { emptyPaperRow, normalizeTipoPapelList, syncPaperRowsWithTipoPapelCatalog } from './utils/tipoPapelDisplay'
 import { DEFAULT_MARGEN_REDONDEO, normalizeMargenRedondeo } from './utils/cortePapelCalculations'
 import {
   appendFaltanteLitografiaRow,
@@ -256,7 +256,10 @@ const ProductionOrderWorkspace: React.FC = () => {
       const clienteSuministraPapel = patch.clienteSuministraPapel ?? prev.clienteSuministraPapel ?? 'no'
       const coloresPlanchas = preprensaDiseno.coloresPlanchas
       const paperRowsRaw = patch.paperRows ?? prev.paperRows
-      const paperRows = syncPaperRowsWithColoresPlanchas(coloresPlanchas, paperRowsRaw)
+      const paperRows = syncPaperRowsWithTipoPapelCatalog(
+        syncPaperRowsWithColoresPlanchas(coloresPlanchas, paperRowsRaw),
+        tiposPapel
+      )
       const metrics = resolveOrderCortePapelMetrics(
         coloresPlanchas,
         paperRows,
@@ -659,7 +662,7 @@ const ProductionOrderWorkspace: React.FC = () => {
     const preprensaDiseno: PreprensaDisenoSpecs = {
       ...emptyPreprensaDiseno(),
       ...buildPreprensaFromHistorial(raw, option.sourceOrderId, option.workName),
-      ...buildColoresPlanchasPatch(coloresPlanchas),
+      ...buildColoresPlanchasPatch(coloresPlanchas, { historialMode: true }),
     }
     setSpecs(prev =>
       mergeSpecsWithCorteMetrics(prev, {

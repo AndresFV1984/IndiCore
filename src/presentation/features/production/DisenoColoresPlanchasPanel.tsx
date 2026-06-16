@@ -6,6 +6,8 @@ import ActionIcon from '../../components/ui/ActionIcon'
 import DisenoColoresPicker, { ColoresCountIcons } from './DisenoColoresPicker'
 import { buildTipoPlanchaSnapshot } from './DisenoTipoPlanchaPicker'
 import {
+  buildClienteSuministraPlanchaDetalle,
+  extractDescripcionUsuarioClienteSuministra,
   buildPrecioPatchFromCatalog,
   computeRegistroValorTotal,
   getColoresCount,
@@ -241,6 +243,15 @@ const PlanchaTableNumCell: React.FC<{
   )
 }
 
+const PlanchaTableDetalleCell: React.FC<{ detalle: string }> = ({ detalle }) => (
+  <td
+    className="production-plancha-table__td production-plancha-table__td--desc"
+    title={detalle.trim() || undefined}
+  >
+    <span className="production-plancha-table__truncate">{detalle.trim() || '—'}</span>
+  </td>
+)
+
 interface PlanchasRegistrosTableProps {
   rows: PlanchaRegistroRow[]
   valorTotalPlanchas: number
@@ -252,6 +263,7 @@ interface PlanchasRegistrosTableProps {
   onRemove: (id: string) => void
   /** Sin cantidad en Detalle OP: solo visualización */
   locked?: boolean
+  clienteSuministraPlanchas?: boolean
 }
 
 const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
@@ -264,6 +276,7 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
   onEdit,
   onRemove,
   locked = false,
+  clienteSuministraPlanchas = false,
 }) => (
   <div
     className={[
@@ -366,7 +379,11 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
               <span className="production-plancha-table__truncate">{nombreMedida || '—'}</span>
             </td>
             <td className="production-plancha-table__td production-plancha-table__td--num">
-              {precioPlancha > 0 ? formatValor(precioPlancha) : '—'}
+              {clienteSuministraPlanchas
+                ? planchaSuministroCopy.precioNoAplica
+                : precioPlancha > 0
+                  ? formatValor(precioPlancha)
+                  : '—'}
             </td>
             <td className="production-plancha-table__td production-plancha-table__td--num">
               {item.numeroPlanchas > 0 ? item.numeroPlanchas : '—'}
@@ -374,11 +391,7 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
             <td className="production-plancha-table__td production-plancha-table__td--num production-plancha-table__td--total">
               {valorTotal > 0 ? formatValor(valorTotal) : '$0'}
             </td>
-            <td className="production-plancha-table__td production-plancha-table__td--desc" title={item.detalle}>
-              <span className="production-plancha-table__truncate">
-                {item.detalle.trim() || '—'}
-              </span>
-            </td>
+            <PlanchaTableDetalleCell detalle={item.detalle} />
             <td className="production-plancha-table__td production-plancha-table__td--act">
               <div className="production-plancha-table__actions">
                 {onEdit ? (
@@ -425,7 +438,9 @@ const PlanchasRegistrosTable: React.FC<PlanchasRegistrosTableProps> = ({
     <div className="production-plancha-total__info">
       <span className="production-plancha-total__label">Valor Total Planchas</span>
       <span className="production-plancha-total__hint">
-        Suma del valor total de {rows.length} {rows.length === 1 ? 'registro' : 'registros'}
+        {clienteSuministraPlanchas
+          ? planchaSuministroCopy.totalPlanchasHintCliente
+          : `Suma del valor total de ${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`}
       </span>
     </div>
     <strong className="production-plancha-total__value">{formatValor(valorTotalPlanchas)}</strong>
@@ -444,6 +459,7 @@ interface PlanchasRegistrosTableExistenteProps {
   onObservacionChange: (id: string, value: string) => void
   onRemove: (id: string) => void
   locked?: boolean
+  clienteSuministraPlanchas?: boolean
 }
 
 const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteProps> = ({
@@ -457,6 +473,7 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
   onObservacionChange,
   onRemove,
   locked = false,
+  clienteSuministraPlanchas = false,
 }) => (
   <div
     className={[
@@ -615,16 +632,16 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
                   )}
                 </td>
                 <td className="production-plancha-table__td production-plancha-table__td--num">
-                  {reposicionActiva && precioPlancha > 0 ? formatValor(precioPlancha) : '—'}
+                  {clienteSuministraPlanchas
+                    ? planchaSuministroCopy.precioNoAplica
+                    : reposicionActiva && precioPlancha > 0
+                      ? formatValor(precioPlancha)
+                      : '—'}
                 </td>
                 <td className="production-plancha-table__td production-plancha-table__td--num production-plancha-table__td--total">
                   {reposicionActiva && valorTotal > 0 ? formatValor(valorTotal) : '$0'}
                 </td>
-                <td className="production-plancha-table__td production-plancha-table__td--desc" title={item.detalle}>
-                  <span className="production-plancha-table__truncate">
-                    {item.detalle.trim() || '—'}
-                  </span>
-                </td>
+                <PlanchaTableDetalleCell detalle={item.detalle} />
                 <td className="production-plancha-table__td production-plancha-table__td--obs">
                   {!esManual && item.reposicionPlancha ? (
                     <input
@@ -668,8 +685,9 @@ const PlanchasRegistrosTableExistente: React.FC<PlanchasRegistrosTableExistenteP
       <div className="production-plancha-total__info">
         <span className="production-plancha-total__label">Valor Total Planchas</span>
         <span className="production-plancha-total__hint">
-          Suma con reposición activa · {rows.length}{' '}
-          {rows.length === 1 ? 'registro' : 'registros'}
+          {clienteSuministraPlanchas
+            ? planchaSuministroCopy.totalPlanchasHintCliente
+            : `Suma con reposición activa · ${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`}
         </span>
       </div>
       <strong className="production-plancha-total__value">{formatValor(valorTotalPlanchas)}</strong>
@@ -701,6 +719,7 @@ interface RegistroOpComposerFormProps {
   onNumeroPlanchasManualChange: (value: string) => void
   draftValorTotal: number
   draftDescripcion: string
+  draftDetalleClienteSuministra: string
   onDescripcionChange: (value: string) => void
   draftError: string | null
   onCancel: () => void
@@ -733,6 +752,7 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
   onNumeroPlanchasManualChange,
   draftValorTotal,
   draftDescripcion,
+  draftDetalleClienteSuministra,
   onDescripcionChange,
   draftError,
   onCancel,
@@ -968,8 +988,17 @@ const RegistroOpComposerForm: React.FC<RegistroOpComposerFormProps> = ({
             value={draftDescripcion}
             disabled={!detalleOpCantidadLista}
             onChange={e => onDescripcionChange(e.target.value)}
-            placeholder="Ej. Tinta Pantone, acabado…"
+            placeholder={
+              clienteSuministraPlanchas
+                ? 'Ej. Tinta Pantone, acabado… (opcional)'
+                : 'Ej. Tinta Pantone, acabado…'
+            }
           />
+          {clienteSuministraPlanchas ? (
+            <p className="production-plancha-draft__detalle-auto" role="status">
+              {draftDetalleClienteSuministra || planchaSuministroCopy.detalleClienteSuministraHint}
+            </p>
+          ) : null}
         </div>
 
         <div className="production-plancha-draft__total" aria-live="polite">
@@ -1066,6 +1095,10 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
     () => activePlanchas.find(p => p.id === draftPlanchaId),
     [activePlanchas, draftPlanchaId]
   )
+  const draftTipoPlancha = draftPlancha ? `${draftPlancha.name} — ${draftPlancha.medida}` : ''
+  const draftDetalleClienteSuministra = draftTipoPlancha
+    ? buildClienteSuministraPlanchaDetalle(draftTipoPlancha, draftDescripcion)
+    : ''
   const draftPrecioPlancha = clienteSuministraPlanchas ? 0 : (draftPlancha?.valor ?? 0)
   const isSieteOMasColores = draftColor === '7-colores-o-mas'
   const draftNumeroPlanchas = isSieteOMasColores
@@ -1179,7 +1212,11 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   const loadItemIntoDraft = (item: DisenoColorPlanchaItem) => {
     setDraftColor(item.colores)
     setDraftPlanchaId(item.planchaId)
-    setDraftDescripcion(item.detalle)
+    setDraftDescripcion(
+      clienteSuministraPlanchas
+        ? extractDescripcionUsuarioClienteSuministra(item.detalle, item.planchaNombreMedida)
+        : item.detalle
+    )
     setDraftCantidad(item.cantidad > 0 ? String(item.cantidad) : defaultCantidadFromOp())
     setDraftCavidades(item.numeroCavidades > 0 ? String(item.numeroCavidades) : '')
     setDraftSobrante(item.sobrante > 0 ? String(item.sobrante) : '')
@@ -1256,8 +1293,10 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
         setDraftError(validationCopy.cantidadRegistro)
         return
       }
-      const descripcion = draftDescripcion.trim()
-      if (!descripcion) {
+      const descripcion = clienteSuministraPlanchas
+        ? buildClienteSuministraPlanchaDetalle(snapshot.planchaNombreMedida, draftDescripcion)
+        : draftDescripcion.trim()
+      if (!clienteSuministraPlanchas && !descripcion) {
         setDraftError(validationCopy.descripcionRegistro)
         return
       }
@@ -1401,11 +1440,17 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
       (item.cantidadReposicion ?? 0) > 0
         ? item.cantidadReposicion!
         : getColoresCount(item.colores)
+    const itemConReposicion = { ...item, reposicionPlancha: true, cantidadReposicion }
     updateItem(id, {
       reposicionPlancha: true,
       numeroPlanchas: getColoresCount(item.colores),
       cantidadReposicion,
-      ...buildPrecioPatchFromCatalog(item, catalog, cantidadReposicion, pricingContext),
+      ...buildPrecioPatchFromCatalog(
+        itemConReposicion,
+        catalog,
+        cantidadReposicion,
+        pricingContext
+      ),
     })
   }
 
@@ -1611,6 +1656,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                     }}
                     draftValorTotal={draftValorTotal}
                     draftDescripcion={draftDescripcion}
+                    draftDetalleClienteSuministra={draftDetalleClienteSuministra}
                     onDescripcionChange={value => {
                       setDraftDescripcion(value)
                       if (draftError) setDraftError(null)
@@ -1651,6 +1697,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               {historialMode ? (
                 <PlanchasRegistrosTableExistente
                   locked={!coloresListaEditable}
+                  clienteSuministraPlanchas={clienteSuministraPlanchas}
                   rows={items.map(item => {
                     const display = resolveDisplay(item)
                     return {
@@ -1674,6 +1721,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
                 <PlanchasRegistrosTable
                   locked={!coloresListaEditable}
                   editingItemId={editingItemId}
+                  clienteSuministraPlanchas={clienteSuministraPlanchas}
                   rows={items.map(item => {
                     const display = resolveDisplay(item)
                     return {

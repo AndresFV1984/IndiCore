@@ -121,6 +121,10 @@ export const PREPRENSA_DISENO_COPY = {
     avisoCliente:
       'El cliente entrega las planchas: en este registro no se cobra precio de plancha.',
     precioNoAplica: 'No aplica (cliente suministra)',
+    detalleClienteSuministraHint:
+      'Se agrega al final «Cliente suministra plancha» y el tipo elegido.',
+    resumenPlanchasCliente: 'Precio de planchas no incluido: cliente suministra.',
+    totalPlanchasHintCliente: 'Sin cobro de planchas (cliente suministra)',
     opciones: {
       empresa: {
         title: 'Litografía suministra planchas',

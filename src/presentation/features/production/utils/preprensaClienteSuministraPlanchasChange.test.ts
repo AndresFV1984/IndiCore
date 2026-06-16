@@ -28,6 +28,16 @@ describe('patchPreprensaClienteSuministraPlanchas', () => {
     expect(patch.coloresPlanchas?.[0]?.planchaValor).toBe(0)
     expect(patch.coloresPlanchas?.[0]?.valorTotal).toBe(0)
     expect(patch.valorTotalPlanchas).toBe(0)
+    expect(patch.coloresPlanchas?.[0]?.detalle).toBe('Tinta — Cliente suministra plancha Plancha')
+  })
+
+  it('conserva la descripción del usuario al activar suministro del cliente', () => {
+    const patch = patchPreprensaClienteSuministraPlanchas('si', [
+      { ...registro(), detalle: 'Tinta Pantone' },
+    ])
+    expect(patch.coloresPlanchas?.[0]?.detalle).toBe(
+      'Tinta Pantone — Cliente suministra plancha Plancha'
+    )
   })
 
   it('conserva registros al volver a cobrar planchas de la empresa', () => {

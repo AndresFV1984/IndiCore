@@ -4,6 +4,7 @@ import type {
   YesNoChoice,
 } from '../../../../core/domain/entities/PreprensaDiseno'
 import {
+  applyClienteSuministraPlanchaDetalleToItems,
   buildColoresPlanchasPatch,
   clearColoresPlanchasPrecios,
   type ColoresPlanchasPricingContext,
@@ -18,7 +19,10 @@ export function patchPreprensaClienteSuministraPlanchas(
     historialMode,
     clienteSuministraPlanchas: value,
   }
-  const items = value === 'si' ? clearColoresPlanchasPrecios(coloresPlanchas) : coloresPlanchas
+  const items =
+    value === 'si'
+      ? applyClienteSuministraPlanchaDetalleToItems(clearColoresPlanchasPrecios(coloresPlanchas))
+      : coloresPlanchas
   return {
     clienteSuministraPlanchas: value,
     ...buildColoresPlanchasPatch(items, pricing),

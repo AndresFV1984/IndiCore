@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { PreprensaDisenoSpecs } from '../../../core/domain/entities/PreprensaDiseno'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
+import { PREPRENSA_DISENO_COPY as copy } from './constants/preprensaDisenoCopy'
 import { computeDisenoResumenTotales } from './utils/preprensaDisenoTotales'
 
 const formatValor = (value: number) =>
@@ -16,6 +17,7 @@ interface DisenoTotalesResumenProps {
 
 const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) => {
   const resumen = useMemo(() => computeDisenoResumenTotales(diseno), [diseno])
+  const clienteSuministraPlanchas = (diseno.clienteSuministraPlanchas ?? 'no') === 'si'
 
   const filas = [
     {
@@ -59,6 +61,11 @@ const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) =
           </li>
         ))}
       </ul>
+      {clienteSuministraPlanchas ? (
+        <p className="production-diseno-resumen__hint production-diseno-cliente-hint production-diseno-cliente-hint--aviso">
+          {copy.planchaSuministro.resumenPlanchasCliente}
+        </p>
+      ) : null}
       <div className="production-diseno-resumen__total" aria-live="polite">
         <div className="production-diseno-resumen__total-info">
           <span className="production-diseno-resumen__total-label">Total</span>

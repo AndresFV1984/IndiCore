@@ -23,7 +23,7 @@ export const ACABADOS_COPY = {
       tag: 'Contexto',
       title: 'Datos del corte',
       tipoPapel: 'Tipo de papel',
-      despiece: 'Despiece seleccionado',
+      despiece: 'Despiece por pliego',
       tamanosBuenos: 'Tamaños buenos',
       incompleto: 'Complete tipo de papel, despiece y tamaños buenos en Corte de papel.',
     },

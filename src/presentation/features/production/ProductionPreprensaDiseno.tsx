@@ -14,9 +14,11 @@ import { buildColoresPlanchasPatch } from './utils/coloresPlanchasUtils'
 import DisenoCrearCostoPanel from './DisenoCrearCostoPanel'
 import DisenoPdfUpload from './DisenoPdfUpload'
 import DisenoClientePicker from './DisenoClientePicker'
+import PreprensaPlanchaSuministroShell from './PreprensaPlanchaSuministroShell'
 import ProductionPrecioMontajePicker from './ProductionPrecioMontajePicker'
 import { ClienteDisenoOption } from './utils/buildClienteDisenos'
 import { clearPreprensaHistorialSelection } from './utils/applyPreprensaFromHistorial'
+import { patchPreprensaClienteSuministraPlanchas } from './utils/preprensaClienteSuministraPlanchasChange'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import type { ProductionWorkspaceTone } from './constants/productionWorkspaceColors'
 import { PREPRENSA_DISENO_COPY as copy } from './constants/preprensaDisenoCopy'
@@ -169,6 +171,16 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
     )
   }
 
+  const handleClienteSuministraPlanchasChange = (value: YesNoChoice) => {
+    onChange(
+      patchPreprensaClienteSuministraPlanchas(
+        value,
+        diseno.coloresPlanchas,
+        detalleDesdeTrabajoAnterior
+      )
+    )
+  }
+
   const costoIncluirValue: YesNoChoice = diseno.aplicaCostoDiseno ? 'si' : 'no'
 
   const handleCostoIncluir = (value: YesNoChoice) => {
@@ -220,6 +232,12 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
       variant={variant}
       hideHead={variant === 'flat'}
     >
+      {isNewOrder ? (
+        <PreprensaPlanchaSuministroShell
+          value={diseno.clienteSuministraPlanchas ?? 'no'}
+          onChange={handleClienteSuministraPlanchasChange}
+        />
+      ) : null}
       <div
         className={[
           'production-diseno-specs-grid',

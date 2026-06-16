@@ -151,6 +151,8 @@ export const IMPRESION_COPY = {
       volteoSelectHint: 'Elija cómo se imprime el reverso de esta plancha.',
       opcionSinVolteoDesc: 'Tiro y retiro en planchas distintas.',
       opcionConVolteoDesc: 'Misma plancha; elige pinza o escuadra.',
+      volteoRequiereCavidadesPares:
+        'El volteo solo está disponible cuando las cavidades del registro de Preprensa son un número par.',
       opcionPinzaDesc: 'Se voltea por la pinza.',
       opcionEscuadraDesc: 'Se voltea por la escuadra.',
       volteoSelectPlaceholder: 'Seleccione volteo…',

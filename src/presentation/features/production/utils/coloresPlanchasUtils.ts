@@ -173,6 +173,74 @@ export const clearColoresPlanchasPrecios = (
     cantidadReposicion: 0,
   }))
 
+/** Texto estándar en descripción cuando el cliente entrega la plancha. */
+const CLIENTE_SUMINISTRA_PLANCHA_LEAD = 'cliente suministra plancha'
+
+const stripDetalleSeparador = (value: string): string =>
+  value.replace(/^[:.\-—–|]\s*/, '').trim()
+
+const buildClienteSuministraPlanchaSuffix = (tipoPlancha: string): string => {
+  const tipo = tipoPlancha.trim()
+  return tipo ? `Cliente suministra plancha ${tipo}` : 'Cliente suministra plancha'
+}
+
+/** Extrae la parte editable del usuario, sin el texto automático de suministro. */
+export const extractDescripcionUsuarioClienteSuministra = (
+  detalle: string,
+  tipoPlancha = ''
+): string => {
+  const rest = detalle.trim()
+  if (!rest) return ''
+
+  const suffix = buildClienteSuministraPlanchaSuffix(tipoPlancha)
+  const suffixLower = suffix.toLowerCase()
+
+  // Orden actual: «Usuario — Cliente suministra plancha Tipo»
+  const suffixIndex = rest.toLowerCase().indexOf(suffixLower)
+  if (suffixIndex > 0) {
+    const before = rest.slice(0, suffixIndex).replace(/\s*[—–\-|]\s*$/, '').trim()
+    if (before && !before.toLowerCase().startsWith(CLIENTE_SUMINISTRA_PLANCHA_LEAD)) {
+      return before
+    }
+  }
+
+  if (rest.toLowerCase() === suffixLower) return ''
+
+  // Compatibilidad con orden anterior: prefijo al inicio
+  if (rest.toLowerCase().startsWith(CLIENTE_SUMINISTRA_PLANCHA_LEAD)) {
+    let legacy = rest.slice(CLIENTE_SUMINISTRA_PLANCHA_LEAD.length).trim()
+    legacy = stripDetalleSeparador(legacy)
+    const tipo = tipoPlancha.trim()
+    if (tipo && legacy.toLowerCase().startsWith(tipo.toLowerCase())) {
+      legacy = legacy.slice(tipo.length).trim()
+      legacy = stripDetalleSeparador(legacy)
+    }
+    return legacy
+  }
+
+  return rest
+}
+
+export const buildClienteSuministraPlanchaDetalle = (
+  tipoPlancha: string,
+  descripcionUsuario?: string
+): string => {
+  const suffix = buildClienteSuministraPlanchaSuffix(tipoPlancha)
+  const user = extractDescripcionUsuarioClienteSuministra(descripcionUsuario ?? '', tipoPlancha)
+  if (!user) return suffix
+  return `${user} — ${suffix}`
+}
+
+export const applyClienteSuministraPlanchaDetalleToItems = (
+  items: DisenoColorPlanchaItem[]
+): DisenoColorPlanchaItem[] =>
+  items.map(item => {
+    const nombre = item.planchaNombreMedida?.trim()
+    if (!nombre) return item
+    const userPart = extractDescripcionUsuarioClienteSuministra(item.detalle, nombre)
+    return { ...item, detalle: buildClienteSuministraPlanchaDetalle(nombre, userPart) }
+  })
+
 export const resolveItemValorTotal = (
   item: DisenoColorPlanchaItem,
   options?: ColoresPlanchasPricingContext

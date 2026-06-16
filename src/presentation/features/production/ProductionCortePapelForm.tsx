@@ -136,9 +136,12 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
     if (!draftRow.tipoPapelId || tiposPapel.length === 0) return
     setDraftRow(prev => {
       const synced = syncPaperRowWithTipoPapelCatalog(prev, tiposPapel)
-      const syncedValor = synced.valorCorteUnitario ?? synced.despiece?.valorCorte ?? 0
-      const rowValor = prev.valorCorteUnitario ?? prev.despiece?.valorCorte ?? 0
-      if (syncedValor === rowValor && synced.despiece?.valorCorte === prev.despiece?.valorCorte) {
+      if (
+        synced.tipoPapelId === prev.tipoPapelId &&
+        synced.despiece?.despieceId === prev.despiece?.despieceId &&
+        synced.despiece?.name === prev.despiece?.name &&
+        (synced.valorCorteUnitario ?? 0) === (prev.valorCorteUnitario ?? 0)
+      ) {
         return prev
       }
       return synced
