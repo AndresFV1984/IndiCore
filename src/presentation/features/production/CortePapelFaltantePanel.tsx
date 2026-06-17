@@ -1,28 +1,21 @@
 import React, { useMemo } from 'react'
 import type { PaperRow } from '../../../core/domain/entities/Order'
-import type { DisenoColorPlanchaItem } from '../../../core/domain/entities/PreprensaDiseno'
 import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
-import { findFaltanteRowForParent } from './utils/cortePapelFaltante'
 
 interface CortePapelFaltantePanelProps {
   row: PaperRow
-  coloresPlanchas: DisenoColorPlanchaItem[]
-  paperRows: PaperRow[]
   /** Cantidad hojas de «Cantidad y valor» (misma fuente que Calculadas). */
   cantidadHojas: number
-  onAgregarFaltante: (hojasFaltante: number) => void
-  onEditarFaltante: (corteRowId: string) => void
+  /** Dentro de «Datos del corte de papel» (más compacto). */
+  embedded?: boolean
 }
 
 const fmtHojas = (value: number): string => value.toLocaleString('es-CO')
 
 const CortePapelFaltantePanel: React.FC<CortePapelFaltantePanelProps> = ({
   row,
-  coloresPlanchas,
-  paperRows,
   cantidadHojas,
-  onAgregarFaltante,
-  onEditarFaltante,
+  embedded = false,
 }) => {
   const faltante = copy.faltante
   const tieneDespiece = Boolean(row.despiece?.despieceId && (row.despiece?.piezasPorPliego ?? 0) > 0)
@@ -40,23 +33,24 @@ const CortePapelFaltantePanel: React.FC<CortePapelFaltantePanelProps> = ({
     }
   }, [cantidadHojas, entregadas, tieneDespiece, tieneEntregadas])
 
-  const faltanteExistente = useMemo(
-    () =>
-      row.colorPlanchaId ? findFaltanteRowForParent(paperRows, row.colorPlanchaId) : undefined,
-    [paperRows, row.colorPlanchaId]
-  )
-
-  const puedeAgregar = tieneDespiece && tieneEntregadas && hojasFaltante > 0 && !faltanteExistente
-
-  if (hojasFaltante <= 0 && !faltanteExistente) return null
+  if (hojasFaltante <= 0) return null
 
   return (
-    <div className="production-corte-faltante" role="region" aria-label={faltante.title}>
+    <div
+      className={[
+        'production-corte-faltante',
+        embedded ? 'production-corte-faltante--embedded' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      role="region"
+      aria-label={faltante.title}
+    >
       <header className="production-corte-faltante__head">
         <div className="production-corte-faltante__head-text">
           <span className="production-corte-faltante__tag">{faltante.tag}</span>
           <h4 className="production-corte-faltante__title">{faltante.title}</h4>
-          <p className="production-corte-faltante__hint">{faltante.hint}</p>
+          {!embedded ? <p className="production-corte-faltante__hint">{faltante.hint}</p> : null}
         </div>
       </header>
 
@@ -66,9 +60,11 @@ const CortePapelFaltantePanel: React.FC<CortePapelFaltantePanelProps> = ({
           <strong className="production-corte-faltante__step-value">
             {tieneDespiece ? fmtHojas(calculadas) : '—'}
           </strong>
-          <span className="production-corte-faltante__step-note">
-            {tieneDespiece ? faltante.calculadasNota : faltante.pendienteDespiece}
-          </span>
+          {!embedded ? (
+            <span className="production-corte-faltante__step-note">
+              {tieneDespiece ? faltante.calculadasNota : faltante.pendienteDespiece}
+            </span>
+          ) : null}
         </div>
 
         <span className="production-corte-faltante__operator" aria-hidden>
@@ -80,9 +76,11 @@ const CortePapelFaltantePanel: React.FC<CortePapelFaltantePanelProps> = ({
           <strong className="production-corte-faltante__step-value">
             {tieneEntregadas ? fmtHojas(entregadas) : '—'}
           </strong>
-          <span className="production-corte-faltante__step-note">
-            {tieneEntregadas ? faltante.entregadasNota : faltante.pendienteEntregadas}
-          </span>
+          {!embedded ? (
+            <span className="production-corte-faltante__step-note">
+              {tieneEntregadas ? faltante.entregadasNota : faltante.pendienteEntregadas}
+            </span>
+          ) : null}
         </div>
 
         <span className="production-corte-faltante__operator production-corte-faltante__operator--eq" aria-hidden>
@@ -93,7 +91,7 @@ const CortePapelFaltantePanel: React.FC<CortePapelFaltantePanelProps> = ({
           className={[
             'production-corte-faltante__step',
             'production-corte-faltante__step--result',
-            hojasFaltante > 0 ? 'production-corte-faltante__step--alert' : '',
+            'production-corte-faltante__step--alert',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -105,47 +103,10 @@ const CortePapelFaltantePanel: React.FC<CortePapelFaltantePanelProps> = ({
           <span className="production-corte-faltante__step-note">
             {!tieneDespiece || !tieneEntregadas
               ? faltante.completarParaComparar
-              : hojasFaltante > 0
-                ? faltante.faltanteNota
-                : faltante.sinFaltante}
+              : faltante.faltanteNota}
           </span>
         </div>
       </div>
-
-      <footer className="production-corte-faltante__footer">
-        {faltanteExistente?.corteRowId ? (
-          <>
-            <p className="production-corte-faltante__footer-msg">{faltante.yaExiste}</p>
-            <button
-              type="button"
-              className="production-btn-secondary"
-              onClick={() => onEditarFaltante(faltanteExistente.corteRowId!)}
-            >
-              {faltante.editarRegistro}
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="production-corte-faltante__footer-msg">
-              {puedeAgregar
-                ? faltante.agregarLead(hojasFaltante.toLocaleString('es-CO'))
-                : !tieneDespiece
-                  ? faltante.requiereDespiece
-                  : !tieneEntregadas
-                    ? faltante.pendienteEntregadas
-                    : faltante.sinFaltante}
-            </p>
-            <button
-              type="button"
-              className="production-btn-secondary production-btn-secondary--accent"
-              disabled={!puedeAgregar}
-              onClick={() => onAgregarFaltante(hojasFaltante)}
-            >
-              {faltante.agregarRegistro}
-            </button>
-          </>
-        )}
-      </footer>
     </div>
   )
 }

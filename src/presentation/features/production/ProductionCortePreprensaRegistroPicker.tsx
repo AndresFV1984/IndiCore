@@ -7,6 +7,7 @@ export interface CorteRegistroPickerOption {
   id: string
   label: string
   completo: boolean
+  esFaltanteLitografia?: boolean
 }
 
 interface ProductionCortePreprensaRegistroPickerProps {
@@ -28,10 +29,14 @@ const ProductionCortePreprensaRegistroPicker: React.FC<
         id: item.id,
         label: formatColoresPlanchaRegistroSelectLabel(item),
         completo,
+        esFaltanteLitografia: false as const,
       }
     })
     return [...preprensa, ...extraOptions]
   }, [coloresPlanchas, processedIds, extraOptions])
+
+  const preprensaOptions = options.filter(opt => !opt.esFaltanteLitografia)
+  const faltanteOptions = options.filter(opt => opt.esFaltanteLitografia)
 
   const selectedOption = options.find(opt => opt.id === selectedId)
   const selectedCompleto = Boolean(selectedOption?.completo)
@@ -84,19 +89,43 @@ const ProductionCortePreprensaRegistroPicker: React.FC<
               aria-label={registro.label}
             >
               <option value="">{registro.placeholder}</option>
-              {options.map(opt => (
-                <option
-                  key={opt.id}
-                  value={opt.id}
-                  className={
-                    opt.completo ? 'production-corte-registro-picker__option--completo' : undefined
-                  }
-                >
-                  {opt.completo
-                    ? `${opt.label}${registro.completadoSeparador}${registro.estadoCompletado}`
-                    : opt.label}
-                </option>
-              ))}
+              {preprensaOptions.length > 0 ? (
+                <optgroup label={registro.title}>
+                  {preprensaOptions.map(opt => (
+                    <option
+                      key={opt.id}
+                      value={opt.id}
+                      className={
+                        opt.completo ? 'production-corte-registro-picker__option--completo' : undefined
+                      }
+                    >
+                      {opt.completo
+                        ? `${opt.label}${registro.completadoSeparador}${registro.estadoCompletado}`
+                        : opt.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {faltanteOptions.length > 0 ? (
+                <optgroup label={copy.faltante.registroPickerGrupo}>
+                  {faltanteOptions.map(opt => (
+                    <option
+                      key={opt.id}
+                      value={opt.id}
+                      className={[
+                        'production-corte-registro-picker__option--faltante',
+                        opt.completo ? 'production-corte-registro-picker__option--completo' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {opt.completo
+                        ? `${opt.label}${registro.completadoSeparador}${registro.estadoCompletado}`
+                        : opt.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
             {selectedCompleto && selectedOption ? (
               <span className="production-corte-registro-picker__select-display" aria-hidden>

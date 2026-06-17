@@ -61,20 +61,19 @@ export const findFaltanteRowForParent = (
 export const createFaltanteLitografiaRow = (
   parentRow: PaperRow,
   parentColorPlanchaId: string,
-  hojasFaltante: number
+  hojasFaltante: number,
+  existingCorteRowId?: string
 ): PaperRow => {
   const cantidad = Math.max(0, Math.round(hojasFaltante))
-  const piezas = parentRow.despiece?.piezasPorPliego ?? 0
-  const tamanosInicial = piezas > 0 ? cantidad * piezas : 0
 
   return {
     ...emptyPaperRow(),
-    corteRowId: createId(),
+    corteRowId: existingCorteRowId ?? createId(),
     esFaltanteLitografia: true,
     faltanteDeColorPlanchaId: parentColorPlanchaId,
     hojasFaltanteCantidad: cantidad,
     papelCortado: 'no',
-    tamanosBuenosManual: tamanosInicial,
+    tamanosBuenosManual: 0,
     sobranteManual: 0,
     tipoPapelId: parentRow.tipoPapelId,
     type: parentRow.type,
@@ -82,8 +81,72 @@ export const createFaltanteLitografiaRow = (
     valorHoja: parentRow.valorHoja,
     unidadEmpaque: parentRow.unidadEmpaque,
     valorCorteUnitario: parentRow.valorCorteUnitario,
+    cortePapelId: parentRow.cortePapelId,
+    cut: parentRow.cut,
+    corteAncho: parentRow.corteAncho,
+    corteAlto: parentRow.corteAlto,
+    corteUnidadMedida: parentRow.corteUnidadMedida,
     despiece: parentRow.despiece ? { ...parentRow.despiece } : undefined,
   }
+}
+
+const parentHasPapelDetalle = (row: PaperRow): boolean =>
+  Boolean(row.tipoPapelId?.trim() && row.despiece?.despieceId)
+
+const faltanteRowsEquivalent = (a: PaperRow, b: PaperRow): boolean =>
+  (a.hojasFaltanteCantidad ?? 0) === (b.hojasFaltanteCantidad ?? 0) &&
+  a.tipoPapelId === b.tipoPapelId &&
+  a.despiece?.despieceId === b.despiece?.despieceId &&
+  (a.valorHoja ?? 0) === (b.valorHoja ?? 0) &&
+  (a.valorCorteUnitario ?? 0) === (b.valorCorteUnitario ?? 0) &&
+  (a.unidadEmpaque ?? 0) === (b.unidadEmpaque ?? 0)
+
+/** Sincroniza la fila de faltante litografía según el padre y las hojas faltantes. */
+export const syncFaltanteLitografiaForParent = (
+  paperRows: PaperRow[],
+  parent: PaperRow,
+  hojasFaltante: number
+): { paperRows: PaperRow[]; changed: boolean } => {
+  const parentColorPlanchaId = parent.colorPlanchaId
+  if (!parentColorPlanchaId) return { paperRows, changed: false }
+
+  const cantidad = Math.max(0, Math.round(hojasFaltante))
+  const existing = findFaltanteRowForParent(paperRows, parentColorPlanchaId)
+
+  if (cantidad <= 0) {
+    if (!existing?.corteRowId) return { paperRows, changed: false }
+    return { paperRows: removeFaltanteRow(paperRows, existing.corteRowId), changed: true }
+  }
+
+  if (!parentHasPapelDetalle(parent)) {
+    return { paperRows, changed: false }
+  }
+
+  const nextFaltante = createFaltanteLitografiaRow(
+    parent,
+    parentColorPlanchaId,
+    cantidad,
+    existing?.corteRowId
+  )
+
+  if (existing && faltanteRowsEquivalent(existing, nextFaltante)) {
+    const parentIndex = paperRows.findIndex(
+      row => !isFaltanteLitografiaRow(row) && row.colorPlanchaId === parentColorPlanchaId
+    )
+    const parentSaved = parentIndex >= 0 ? paperRows[parentIndex] : undefined
+    const parentMatches =
+      parentSaved &&
+      parentSaved.tipoPapelId === parent.tipoPapelId &&
+      parentSaved.despiece?.despieceId === parent.despiece?.despieceId &&
+      (parentSaved.hojasEntregadasCliente ?? 0) === (parent.hojasEntregadasCliente ?? 0) &&
+      (parentSaved.tamanosBuenosManual ?? 0) === (parent.tamanosBuenosManual ?? 0) &&
+      (parentSaved.sobranteManual ?? 0) === (parent.sobranteManual ?? 0)
+    if (parentMatches) return { paperRows, changed: false }
+  }
+
+  let rows = upsertPaperRow(paperRows, parent)
+  rows = upsertPaperRow(rows, nextFaltante)
+  return { paperRows: rows, changed: true }
 }
 
 /** Persiste el padre y agrega (o reemplaza) la fila de faltante litografía. */
@@ -92,22 +155,19 @@ export const appendFaltanteLitografiaRow = (
   parent: PaperRow,
   hojasFaltante: number
 ): { paperRows: PaperRow[]; corteRowId: string } | null => {
-  const parentColorPlanchaId = parent.colorPlanchaId
-  if (!parentColorPlanchaId) return null
-
-  const cantidadFaltante = Math.max(0, Math.round(hojasFaltante))
-  if (cantidadFaltante <= 0) return null
-
-  let rows = upsertPaperRow(paperRows, parent)
-  const existing = findFaltanteRowForParent(rows, parentColorPlanchaId)
-  if (existing?.corteRowId) {
-    rows = rows.filter(r => r.corteRowId !== existing.corteRowId)
+  const synced = syncFaltanteLitografiaForParent(paperRows, parent, hojasFaltante)
+  if (!synced.changed) {
+    const existing = parent.colorPlanchaId
+      ? findFaltanteRowForParent(synced.paperRows, parent.colorPlanchaId)
+      : undefined
+    if (!existing?.corteRowId) return null
+    return { paperRows: synced.paperRows, corteRowId: existing.corteRowId }
   }
-  const faltanteRow = createFaltanteLitografiaRow(parent, parentColorPlanchaId, cantidadFaltante)
-  rows = upsertPaperRow(rows, faltanteRow)
-  const corteRowId = faltanteRow.corteRowId
-  if (!corteRowId) return null
-  return { paperRows: rows, corteRowId }
+  const existing = parent.colorPlanchaId
+    ? findFaltanteRowForParent(synced.paperRows, parent.colorPlanchaId)
+    : undefined
+  if (!existing?.corteRowId) return null
+  return { paperRows: synced.paperRows, corteRowId: existing.corteRowId }
 }
 
 export const upsertPaperRow = (paperRows: PaperRow[], row: PaperRow): PaperRow[] => {

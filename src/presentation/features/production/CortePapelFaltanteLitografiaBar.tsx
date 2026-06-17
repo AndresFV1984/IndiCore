@@ -5,16 +5,26 @@ import CortePapelFaltanteMarca from './CortePapelFaltanteMarca'
 
 interface CortePapelFaltanteLitografiaBarProps {
   row: PaperRow
+  compact?: boolean
 }
 
 const CortePapelFaltanteLitografiaBar: React.FC<CortePapelFaltanteLitografiaBarProps> = ({
   row,
+  compact = false,
 }) => {
   const hojas = row.hojasFaltanteCantidad ?? 0
   const hojasLabel = hojas > 0 ? hojas.toLocaleString('es-CO') : '—'
 
   return (
-    <div className="production-corte-faltante-litografia-bar" role="status">
+    <div
+      className={[
+        'production-corte-faltante-litografia-bar',
+        compact ? 'production-corte-faltante-litografia-bar--compact' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      role="status"
+    >
       <CortePapelFaltanteMarca />
       <div className="production-corte-faltante-litografia-bar__text">
         <strong className="production-corte-faltante-litografia-bar__title">

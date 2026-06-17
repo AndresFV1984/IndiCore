@@ -214,9 +214,6 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
         <ImpresionTintasMillaresCalculadosField
           preview={millaresPreview}
           variant={variant}
-          millarMinimoVenta={conVolteo ? millarMinimoVentaVolteo : millarMinimoVenta}
-          topeMinimoMillar={conVolteo ? topeMinimoMillarVolteo : topeMinimoMillar}
-          umbralDecimalMillar={conVolteo ? umbralDecimalMillarVolteo : umbralDecimalMillar}
           valorImpresion={valorImpresion}
           conVolteo={conVolteo}
           precioInicial={precioInicial}

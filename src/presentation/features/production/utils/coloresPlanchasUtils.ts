@@ -66,6 +66,29 @@ export const resolveTamanosBuenosValue = (
   return result.ok ? result.value : 0
 }
 
+/** Tamaños buenos referencia = tamaños buenos + sobrante del registro. */
+export const computeTamanosBuenosReferencia = (
+  cantidad: number,
+  numeroCavidades: number,
+  sobrante: number
+): TamanosBuenosCalcResult => {
+  const base = computeTamanosBuenos(cantidad, numeroCavidades)
+  if (!base.ok) return base
+  return { ok: true, value: base.value + Math.max(0, sobrante) }
+}
+
+export const resolveTamanosBuenosReferenciaValue = (
+  cantidad: number,
+  numeroCavidades: number,
+  sobrante: number
+): number => {
+  const result = computeTamanosBuenosReferencia(cantidad, numeroCavidades, sobrante)
+  return result.ok ? result.value : 0
+}
+
+export const resolveTamanosBuenosReferenciaForItem = (item: DisenoColorPlanchaItem): number =>
+  resolveTamanosBuenosReferenciaValue(item.cantidad, item.numeroCavidades, item.sobrante ?? 0)
+
 export const applyTamanosBuenosToItem = (
   item: DisenoColorPlanchaItem
 ): DisenoColorPlanchaItem => ({

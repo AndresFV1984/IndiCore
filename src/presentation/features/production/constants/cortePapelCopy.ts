@@ -76,6 +76,10 @@ export const CORTE_PAPEL_COPY = {
       description:
         'El material requiere corte en planta; no se cobra valor de papel en este registro. Si hay hojas faltantes, litografía cobra papel y corte en un registro aparte.',
     },
+    switchConfirmTitle: 'Cambiar estado del papel',
+    switchConfirmMessage: (targetLabel: string) =>
+      `Al cambiar a \u00AB${targetLabel}\u00BB se borrar\u00E1 la informaci\u00F3n de corte registrada en este registro. \u00BFDesea continuar?`,
+    switchConfirmLabel: 'Continuar y limpiar',
   },
   faltante: {
     tag: 'Comparación',
@@ -101,10 +105,13 @@ export const CORTE_PAPEL_COPY = {
     bannerDesc: (hojas: string) =>
       `Este registro cubre ${hojas} hojas no entregadas por el cliente. Se cobran valor papel y valor corte como suministro de litografía.`,
     /** Marca visible en selector, resumen y formulario del registro creado por faltante. */
-    registroMarca: 'Papel faltante del cliente',
+    registroMarca: 'Litografía suministra faltante',
     registroMarcaHint:
-      'Corresponde a hojas que el cliente no entregó; litografía suministra el material y el corte.',
-    registroPickerLabel: (parentLabel: string) => `Papel faltante del cliente · ${parentLabel}`,
+      'Hojas que el cliente no entregó; litografía suministra el papel y el corte sobre esa cantidad.',
+    registroPadreLabel: (parentLabel: string) => `Faltante de ${parentLabel}`,
+    registroPickerLabel: (parentLabel: string) => `Litografía suministra · ${parentLabel}`,
+    registroPickerGrupo: 'Litografía suministra faltante',
+    cantidadHojasFaltanteNota: 'Cantidad hojas = hojas faltantes del registro del cliente',
     requiereDespiece: 'Seleccione tipo de papel y despiece en «Datos del corte de papel».',
     registroCantidadTag: 'Faltante',
     registroCantidadTitle: 'Cantidad de hojas y valor del corte',
@@ -265,10 +272,12 @@ export const CORTE_PAPEL_COPY = {
     registroEstadoPapel: 'Estado del papel',
     registroEstadoCortado: 'Cortado',
     registroEstadoSinCortar: 'Sin cortar',
+    registroPadre: 'Registro padre',
     registroTamanosBuenos: 'Tamaños buenos',
     registroSobrante: 'Sobrante',
     registroValorHoja: 'Valor hoja',
     registroCantidadHojas: 'Cantidad hojas',
+    registroHojasFaltanteRestadas: 'Hojas faltantes restadas',
     registroEditar: 'Editar registro',
     registroCompletado: 'Completado',
     registroPendiente: 'Pendiente',

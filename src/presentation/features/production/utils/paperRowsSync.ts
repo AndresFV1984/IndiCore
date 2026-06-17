@@ -4,12 +4,14 @@ import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
 import { getColoresOptionMeta, resolveColoresPlanchaForRow } from './coloresPlanchasUtils'
 import {
   computeCortePapelValores,
+  deriveValorCorteFromCantidades,
   isClienteSuministraPapel,
   isPapelSinCortar,
   isPapelSinCortarClienteSuministro,
 } from './cortePapelCalculations'
 import { CORTE_PAPEL_COPY as copy } from '../constants/cortePapelCopy'
 import {
+  findFaltanteRowForParent,
   isFaltanteLitografiaRow,
   listAllCortePaperRows,
   listFaltantePaperRows,
@@ -122,14 +124,20 @@ export interface CorteRegistroResumenLine {
   label: string
   /** Sin prefijo «Registro N —» (listas compactas). */
   shortLabel: string
+  /** Registro preprensa del cliente al que pertenece un faltante de litografía. */
+  parentLabel?: string
+  parentColorPlanchaId?: string
   tipoPapel: string
   piezasPorPliego: number
   valorCorteUnitario: number
   valorHoja: number
   cantidadHojas: number
+  /** Hojas descontadas por faltante litografía (solo registro padre). */
+  hojasFaltanteRestadas?: number
   valorPapel: number
   valorCorte: number
   papelSinCortar: boolean
+  estadoPapelLabel: string
   tamanosBuenos: number
   sobrante: number
   /** Datos del corte de papel completados para este registro. */
@@ -150,7 +158,7 @@ export const isCorteRegistroCompleto = (
   if (piezasPorPliego <= 0) return false
 
   if (isFaltanteLitografiaRow(row)) {
-    if ((row.tamanosBuenosManual ?? 0) <= 0) return false
+    if ((row.hojasFaltanteCantidad ?? 0) <= 0) return false
     const parentItem = coloresPlanchas.find(c => c.id === row.faltanteDeColorPlanchaId)
     const tipo = tiposPapel.find(t => t.id === row.tipoPapelId) ?? null
     const valores = computeCortePapelValores({
@@ -181,6 +189,49 @@ export const isCorteRegistroCompleto = (
   })
 
   return valores.cantidadHojas > 0
+}
+
+export const resolveEstadoPapelResumenLabel = (row: PaperRow): string =>
+  isPapelSinCortar(row)
+    ? copy.resumen.registroEstadoSinCortar
+    : copy.resumen.registroEstadoCortado
+
+const resolveCantidadHojasResumen = (
+  row: PaperRow,
+  paperRows: PaperRow[],
+  cantidadCalculada: number,
+  valorCorte: number,
+  unidadEmpaqueCantidad: number,
+  valorCorteUnitario: number,
+  margenRedondeo: number
+): { cantidadHojas: number; valorCorte: number; hojasFaltanteRestadas: number } => {
+  if (isFaltanteLitografiaRow(row)) {
+    return { cantidadHojas: cantidadCalculada, valorCorte, hojasFaltanteRestadas: 0 }
+  }
+
+  const parentId = row.colorPlanchaId
+  if (!parentId) {
+    return { cantidadHojas: cantidadCalculada, valorCorte, hojasFaltanteRestadas: 0 }
+  }
+
+  const faltanteHojas =
+    findFaltanteRowForParent(paperRows, parentId)?.hojasFaltanteCantidad ?? 0
+  if (faltanteHojas <= 0) {
+    return { cantidadHojas: cantidadCalculada, valorCorte, hojasFaltanteRestadas: 0 }
+  }
+
+  const cantidadHojas = Math.max(0, cantidadCalculada - faltanteHojas)
+  const valorCorteAjustado =
+    valorCorte > 0 && cantidadHojas !== cantidadCalculada
+      ? deriveValorCorteFromCantidades(
+          cantidadHojas,
+          unidadEmpaqueCantidad,
+          valorCorteUnitario,
+          margenRedondeo
+        )
+      : valorCorte
+
+  return { cantidadHojas, valorCorte: valorCorteAjustado, hojasFaltanteRestadas: faltanteHojas }
 }
 
 export interface CorteResumenConsolidado {
@@ -215,36 +266,42 @@ export const buildCorteResumenConsolidado = (
       esFaltante || isPapelSinCortarClienteSuministro(clienteSuministraPapel, row)
     const manualCliente =
       esFaltante || (isClienteSuministraPapel(clienteSuministraPapel) && !esFaltante)
-    const parentIndex = parentItem
-      ? coloresPlanchas.findIndex(c => c.id === parentItem.id)
-      : index
     const baseLabel = parentItem
       ? formatColoresPlanchaRegistroSelectLabel(parentItem)
       : `Registro ${index + 1}`
+    const cantidadResumen = resolveCantidadHojasResumen(
+      row,
+      paperRows,
+      valores.cantidadHojas,
+      valores.valorCorte,
+      valores.unidadEmpaqueCantidad,
+      valores.valorCorteUnitario,
+      valores.margenRedondeo
+    )
     return {
       colorPlanchaId: row.colorPlanchaId ?? row.faltanteDeColorPlanchaId ?? '',
       corteRowId: row.corteRowId,
       esFaltanteLitografia: esFaltante,
       label: esFaltante
-        ? parentItem
-          ? `${copy.faltante.registroMarca} · ${formatColoresPlanchaRegistroLabel(parentItem, parentIndex >= 0 ? parentIndex : 0)}`
-          : copy.resumen.registroFaltanteLitografia
+        ? copy.resumen.registroFaltanteLitografia
         : item
           ? formatColoresPlanchaRegistroLabel(item, index)
           : `Registro ${index + 1}`,
-      shortLabel: esFaltante
-        ? `${copy.faltante.registroMarca} · ${baseLabel}`
-        : item
+      shortLabel: esFaltante ? copy.faltante.registroMarca : item
           ? formatColoresPlanchaRegistroSelectLabel(item)
           : `Registro ${index + 1}`,
+      parentLabel: esFaltante && parentItem ? baseLabel : undefined,
+      parentColorPlanchaId: esFaltante ? row.faltanteDeColorPlanchaId : undefined,
       tipoPapel: row.type?.trim() || tipo?.name?.trim() || '',
       piezasPorPliego: row.despiece?.piezasPorPliego ?? 0,
       valorCorteUnitario: valores.valorCorteUnitario,
       valorHoja: valores.valorHoja,
-      cantidadHojas: valores.cantidadHojas,
+      cantidadHojas: cantidadResumen.cantidadHojas,
+      hojasFaltanteRestadas: cantidadResumen.hojasFaltanteRestadas,
       valorPapel: valores.valorPapel,
-      valorCorte: valores.valorCorte,
+      valorCorte: cantidadResumen.valorCorte,
       papelSinCortar: sinCortar,
+      estadoPapelLabel: resolveEstadoPapelResumenLabel(row),
       tamanosBuenos: manualCliente
         ? row.tamanosBuenosManual ?? 0
         : item?.tamanosBuenos ?? 0,

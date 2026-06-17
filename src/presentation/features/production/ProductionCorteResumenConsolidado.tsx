@@ -27,41 +27,75 @@ const fmtCantidad = (value: number): string =>
 const fmtMoney = (value: number): string =>
   value > 0 ? formatValorHojaDisplay(value) : copy.resumen.empty
 
+const RegistroInlineMeta: React.FC<{
+  label: string
+  value: string
+  variant?: 'estado' | 'padre'
+}> = ({ label, value, variant = 'estado' }) => (
+  <div
+    className={[
+      'production-corte-resumen-consolidado__registro-meta',
+      variant === 'padre'
+        ? 'production-corte-resumen-consolidado__registro-meta--padre'
+        : 'production-corte-resumen-consolidado__registro-meta--estado',
+    ].join(' ')}
+  >
+    <span className="production-corte-resumen-consolidado__registro-meta-label">{label}</span>
+    <span className="production-corte-resumen-consolidado__registro-meta-value">{value}</span>
+  </div>
+)
+
 interface RegistroMetric {
   label: string
   value: string
+  tone?: 'faltante'
 }
 
-const buildRegistroMetrics = (line: CorteRegistroResumenLine): RegistroMetric[] => [
-  {
-    label: copy.resumen.registroTipoPapel,
-    value: line.tipoPapel.trim() || copy.resumen.empty,
-  },
-  {
-    label: copy.resumen.registroPiezasPorPliego,
-    value: line.piezasPorPliego > 0 ? fmtCantidad(line.piezasPorPliego) : copy.resumen.empty,
-  },
-  {
-    label: copy.resumen.registroValorCorteUnitario,
-    value: fmtMoney(line.valorCorteUnitario),
-  },
-  {
-    label: copy.resumen.registroValorHoja,
-    value: fmtMoney(line.valorHoja),
-  },
-  {
-    label: copy.resumen.registroCantidadHojas,
-    value: fmtCantidad(line.cantidadHojas),
-  },
-  {
-    label: copy.resumen.registroValorTotalPapel,
-    value: fmtMoney(line.valorPapel),
-  },
-  {
-    label: copy.resumen.registroValorCorte,
-    value: fmtMoney(line.valorCorte),
-  },
-]
+const buildRegistroMetrics = (line: CorteRegistroResumenLine): RegistroMetric[] => {
+  const metrics: RegistroMetric[] = [
+    {
+      label: copy.resumen.registroTipoPapel,
+      value: line.tipoPapel.trim() || copy.resumen.empty,
+    },
+    {
+      label: copy.resumen.registroPiezasPorPliego,
+      value: line.piezasPorPliego > 0 ? fmtCantidad(line.piezasPorPliego) : copy.resumen.empty,
+    },
+    {
+      label: copy.resumen.registroValorCorteUnitario,
+      value: fmtMoney(line.valorCorteUnitario),
+    },
+    {
+      label: copy.resumen.registroValorHoja,
+      value: fmtMoney(line.valorHoja),
+    },
+    {
+      label: copy.resumen.registroCantidadHojas,
+      value: fmtCantidad(line.cantidadHojas),
+    },
+  ]
+
+  if (!line.esFaltanteLitografia && (line.hojasFaltanteRestadas ?? 0) > 0) {
+    metrics.push({
+      label: copy.resumen.registroHojasFaltanteRestadas,
+      value: fmtCantidad(line.hojasFaltanteRestadas!),
+      tone: 'faltante',
+    })
+  }
+
+  metrics.push(
+    {
+      label: copy.resumen.registroValorTotalPapel,
+      value: fmtMoney(line.valorPapel),
+    },
+    {
+      label: copy.resumen.registroValorCorte,
+      value: fmtMoney(line.valorCorte),
+    }
+  )
+
+  return metrics
+}
 
 interface ProductionCorteResumenConsolidadoProps {
   coloresPlanchas: DisenoColorPlanchaItem[]
@@ -162,17 +196,31 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
               <div className="production-corte-resumen-consolidado__registro-toolbar">
                 <div className="production-corte-resumen-consolidado__registro-head">
                   <div className="production-corte-resumen-consolidado__registro-title-wrap">
-                    <span className="production-corte-resumen-consolidado__registro-index">
-                      Registro {index + 1}
-                    </span>
-                    <strong className="production-corte-resumen-consolidado__registro-title">
-                      {line.shortLabel}
-                    </strong>
+                    <div className="production-corte-resumen-consolidado__registro-title-row">
+                      <div className="production-corte-resumen-consolidado__registro-heading">
+                        <span className="production-corte-resumen-consolidado__registro-index">
+                          Registro {index + 1}
+                        </span>
+                        <strong className="production-corte-resumen-consolidado__registro-title">
+                          {line.shortLabel}
+                        </strong>
+                      </div>
+                      <RegistroInlineMeta
+                        label={copy.resumen.registroEstadoPapel}
+                        value={line.estadoPapelLabel}
+                        variant="estado"
+                      />
+                      {line.esFaltanteLitografia && line.parentLabel?.trim() ? (
+                        <RegistroInlineMeta
+                          label={copy.resumen.registroPadre}
+                          value={line.parentLabel.trim()}
+                          variant="padre"
+                        />
+                      ) : null}
+                    </div>
                   </div>
                   <div className="production-corte-resumen-consolidado__registro-badges">
-                    {line.esFaltanteLitografia ? (
-                      <CortePapelFaltanteMarca compact />
-                    ) : null}
+                    {line.esFaltanteLitografia ? <CortePapelFaltanteMarca compact /> : null}
                     {isActive ? (
                       <span className="production-corte-resumen-consolidado__estado production-corte-resumen-consolidado__estado--editando">
                         {copy.resumen.registroEditandoCorto}
@@ -215,7 +263,17 @@ const ProductionCorteResumenConsolidado: React.FC<ProductionCorteResumenConsolid
 
               <dl className="production-corte-resumen-consolidado__registro-metrics">
                 {metrics.map(metric => (
-                  <div key={metric.label}>
+                  <div
+                    key={metric.label}
+                    className={[
+                      'production-corte-resumen-consolidado__metric',
+                      metric.tone === 'faltante'
+                        ? 'production-corte-resumen-consolidado__metric--faltante'
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
                     <dt>{metric.label}</dt>
                     <dd>{metric.value}</dd>
                   </div>

@@ -34,6 +34,10 @@ export const IMPRESION_COPY = {
         'Indique las cavidades en Preprensa para calcular los tamaños buenos.',
       tamanosBuenosNeedCantidad:
         'Indique la cantidad en Preprensa para calcular los tamaños buenos.',
+      tamanosBuenosReferenciaLabel: 'Tamaños buenos referencia',
+      tamanosBuenosReferenciaFormula: 'Tamaños buenos + Sobrante',
+      tamanosBuenosReferenciaEmpty: '—',
+      sourceBadge: 'Preprensa',
       impresionConVolteoLabel: 'Impresión con volteo',
       impresionConVolteoHint: 'Active si la plancha se imprime por el reverso con volteo.',
       impresionConVolteoOn: 'Sí',

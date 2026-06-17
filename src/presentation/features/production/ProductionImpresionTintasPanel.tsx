@@ -54,7 +54,6 @@ import {
 
 const tintasCopy = copy.tintas
 const registroCopy = tintasCopy.registro
-const planchaDetalleCopy = tintasCopy.planchaDetalle
 const ladoCopy = tintasCopy.lado
 const entradasCopy = tintasCopy.entradas
 
@@ -74,7 +73,6 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   onRegistroChange,
 }) => {
   const planchaLabelId = useId()
-  const planchaDetalleLabelId = useId()
   const composerLabelId = useId()
   const registrosLabelId = useId()
   const skipResetOnPlanchaChangeRef = useRef(false)
@@ -473,21 +471,11 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
               </section>
 
               {activePlancha && activeRegistro ? (
-                <section
-                  className="production-plancha-workspace__picker-zone production-impresion-plancha-detalle-zone"
-                  aria-labelledby={planchaDetalleLabelId}
-                >
-                  <span
-                    className="production-plancha-workspace__zone-label"
-                    id={planchaDetalleLabelId}
-                  >
-                    {planchaDetalleCopy.zoneLabel}
-                  </span>
-                  <ImpresionPlanchaDetalleFields
-                    cantidad={activePlancha.cantidad}
-                    numeroCavidades={activePlancha.numeroCavidades}
-                  />
-                </section>
+                <ImpresionPlanchaDetalleFields
+                  cantidad={activePlancha.cantidad}
+                  numeroCavidades={activePlancha.numeroCavidades}
+                  sobrante={activePlancha.sobrante}
+                />
               ) : null}
 
               {activePlancha && activeRegistro ? (

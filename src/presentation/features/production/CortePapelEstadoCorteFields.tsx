@@ -34,6 +34,7 @@ export type CortePapelEstadoCorteVariant = 'cliente' | 'faltanteLitografia'
 interface CortePapelEstadoCorteFieldsProps {
   row: PaperRow
   onChange: (row: PaperRow) => void
+  onPapelCortadoChange?: (value: YesNoChoice) => void
   /** Sin cabecera ni borde propio (dentro de CortePapelEstadoCorteShell). */
   embedded?: boolean
   variant?: CortePapelEstadoCorteVariant
@@ -42,6 +43,7 @@ interface CortePapelEstadoCorteFieldsProps {
 const CortePapelEstadoCorteFields: React.FC<CortePapelEstadoCorteFieldsProps> = ({
   row,
   onChange,
+  onPapelCortadoChange,
   embedded = false,
   variant = 'cliente',
 }) => {
@@ -55,6 +57,10 @@ const CortePapelEstadoCorteFields: React.FC<CortePapelEstadoCorteFieldsProps> = 
   const sobrante = row.sobranteManual ?? 0
 
   const setPapelCortado = (value: YesNoChoice) => {
+    if (onPapelCortadoChange) {
+      onPapelCortadoChange(value)
+      return
+    }
     onChange({
       ...row,
       papelCortado: value,

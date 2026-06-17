@@ -60,6 +60,7 @@ import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
 import { patchPreprensaDesignNuevo, preprensaDisenoHasRegisteredContent } from './utils/preprensaDesignNuevoChange'
 import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
 import { patchCorteClienteSuministraPapel } from './utils/corteClienteSuministraPapelChange'
+import { removeCorteRegistroFromPaperRows } from './utils/cortePapelCortadoChange'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
@@ -69,10 +70,11 @@ import ProductionCortePapelForm from './ProductionCortePapelForm'
 import { emptyPaperRow, normalizeTipoPapelList, syncPaperRowsWithTipoPapelCatalog } from './utils/tipoPapelDisplay'
 import { DEFAULT_MARGEN_REDONDEO, normalizeMargenRedondeo } from './utils/cortePapelCalculations'
 import {
-  appendFaltanteLitografiaRow,
   findPaperRowForActiveId,
   isFaltanteLitografiaRow,
   resetPaperRowForActiveId,
+  resolveHojasFaltanteCliente,
+  syncFaltanteLitografiaForParent,
   upsertPaperRow,
 } from './utils/cortePapelFaltante'
 import {
@@ -710,11 +712,21 @@ const ProductionOrderWorkspace: React.FC = () => {
   const paperRow = findPaperRowForActiveId(specs.paperRows, activeCorteColorPlanchaId)
 
   const handlePaperRowCommit = (row: PaperRow) => {
-    setSpecs(prev =>
-      mergeSpecsWithCorteMetrics(prev, {
-        paperRows: upsertPaperRow(prev.paperRows, row),
-      })
-    )
+    setSpecs(prev => {
+      let paperRows = upsertPaperRow(prev.paperRows, row)
+      const clienteSuministra = prev.clienteSuministraPapel ?? 'no'
+
+      if (clienteSuministra === 'si' && !isFaltanteLitografiaRow(row) && row.colorPlanchaId) {
+        const hojasFaltante = resolveHojasFaltanteCliente(
+          prev.preprensaDiseno.coloresPlanchas,
+          row,
+          clienteSuministra
+        )
+        paperRows = syncFaltanteLitografiaForParent(paperRows, row, hojasFaltante).paperRows
+      }
+
+      return mergeSpecsWithCorteMetrics(prev, { paperRows })
+    })
     setActiveCorteColorPlanchaId('')
   }
 
@@ -729,17 +741,12 @@ const ProductionOrderWorkspace: React.FC = () => {
     }
   }
 
-  const handleAddFaltanteLitografia = (parent: PaperRow, hojasFaltante: number) => {
-    let nextActiveId: string | undefined
-    setSpecs(prev => {
-      const result = appendFaltanteLitografiaRow(prev.paperRows, parent, hojasFaltante)
-      if (!result) return prev
-      nextActiveId = result.corteRowId
-      return mergeSpecsWithCorteMetrics(prev, { paperRows: result.paperRows })
-    })
-    if (nextActiveId) {
-      queueMicrotask(() => setActiveCorteColorPlanchaId(nextActiveId!))
-    }
+  const handlePapelCortadoReset = (colorPlanchaId: string) => {
+    setSpecs(prev =>
+      mergeSpecsWithCorteMetrics(prev, {
+        paperRows: removeCorteRegistroFromPaperRows(prev.paperRows, colorPlanchaId),
+      })
+    )
   }
 
   const handleClienteSuministraPapelChange = (value: OrderSpecs['clienteSuministraPapel']) => {
@@ -1081,7 +1088,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                         onPaperRowCommit={handlePaperRowCommit}
                         onPaperRowDelete={handlePaperRowDelete}
                         onClienteSuministraPapelChange={handleClienteSuministraPapelChange}
-                        onAddFaltanteLitografia={handleAddFaltanteLitografia}
+                        onPapelCortadoReset={handlePapelCortadoReset}
                         onMargenRedondeoChange={value =>
                           setSpecs(prev =>
                             mergeSpecsWithCorteMetrics(prev, {

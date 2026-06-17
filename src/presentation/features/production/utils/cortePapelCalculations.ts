@@ -50,12 +50,6 @@ export const resolveCantidadHojasForCorte = ({
 }): number => {
   const piezasPorPliego = row.despiece?.piezasPorPliego ?? 0
   if (isFaltanteLitografiaRow(row)) {
-    const manual = deriveCantidadHojasFromManualSuministro(
-      row.tamanosBuenosManual ?? 0,
-      row.sobranteManual ?? 0,
-      piezasPorPliego
-    )
-    if (manual > 0) return manual
     return Math.max(0, row.hojasFaltanteCantidad ?? 0)
   }
   if (usesManualCantidadClienteSuministro(clienteSuministraPapel)) {

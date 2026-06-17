@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
 import { emptyPaperRow } from './tipoPapelDisplay'
+import { createFaltanteLitografiaRow } from './cortePapelFaltante'
 import {
   buildCorteResumenConsolidado,
   formatColoresPlanchaRegistroLabel,
@@ -175,6 +176,33 @@ describe('buildCorteResumenConsolidado', () => {
     expect(resumen.registros.every(r => r.completo)).toBe(true)
     expect(resumen.totales.valorPapel).toBe(0)
     expect(resumen.totales.valorCorte).toBe(0)
+  })
+
+  it('resta faltantes en cantidad hojas del padre y muestra estado del papel', () => {
+    const colores = [baseItem('a', 'Frente')]
+    const parent = {
+      ...paperRowCompleto('a'),
+      type: 'Couché',
+      papelCortado: 'si' as const,
+      hojasEntregadasCliente: 40,
+      tamanosBuenosManual: 1200,
+      sobranteManual: 0,
+    }
+    const faltante = createFaltanteLitografiaRow(parent, 'a', 10)
+    const paperRows = [parent, faltante]
+    const resumen = buildCorteResumenConsolidado(colores, paperRows, [], 2, 'si')
+
+    const lineaPadre = resumen.registros.find(r => !r.esFaltanteLitografia)
+    const lineaFaltante = resumen.registros.find(r => r.esFaltanteLitografia)
+
+    expect(lineaPadre?.cantidadHojas).toBe(40)
+    expect(lineaPadre?.hojasFaltanteRestadas).toBe(10)
+    expect(lineaPadre?.estadoPapelLabel).toBe('Cortado')
+    expect(lineaFaltante?.cantidadHojas).toBe(10)
+    expect(lineaFaltante?.estadoPapelLabel).toBe('Sin cortar')
+    expect(lineaFaltante?.parentLabel).toBe('70×100 · Frente')
+    expect(lineaFaltante?.parentColorPlanchaId).toBe('a')
+    expect(resumen.totales.cantidadHojas).toBe(50)
   })
 
   it('en cliente suministra papel cortado requiere hojas entregadas y tamaños buenos', () => {

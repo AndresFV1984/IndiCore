@@ -1,5 +1,6 @@
 import React from 'react'
 import type { PaperRow } from '../../../core/domain/entities/Order'
+import type { YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
 import CortePapelEstadoCorteFields, {
   type CortePapelEstadoCorteVariant,
@@ -9,6 +10,7 @@ import CortePapelFaltanteMarca from './CortePapelFaltanteMarca'
 interface CortePapelEstadoCorteShellProps {
   row: PaperRow
   onChange: (row: PaperRow) => void
+  onPapelCortadoChange?: (value: YesNoChoice) => void
   className?: string
   variant?: CortePapelEstadoCorteVariant
 }
@@ -16,6 +18,7 @@ interface CortePapelEstadoCorteShellProps {
 const CortePapelEstadoCorteShell: React.FC<CortePapelEstadoCorteShellProps> = ({
   row,
   onChange,
+  onPapelCortadoChange,
   className,
   variant = 'cliente',
 }) => {
@@ -50,7 +53,13 @@ const CortePapelEstadoCorteShell: React.FC<CortePapelEstadoCorteShellProps> = ({
           </p>
         </div>
       </header>
-      <CortePapelEstadoCorteFields embedded row={row} onChange={onChange} variant={variant} />
+      <CortePapelEstadoCorteFields
+        embedded
+        row={row}
+        onChange={onChange}
+        onPapelCortadoChange={onPapelCortadoChange}
+        variant={variant}
+      />
     </div>
   )
 }

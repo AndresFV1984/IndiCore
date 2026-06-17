@@ -36,6 +36,7 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
 }) => {
   const litografiaSuministra = !clienteSuministra || esFaltanteLitografia
   const clienteResumen = clienteSuministra && !esFaltanteLitografia
+  const faltanteHojas = Math.max(0, row.hojasFaltanteCantidad ?? 0)
   const unidadEmpaqueDisplay =
     valores.unidadEmpaqueCantidad > 0
       ? valores.unidadEmpaqueCantidad.toLocaleString('es-CO')
@@ -212,6 +213,13 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
         </>
       ) : (
         <>
+          {esFaltanteLitografia && faltanteHojas > 0 ? (
+            <p className="production-corte-valores__faltante-nota">
+              {copy.faltante.cantidadHojasFaltanteNota}:{' '}
+              <strong>{faltanteHojas.toLocaleString('es-CO')} hojas</strong>
+            </p>
+          ) : null}
+
           <div className="production-corte-valores__campos" aria-label={valoresCopy.grupoCalculo}>
             <div className="production-corte-valores__campo">
               <span className="production-corte-valores__campo-label">

@@ -8,12 +8,14 @@ import {
   resolveItemValorTotal,
   buildColoresPlanchasPatch,
   computeTamanosBuenos,
+  computeTamanosBuenosReferencia,
   deriveCantidadHojas,
   hasDuplicateColoresPlanchaRegistro,
   resolvePrecioPlanchaDisplay,
   roundDivision,
   sumTamanosBuenosYSobrante,
   resolveTamanosBuenosValue,
+  resolveTamanosBuenosReferenciaValue,
   sumValorTotalPlanchas,
   syncColoresPlanchasCantidadFromOrder,
 } from './coloresPlanchasUtils'
@@ -79,6 +81,13 @@ describe('computeTamanosBuenos', () => {
   it('does not calculate without cavidades', () => {
     expect(computeTamanosBuenos(5000, 0)).toEqual({ ok: false, reason: 'sin-cavidad' })
     expect(resolveTamanosBuenosValue(5000, 0)).toBe(0)
+  })
+})
+
+describe('computeTamanosBuenosReferencia', () => {
+  it('suma tamaños buenos y sobrante', () => {
+    expect(computeTamanosBuenosReferencia(5000, 2, 100)).toEqual({ ok: true, value: 2600 })
+    expect(resolveTamanosBuenosReferenciaValue(5000, 2, 100)).toBe(2600)
   })
 })
 

@@ -4,7 +4,6 @@ import { IMPRESION_COPY as copy } from './constants/impresionCopy'
 import { TARIFA_MILLAR_UNIDAD } from '../../../core/domain/entities/TarifaMillar'
 import { formatMillaresFactor } from './utils/impresionPrecioTintaUtils'
 import type { ImpresionGrupoMillaresPreview } from './utils/impresionPrecioTintaUtils'
-import { buildMillaresReferenciaFormulaSteps } from './utils/millaresReferenciaFormulaUtils'
 import { formatPrecioMillar } from './utils/impresionVolteoTarifaUtils'
 
 const millaresCopy = copy.tintas.millaresCalculados
@@ -12,9 +11,6 @@ const millaresCopy = copy.tintas.millaresCalculados
 interface ImpresionTintasMillaresCalculadosFieldProps {
   preview: ImpresionGrupoMillaresPreview | null
   variant: 'colorBasico' | 'pantone'
-  millarMinimoVenta?: number
-  topeMinimoMillar?: number
-  umbralDecimalMillar?: number
   valorImpresion?: number
   conVolteo?: boolean
   precioInicial?: number
@@ -70,9 +66,6 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
 > = ({
   preview,
   variant,
-  millarMinimoVenta = 0,
-  topeMinimoMillar = 0,
-  umbralDecimalMillar = 0.2,
   valorImpresion = 0,
   conVolteo = false,
   precioInicial = 0,
@@ -81,14 +74,10 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
   showTotal = true,
 }) => {
   const calculadosFieldId = useId()
-  const referenciaFieldId = useId()
   const valorImpresionFieldId = useId()
   const hasPreview = Boolean(preview && preview.cantidadTintas > 0)
   const millaresCalculadosDisplay = hasPreview
     ? formatMillaresFactor(preview!.millaresBase)
-    : millaresCopy.empty
-  const millaresReferenciaDisplay = hasPreview
-    ? formatMillaresFactor(preview!.millaresCalculados)
     : millaresCopy.empty
 
   const calculadosFormulaSteps = useMemo(
@@ -102,19 +91,6 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
           ]
         : [],
     [hasPreview, preview]
-  )
-
-  const referenciaFormulaSteps = useMemo(
-    () =>
-      hasPreview && preview
-        ? buildMillaresReferenciaFormulaSteps(
-            preview,
-            millarMinimoVenta,
-            umbralDecimalMillar,
-            topeMinimoMillar
-          )
-        : [],
-    [hasPreview, preview, millarMinimoVenta, topeMinimoMillar, umbralDecimalMillar]
   )
 
   const valorImpresionFormulaSteps = useMemo(() => {
@@ -193,32 +169,6 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
               stepTag={millaresCopy.formulaPasoCalculadosTitulo}
               steps={calculadosFormulaSteps}
             />
-          ) : null}
-        </div>
-
-        <div className="production-impresion-millares-calculados__field-col">
-          <div
-            className={clsx(
-              'production-impresion-millares-calculados__field',
-              'production-impresion-millares-calculados__field--referencia'
-            )}
-          >
-            <span
-              className="production-impresion-millares-calculados__label"
-              id={referenciaFieldId}
-            >
-              {millaresCopy.millaresReferenciaLabel}
-            </span>
-            <span
-              className="production-impresion-millares-calculados__value"
-              role="status"
-              aria-labelledby={referenciaFieldId}
-            >
-              {millaresReferenciaDisplay}
-            </span>
-          </div>
-          {referenciaFormulaSteps.length > 0 ? (
-            <MillaresFormulaDetails steps={referenciaFormulaSteps} />
           ) : null}
         </div>
 

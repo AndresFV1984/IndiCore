@@ -8,6 +8,7 @@ import {
   resolveHojasCalculadasCorte,
   resolveHojasFaltanteCliente,
   resetPaperRowForActiveId,
+  syncFaltanteLitografiaForParent,
   upsertPaperRow,
 } from './cortePapelFaltante'
 
@@ -114,6 +115,44 @@ describe('upsertPaperRow', () => {
   })
 })
 
+describe('syncFaltanteLitografiaForParent', () => {
+  it('crea fila faltante y persiste el padre', () => {
+    const parent = {
+      ...rowBase(),
+      colorPlanchaId: 'cp-1',
+      tamanosBuenosManual: 5000,
+      sobranteManual: 100,
+      hojasEntregadasCliente: 400,
+    }
+    const result = syncFaltanteLitografiaForParent([], parent, 110)
+    expect(result.changed).toBe(true)
+    expect(result.paperRows).toHaveLength(2)
+    const faltante = result.paperRows.find(r => r.esFaltanteLitografia)
+    expect(faltante?.hojasFaltanteCantidad).toBe(110)
+  })
+
+  it('elimina faltante cuando las hojas faltantes llegan a cero', () => {
+    const parent = { ...rowBase(), colorPlanchaId: 'cp-1' }
+    const created = syncFaltanteLitografiaForParent([], parent, 20)
+    const removed = syncFaltanteLitografiaForParent(created.paperRows, parent, 0)
+    expect(removed.changed).toBe(true)
+    expect(removed.paperRows.filter(r => r.esFaltanteLitografia)).toHaveLength(0)
+  })
+
+  it('no duplica si los datos no cambiaron', () => {
+    const parent = {
+      ...rowBase(),
+      colorPlanchaId: 'cp-1',
+      hojasEntregadasCliente: 400,
+      tamanosBuenosManual: 5000,
+      sobranteManual: 100,
+    }
+    const first = syncFaltanteLitografiaForParent([], parent, 20)
+    const second = syncFaltanteLitografiaForParent(first.paperRows, parent, 20)
+    expect(second.changed).toBe(false)
+  })
+})
+
 describe('appendFaltanteLitografiaRow', () => {
   it('agrega fila faltante y persiste datos del padre', () => {
     const colores = [baseItem()]
@@ -129,8 +168,16 @@ describe('appendFaltanteLitografiaRow', () => {
     expect(result!.paperRows).toHaveLength(2)
     const faltante = result!.paperRows.find(r => r.esFaltanteLitografia)
     expect(faltante?.hojasFaltanteCantidad).toBe(110)
-    expect(faltante?.tamanosBuenosManual).toBe(1100)
+    expect(faltante?.tamanosBuenosManual).toBe(0)
     expect(faltante?.faltanteDeColorPlanchaId).toBe(parent.colorPlanchaId)
+  })
+})
+
+describe('resolveCantidadHojasForCorte faltante', () => {
+  it('usa hojasFaltanteCantidad aunque haya tamaños manuales', () => {
+    const faltante = createFaltanteLitografiaRow(rowBase(), 'cp-1', 85)
+    const conManual = { ...faltante, tamanosBuenosManual: 9999, sobranteManual: 100 }
+    expect(resolveHojasCalculadasCorte([], conManual, 'si')).toBe(85)
   })
 })
 
