@@ -51,11 +51,13 @@ const SUMINISTRO_OPTIONS: SuministroOption[] = [
 interface PreprensaPlanchaSuministroSelectorProps {
   value: YesNoChoice
   onChange: (value: YesNoChoice) => void
+  disabledValues?: YesNoChoice[]
 }
 
 const PreprensaPlanchaSuministroSelector: React.FC<PreprensaPlanchaSuministroSelectorProps> = ({
   value,
   onChange,
+  disabledValues = [],
 }) => (
   <div
     className="production-diseno-modo production-corte-suministro-modo"
@@ -65,20 +67,26 @@ const PreprensaPlanchaSuministroSelector: React.FC<PreprensaPlanchaSuministroSel
     <div className="production-diseno-modo__grid">
       {SUMINISTRO_OPTIONS.map(opt => {
         const selected = value === opt.value
+        const disabled = disabledValues.includes(opt.value)
         return (
           <button
             key={opt.value}
             type="button"
             role="radio"
             aria-checked={selected}
+            aria-disabled={disabled}
+            disabled={disabled}
             className={[
               'production-diseno-modo__card',
               `production-diseno-modo__card--${opt.value}`,
               selected ? 'production-diseno-modo__card--selected' : '',
+              disabled ? 'production-diseno-modo__card--disabled' : '',
             ]
               .filter(Boolean)
               .join(' ')}
-            onClick={() => onChange(opt.value)}
+            onClick={() => {
+              if (!disabled) onChange(opt.value)
+            }}
           >
             <span className="production-diseno-modo__icon-wrap">{opt.icon}</span>
             <span className="production-diseno-modo__title">{opt.title}</span>

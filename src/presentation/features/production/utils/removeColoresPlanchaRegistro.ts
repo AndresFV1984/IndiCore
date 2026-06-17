@@ -1,6 +1,6 @@
 import type { PaperRow } from '../../../../core/domain/entities/Order'
 import type { PreprensaDisenoSpecs } from '../../../../core/domain/entities/PreprensaDiseno'
-import { buildColoresPlanchasPatch } from './coloresPlanchasUtils'
+import { buildColoresPlanchasPatchWithSuministro } from './preprensaClienteSuministraPlanchasChange'
 import { syncPaperRowsWithColoresPlanchas } from './paperRowsSync'
 
 export const patchRemoveColoresPlanchaRegistro = (
@@ -17,9 +17,7 @@ export const patchRemoveColoresPlanchaRegistro = (
   return {
     preprensaDiseno: {
       ...preprensaDiseno,
-      ...buildColoresPlanchasPatch(coloresPlanchas, {
-        clienteSuministraPlanchas: preprensaDiseno.clienteSuministraPlanchas,
-      }),
+      ...buildColoresPlanchasPatchWithSuministro(coloresPlanchas),
     },
     paperRows: paperRowsSynced,
   }

@@ -4,6 +4,8 @@ import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { PREPRENSA_DISENO_COPY as copy } from './constants/preprensaDisenoCopy'
 import { computeDisenoResumenTotales } from './utils/preprensaDisenoTotales'
 
+const resumenCopy = copy.nuevo.resumen
+
 const formatValor = (value: number) =>
   new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -17,23 +19,25 @@ interface DisenoTotalesResumenProps {
 
 const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) => {
   const resumen = useMemo(() => computeDisenoResumenTotales(diseno), [diseno])
-  const clienteSuministraPlanchas = (diseno.clienteSuministraPlanchas ?? 'no') === 'si'
+  const clienteSuministraPlanchas = diseno.coloresPlanchas.some(
+    item => (item.clienteSuministraPlanchas ?? diseno.clienteSuministraPlanchas ?? 'no') === 'si'
+  )
 
   const filas = [
     {
-      label: 'Costo del diseño',
+      label: resumenCopy.valorDiseno,
       value: resumen.costoDiseno,
-      inactive: !diseno.aplicaCostoDiseno,
+      inactive: resumen.costoDiseno <= 0,
     },
     {
-      label: 'Valor Total Planchas',
+      label: resumenCopy.valorPlanchas,
       value: resumen.valorTotalPlanchas,
       inactive: resumen.valorTotalPlanchas <= 0,
     },
     {
-      label: 'Precio de montaje',
+      label: resumenCopy.valorMontaje,
       value: resumen.precioMontaje,
-      inactive: !diseno.precioMontajeId,
+      inactive: resumen.precioMontaje <= 0,
     },
   ]
 
@@ -68,7 +72,7 @@ const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) =
       ) : null}
       <div className="production-diseno-resumen__total" aria-live="polite">
         <div className="production-diseno-resumen__total-info">
-          <span className="production-diseno-resumen__total-label">Total</span>
+          <span className="production-diseno-resumen__total-label">{resumenCopy.total}</span>
         </div>
         <strong className="production-diseno-resumen__total-value">
           {formatValor(resumen.totalDiseno)}

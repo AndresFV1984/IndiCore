@@ -1,5 +1,13 @@
 /** Textos de la sección Preprensa › Diseño */
 export const PREPRENSA_DISENO_COPY = {
+  modo: {
+    nuevo: 'Crear dise\u00F1o nuevo',
+    existente: 'Dise\u00F1o existente',
+    switchConfirmTitle: 'Cambiar tipo de dise\u00F1o',
+    switchConfirmMessage: (targetLabel: string) =>
+      `Al cambiar a \u00AB${targetLabel}\u00BB se borrar\u00E1 la informaci\u00F3n de dise\u00F1o que ya registr\u00F3 en esta orden. \u00BFDesea continuar?`,
+    switchConfirmLabel: 'Continuar y limpiar',
+  },
   acabados: {
     lineaTroquel: 'L\u00EDnea troquel',
     lineaTroquelDesc: 'Corte o perforado con troquel en l\u00EDnea de producci\u00F3n',
@@ -77,6 +85,14 @@ export const PREPRENSA_DISENO_COPY = {
       sinMontajeOption: 'Sin montaje',
       empty: 'No hay tarifas de montaje activas en el cat\u00E1logo.',
       resumenLabel: 'Tarifa aplicada',
+      historialSuffix: 'trabajo anterior',
+      inactiveSuffix: 'inactiva',
+    },
+    resumen: {
+      valorDiseno: 'Valor diseño',
+      valorPlanchas: 'Valor planchas',
+      valorMontaje: 'Valor montaje',
+      total: 'Total',
     },
   },
   coloresPlanchas: {
@@ -122,7 +138,7 @@ export const PREPRENSA_DISENO_COPY = {
       'El cliente entrega las planchas: en este registro no se cobra precio de plancha.',
     precioNoAplica: 'No aplica (cliente suministra)',
     detalleClienteSuministraHint:
-      'Se agrega al final «Cliente suministra plancha» y el tipo elegido.',
+      'Se agrega al final «Cliente suministra» y el tipo de plancha elegido.',
     resumenPlanchasCliente: 'Precio de planchas no incluido: cliente suministra.',
     totalPlanchasHintCliente: 'Sin cobro de planchas (cliente suministra)',
     opciones: {

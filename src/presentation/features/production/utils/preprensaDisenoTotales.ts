@@ -10,7 +10,7 @@ export interface DisenoResumenTotales {
 export const computeDisenoResumenTotales = (diseno: PreprensaDisenoSpecs): DisenoResumenTotales => {
   const costoDiseno = diseno.aplicaCostoDiseno ? diseno.crearDisenoCost : 0
   const valorTotalPlanchas = diseno.valorTotalPlanchas
-  const precioMontaje = diseno.precioMontajeCosto
+  const precioMontaje = diseno.precioMontajeId.trim() ? diseno.precioMontajeCosto : 0
   return {
     costoDiseno,
     valorTotalPlanchas,

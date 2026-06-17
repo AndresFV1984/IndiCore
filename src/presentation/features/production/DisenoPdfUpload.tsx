@@ -1,8 +1,9 @@
-import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import React, { lazy, memo, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import DisenoPdfCanvasPreview from './DisenoPdfCanvasPreview'
 import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
 import { prefersPdfCanvasPreview } from './utils/pdfPreviewPlatform'
+
+const DisenoPdfCanvasPreview = lazy(() => import('./DisenoPdfCanvasPreview'))
 
 const n = PREPRENSA_DISENO_COPY.nuevo
 const pdfCopy = PREPRENSA_DISENO_COPY.pdf
@@ -137,6 +138,22 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
     [applyFile]
   )
 
+  const openFilePicker = useCallback((e?: React.SyntheticEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
+    const input = inputRef.current
+    if (!input) return
+    if (typeof input.showPicker === 'function') {
+      try {
+        void input.showPicker()
+        return
+      } catch {
+        // Algunos navegadores solo permiten click() tras activación del usuario.
+      }
+    }
+    input.click()
+  }, [])
+
   const useCanvasPreview = useMemo(() => prefersPdfCanvasPreview(), [])
 
   const hasFile = Boolean(fileName)
@@ -149,7 +166,7 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
         ref={inputRef}
         id={inputId}
         type="file"
-        accept=".pdf"
+        accept="application/pdf,.pdf"
         className="production-diseno-pdf-upload__input"
         tabIndex={-1}
         aria-hidden
@@ -198,9 +215,16 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
           {!isDragging ? (
             <p className="production-diseno-pdf-upload__drop-hint">{n.pdfEmptyHint(maxMb)}</p>
           ) : null}
-          <label htmlFor={inputId} className="production-diseno-pdf-upload__select-btn">
+          <button
+            type="button"
+            className="production-diseno-pdf-upload__select-btn"
+            onPointerDown={e => {
+              if (e.button !== 0) return
+              openFilePicker(e)
+            }}
+          >
             {n.pdfSelectBtn}
-          </label>
+          </button>
         </div>
       ) : (
         <div className="production-diseno-pdf-upload__file">
@@ -219,9 +243,16 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
               ) : null}
             </div>
             <div className="production-diseno-pdf-upload__file-actions">
-              <label htmlFor={inputId} className="production-diseno-pdf-upload__action-btn">
+              <button
+                type="button"
+                className="production-diseno-pdf-upload__action-btn"
+                onPointerDown={e => {
+                  if (e.button !== 0) return
+                  openFilePicker(e)
+                }}
+              >
                 {n.pdfChangeBtn}
-              </label>
+              </button>
               <button
                 type="button"
                 className="production-diseno-pdf-upload__action-btn production-diseno-pdf-upload__action-btn--danger"
@@ -239,7 +270,15 @@ const DisenoPdfUpload = memo(function DisenoPdfUpload({
           {showPreview ? (
             <div className="production-diseno-pdf-preview">
               {useCanvasPreview ? (
-                <DisenoPdfCanvasPreview url={previewUrl!} fileName={fileName} />
+                <Suspense
+                  fallback={
+                    <p className="production-diseno-pdf-preview__status" role="status">
+                      {pdfCopy.previewLoading}
+                    </p>
+                  }
+                >
+                  <DisenoPdfCanvasPreview url={previewUrl!} fileName={fileName} />
+                </Suspense>
               ) : (
                 <iframe
                   src={previewUrl!}

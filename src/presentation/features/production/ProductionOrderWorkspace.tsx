@@ -49,6 +49,7 @@ import { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import { PrecioMontaje } from '../../../core/domain/entities/PrecioMontaje'
 import { emptyPreprensaDiseno, PreprensaDisenoSpecs } from '../../../core/domain/entities/PreprensaDiseno'
 import { buildPreprensaFromHistorial, clearPreprensaHistorialSelection, normalizePreprensaSnapshot } from './utils/applyPreprensaFromHistorial'
+import { reconcilePrecioMontajeSnapshot } from './utils/preprensaMontajeResolve'
 import {
   applyColoresPlanchasForHistorialReuse,
   buildColoresPlanchasPatch,
@@ -56,7 +57,8 @@ import {
 import { ClienteDisenoOption } from './utils/buildClienteDisenos'
 import ProductionPreprensaDiseno from './ProductionPreprensaDiseno'
 import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
-import { patchPreprensaDesignNuevo } from './utils/preprensaDesignNuevoChange'
+import { patchPreprensaDesignNuevo, preprensaDisenoHasRegisteredContent } from './utils/preprensaDesignNuevoChange'
+import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
 import { patchCorteClienteSuministraPapel } from './utils/corteClienteSuministraPapelChange'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
@@ -655,13 +657,45 @@ const ProductionOrderWorkspace: React.FC = () => {
     })
   }
 
+  const handlePreprensaDesignNuevoChange = async (value: YesNoChoice) => {
+    if (value === specs.preprensaDiseno.designNuevo) return
+
+    if (preprensaDisenoHasRegisteredContent(specs.preprensaDiseno)) {
+      const targetLabel =
+        value === 'si'
+          ? PREPRENSA_DISENO_COPY.modo.nuevo
+          : PREPRENSA_DISENO_COPY.modo.existente
+      const confirmed = await confirmAction(
+        PREPRENSA_DISENO_COPY.modo.switchConfirmMessage(targetLabel),
+        {
+          title: PREPRENSA_DISENO_COPY.modo.switchConfirmTitle,
+          confirmLabel: PREPRENSA_DISENO_COPY.modo.switchConfirmLabel,
+          variant: 'danger',
+        }
+      )
+      if (!confirmed) return
+    }
+
+    updatePreprensaDiseno(patchPreprensaDesignNuevo(value))
+  }
+
   const applyHistorialTrabajo = (option: ClienteDisenoOption) => {
     const sourceOrder = orders.find(o => o.id === option.sourceOrderId)
     const raw = sourceOrder?.specs.preprensaDiseno ?? option.preprensaSnapshot
     const coloresPlanchas = applyColoresPlanchasForHistorialReuse(raw, specs.quantity, planchas)
+    const historialBase = buildPreprensaFromHistorial(raw, option.sourceOrderId, option.workName)
+    const montaje = reconcilePrecioMontajeSnapshot(
+      {
+        precioMontajeId: historialBase.precioMontajeId ?? '',
+        precioMontajeNombre: historialBase.precioMontajeNombre ?? '',
+        precioMontajeCosto: historialBase.precioMontajeCosto ?? 0,
+      },
+      preciosMontaje
+    )
     const preprensaDiseno: PreprensaDisenoSpecs = {
       ...emptyPreprensaDiseno(),
-      ...buildPreprensaFromHistorial(raw, option.sourceOrderId, option.workName),
+      ...historialBase,
+      ...montaje,
       ...buildColoresPlanchasPatch(coloresPlanchas, { historialMode: true }),
     }
     setSpecs(prev =>
@@ -709,14 +743,15 @@ const ProductionOrderWorkspace: React.FC = () => {
   }
 
   const handleClienteSuministraPapelChange = (value: OrderSpecs['clienteSuministraPapel']) => {
+    if (value === (specs.clienteSuministraPapel ?? 'no')) return
+
     setSpecs(prev => {
       const patch = patchCorteClienteSuministraPapel(
         value,
         prev.preprensaDiseno.coloresPlanchas,
         prev.paperRows
       )
-      const firstId = prev.preprensaDiseno.coloresPlanchas[0]?.id ?? ''
-      setActiveCorteColorPlanchaId(firstId)
+      setActiveCorteColorPlanchaId('')
       return mergeSpecsWithCorteMetrics(prev, patch)
     })
   }
@@ -964,9 +999,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                     >
                       <PreprensaDisenoModoShell
                         value={specs.preprensaDiseno.designNuevo}
-                        onChange={value =>
-                          updatePreprensaDiseno(patchPreprensaDesignNuevo(value))
-                        }
+                        onChange={handlePreprensaDesignNuevoChange}
                       />
                       <p className="production-workspace-panel-desc production-preprensa-diseno-desc">
                         Registre el tipo de diseño, complete los datos del arte (nombre, PDF, colores

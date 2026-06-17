@@ -32,6 +32,10 @@ export const CORTE_PAPEL_COPY = {
         description: 'El cliente entrega el material; se registran cortes y cantidades por registro',
       },
     },
+    switchConfirmTitle: 'Cambiar suministro de papel',
+    switchConfirmMessage: (targetLabel: string) =>
+      `Al cambiar a \u00AB${targetLabel}\u00BB se borrar\u00E1 la informaci\u00F3n de corte de papel registrada en esta orden. \u00BFDesea continuar?`,
+    switchConfirmLabel: 'Continuar y limpiar',
   },
   registroPreprensa: {
     ariaLabel: 'Selección de registro de Preprensa',
@@ -55,12 +59,13 @@ export const CORTE_PAPEL_COPY = {
     subtitle: 'Indique si el material llega ya cortado o debe cortarse en planta',
     opcionesAria: 'Estado del papel: cortado o sin cortar',
     hojasEntregadasLabel: 'Hojas entregadas por el cliente',
-    panelTag: 'Cálculo',
-    panelTitle: 'Cantidad de hojas y valor del corte',
+    panelTag: 'Entrada',
+    panelTitle: 'Cantidades del material',
     panelHint:
-      'Ingrese hojas entregadas y tamaños buenos con sobrante. Si hay faltante, use el registro de litografía para cobrar papel y/o corte según el estado del papel.',
+      'Registre lo entregado por el cliente. Los totales de hojas y corte se calculan automáticamente más abajo.',
     tamanosBuenosLabel: 'Tamaños buenos',
     sobranteLabel: 'Sobrante',
+    cantidadPlaceholder: 'Ingrese cantidad',
     cortado: {
       title: 'Papel cortado',
       description:
@@ -152,6 +157,11 @@ export const CORTE_PAPEL_COPY = {
     valores: {
       title: 'Cantidad y valor',
       subtitle: 'Cálculo automático según Preprensa y el despiece elegido',
+      cliente: {
+        title: 'Resultado',
+        subtitle: 'Totales calculados con las cantidades ingresadas y el despiece seleccionado',
+        metaSeparator: '·',
+      },
       grupoCatalogo: 'Tarifas del catálogo',
       grupoCalculo: 'Cantidad de hojas',
       grupoResultado: 'Valor del corte',

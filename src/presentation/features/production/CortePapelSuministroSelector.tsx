@@ -50,7 +50,7 @@ const SUMINISTRO_OPTIONS: SuministroOption[] = [
 
 interface CortePapelSuministroSelectorProps {
   value: YesNoChoice
-  onChange: (value: YesNoChoice) => void
+  onChange: (value: YesNoChoice) => void | Promise<void>
   hideLead?: boolean
 }
 
@@ -81,7 +81,10 @@ const CortePapelSuministroSelector: React.FC<CortePapelSuministroSelectorProps> 
             ]
               .filter(Boolean)
               .join(' ')}
-            onClick={() => onChange(opt.value)}
+            onClick={() => {
+              if (selected) return
+              void onChange(opt.value)
+            }}
           >
             <span className="production-diseno-modo__icon-wrap">{opt.icon}</span>
             <span className="production-diseno-modo__title">{opt.title}</span>

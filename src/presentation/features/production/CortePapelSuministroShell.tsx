@@ -5,7 +5,7 @@ import CortePapelSuministroSelector from './CortePapelSuministroSelector'
 
 interface CortePapelSuministroShellProps {
   value: YesNoChoice
-  onChange: (value: YesNoChoice) => void
+  onChange: (value: YesNoChoice) => void | Promise<void>
   className?: string
 }
 

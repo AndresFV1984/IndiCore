@@ -109,28 +109,22 @@ const CortePapelEstadoCorteFields: React.FC<CortePapelEstadoCorteFieldsProps> = 
         </div>
       ) : null}
 
-      <div className="production-corte-estado-corte__manual-panel">
-        <header className="production-corte-estado-corte__manual-head">
-          <span className="production-corte-estado-corte__manual-tag">
-            {faltanteLitografia ? faltante.registroCantidadTag : estado.panelTag}
-          </span>
-          <h4 className="production-corte-estado-corte__manual-title">
-            {faltanteLitografia ? faltante.registroCantidadTitle : estado.panelTitle}
-          </h4>
-          <p className="production-corte-estado-corte__manual-hint">
-            {faltanteLitografia ? faltante.registroCantidadHint : estado.panelHint}
-          </p>
-        </header>
-        <div
-          className={[
-            'production-corte-estado-corte__manual-grid',
-            faltanteLitografia ? 'production-corte-estado-corte__manual-grid--faltante' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
+      {!faltanteLitografia ? (
+        <section
+          className="production-corte-material-entrada"
+          aria-labelledby="prod-corte-material-entrada-title"
         >
-          {!faltanteLitografia ? (
-            <div className="production-form-field production-corte-estado-corte__manual-field--full">
+          <header className="production-corte-material-entrada__head">
+            <h4
+              id="prod-corte-material-entrada-title"
+              className="production-corte-material-entrada__title"
+            >
+              {estado.panelTitle}
+            </h4>
+            <p className="production-corte-material-entrada__hint">{estado.panelHint}</p>
+          </header>
+          <div className="production-corte-material-entrada__grid">
+            <div className="production-form-field production-corte-material-entrada__field">
               <label className="production-form-label" htmlFor="prod-corte-hojas-entregadas">
                 {estado.hojasEntregadasLabel}
               </label>
@@ -144,42 +138,88 @@ const CortePapelEstadoCorteFields: React.FC<CortePapelEstadoCorteFieldsProps> = 
                   onChange({ ...row, hojasEntregadasCliente: parseDigits(e.target.value) })
                 }
                 onKeyDown={blockNonDigitKey}
+                placeholder={estado.cantidadPlaceholder}
+              />
+            </div>
+            <div className="production-form-field production-corte-material-entrada__field">
+              <label className="production-form-label" htmlFor="prod-corte-tamanos-buenos">
+                {tamanosBuenosLabel}
+              </label>
+              <input
+                id="prod-corte-tamanos-buenos"
+                type="text"
+                inputMode="numeric"
+                className="production-form-input"
+                value={formatCantidadField(tamanosBuenos)}
+                onChange={e => onChange({ ...row, tamanosBuenosManual: parseDigits(e.target.value) })}
+                onKeyDown={blockNonDigitKey}
+                placeholder={estado.cantidadPlaceholder}
+              />
+            </div>
+            <div className="production-form-field production-corte-material-entrada__field">
+              <label className="production-form-label" htmlFor="prod-corte-sobrante">
+                {sobranteLabel}
+              </label>
+              <input
+                id="prod-corte-sobrante"
+                type="text"
+                inputMode="numeric"
+                className="production-form-input"
+                value={formatCantidadField(sobrante)}
+                onChange={e => onChange({ ...row, sobranteManual: parseDigits(e.target.value) })}
+                onKeyDown={blockNonDigitKey}
+                placeholder={estado.cantidadPlaceholder}
+              />
+            </div>
+          </div>
+        </section>
+      ) : (
+        <div className="production-corte-estado-corte__manual-panel">
+          <header className="production-corte-estado-corte__manual-head">
+            <span className="production-corte-estado-corte__manual-tag">
+              {faltante.registroCantidadTag}
+            </span>
+            <h4 className="production-corte-estado-corte__manual-title">
+              {faltante.registroCantidadTitle}
+            </h4>
+            <p className="production-corte-estado-corte__manual-hint">
+              {faltante.registroCantidadHint}
+            </p>
+          </header>
+          <div className="production-corte-estado-corte__manual-grid production-corte-estado-corte__manual-grid--faltante">
+            <div className="production-form-field">
+              <label className="production-form-label" htmlFor="prod-corte-tamanos-buenos-faltante">
+                {tamanosBuenosLabel}
+              </label>
+              <input
+                id="prod-corte-tamanos-buenos-faltante"
+                type="text"
+                inputMode="numeric"
+                className="production-form-input"
+                value={formatCantidadField(tamanosBuenos)}
+                onChange={e => onChange({ ...row, tamanosBuenosManual: parseDigits(e.target.value) })}
+                onKeyDown={blockNonDigitKey}
                 placeholder="0"
               />
             </div>
-          ) : null}
-          <div className="production-form-field">
-            <label className="production-form-label" htmlFor="prod-corte-tamanos-buenos">
-              {tamanosBuenosLabel}
-            </label>
-            <input
-              id="prod-corte-tamanos-buenos"
-              type="text"
-              inputMode="numeric"
-              className="production-form-input"
-              value={formatCantidadField(tamanosBuenos)}
-              onChange={e => onChange({ ...row, tamanosBuenosManual: parseDigits(e.target.value) })}
-              onKeyDown={blockNonDigitKey}
-              placeholder="0"
-            />
-          </div>
-          <div className="production-form-field">
-            <label className="production-form-label" htmlFor="prod-corte-sobrante">
-              {sobranteLabel}
-            </label>
-            <input
-              id="prod-corte-sobrante"
-              type="text"
-              inputMode="numeric"
-              className="production-form-input"
-              value={formatCantidadField(sobrante)}
-              onChange={e => onChange({ ...row, sobranteManual: parseDigits(e.target.value) })}
-              onKeyDown={blockNonDigitKey}
-              placeholder="0"
-            />
+            <div className="production-form-field">
+              <label className="production-form-label" htmlFor="prod-corte-sobrante-faltante">
+                {sobranteLabel}
+              </label>
+              <input
+                id="prod-corte-sobrante-faltante"
+                type="text"
+                inputMode="numeric"
+                className="production-form-input"
+                value={formatCantidadField(sobrante)}
+                onChange={e => onChange({ ...row, sobranteManual: parseDigits(e.target.value) })}
+                onKeyDown={blockNonDigitKey}
+                placeholder="0"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   )
 

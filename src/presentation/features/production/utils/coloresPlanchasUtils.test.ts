@@ -4,6 +4,8 @@ import {
   buildClienteSuministraPlanchaDetalle,
   extractDescripcionUsuarioClienteSuministra,
   buildPrecioPatchFromCatalog,
+  buildItemPricingContext,
+  resolveItemValorTotal,
   buildColoresPlanchasPatch,
   computeTamanosBuenos,
   deriveCantidadHojas,
@@ -140,19 +142,19 @@ describe('buildClienteSuministraPlanchaDetalle', () => {
 
   it('incluye solo el tipo de plancha sin descripción adicional', () => {
     expect(buildClienteSuministraPlanchaDetalle(tipo)).toBe(
-      'Cliente suministra plancha Plancha estándar — 70x100 cm'
+      'Cliente suministra — Plancha estándar — 70x100 cm'
     )
   })
 
   it('concatena la descripción del usuario antes del texto automático', () => {
     expect(buildClienteSuministraPlanchaDetalle(tipo, 'Tinta Pantone')).toBe(
-      'Tinta Pantone — Cliente suministra plancha Plancha estándar — 70x100 cm'
+      'Tinta Pantone — Cliente suministra — Plancha estándar — 70x100 cm'
     )
   })
 
   it('no duplica el texto si el usuario pegó el detalle completo', () => {
     const completo =
-      'Tinta Pantone — Cliente suministra plancha Plancha estándar — 70x100 cm'
+      'Tinta Pantone — Cliente suministra — Plancha estándar — 70x100 cm'
     expect(buildClienteSuministraPlanchaDetalle(tipo, completo)).toBe(completo)
   })
 
@@ -160,7 +162,14 @@ describe('buildClienteSuministraPlanchaDetalle', () => {
     const legacy =
       'Cliente suministra plancha Plancha estándar — 70x100 cm — Tinta Pantone'
     expect(buildClienteSuministraPlanchaDetalle(tipo, legacy)).toBe(
-      'Tinta Pantone — Cliente suministra plancha Plancha estándar — 70x100 cm'
+      'Tinta Pantone — Cliente suministra — Plancha estándar — 70x100 cm'
+    )
+  })
+
+  it('migra el formato legacy con «plancha Tipo» duplicado', () => {
+    const legacy = 'Tinta Pantone — Cliente suministra plancha Plancha estándar — 70x100 cm'
+    expect(buildClienteSuministraPlanchaDetalle(tipo, legacy)).toBe(
+      'Tinta Pantone — Cliente suministra — Plancha estándar — 70x100 cm'
     )
   })
 })
@@ -171,7 +180,7 @@ describe('extractDescripcionUsuarioClienteSuministra', () => {
   it('extrae la parte del usuario con el orden actual', () => {
     expect(
       extractDescripcionUsuarioClienteSuministra(
-        'Tinta Pantone — Cliente suministra plancha Plancha estándar — 70x100 cm',
+        'Tinta Pantone — Cliente suministra — Plancha estándar — 70x100 cm',
         tipo
       )
     ).toBe('Tinta Pantone')
@@ -181,6 +190,15 @@ describe('extractDescripcionUsuarioClienteSuministra', () => {
     expect(
       extractDescripcionUsuarioClienteSuministra(
         'Cliente suministra plancha Plancha estándar — 70x100 cm — Tinta Pantone',
+        tipo
+      )
+    ).toBe('Tinta Pantone')
+  })
+
+  it('extrae la parte del usuario con el formato legacy al final', () => {
+    expect(
+      extractDescripcionUsuarioClienteSuministra(
+        'Tinta Pantone — Cliente suministra plancha Plancha estándar — 70x100 cm',
         tipo
       )
     ).toBe('Tinta Pantone')
@@ -220,5 +238,38 @@ describe('reposición en diseño existente', () => {
   it('no cobra plancha en historial sin reposición ni registro manual', () => {
     const patch = buildColoresPlanchasPatch([baseItem()], { historialMode: true })
     expect(patch.valorTotalPlanchas).toBe(0)
+  })
+
+  it('no cobra reposición cuando el cliente suministra la plancha', () => {
+    const item = {
+      ...baseItem(),
+      reposicionPlancha: true,
+      cantidadReposicion: 3,
+      clienteSuministraPlanchas: 'si' as const,
+      planchaValor: 50000,
+      valorTotal: 150000,
+    }
+    const context = buildItemPricingContext(item, { historialMode: true })
+    const patch = buildPrecioPatchFromCatalog(item, plancha, 3, context)
+    expect(patch.planchaValor).toBe(0)
+    expect(patch.valorTotal).toBe(0)
+    expect(resolveItemValorTotal(item, context)).toBe(0)
+    expect(buildColoresPlanchasPatch([item], { historialMode: true }).valorTotalPlanchas).toBe(0)
+  })
+
+  it('no cobra reposición con suministro del cliente heredado de la orden', () => {
+    const item = {
+      ...baseItem(),
+      reposicionPlancha: true,
+      cantidadReposicion: 2,
+      planchaValor: 50000,
+      valorTotal: 100000,
+    }
+    const context = buildItemPricingContext(item, {
+      historialMode: true,
+      clienteSuministraPlanchas: 'si',
+    })
+    expect(resolveItemValorTotal(item, context)).toBe(0)
+    expect(buildColoresPlanchasPatch([item], context).valorTotalPlanchas).toBe(0)
   })
 })

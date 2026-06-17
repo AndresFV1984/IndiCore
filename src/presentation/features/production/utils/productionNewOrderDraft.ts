@@ -155,6 +155,9 @@ export const productionDraftHasContent = (draft: ProductionNewOrderDraft): boole
   const specs = draft.specs
   if (specs.quantity > 0) return true
   if ((specs.clienteSuministraPapel ?? 'no') === 'si') return true
+  if (specs.preprensaDiseno.coloresPlanchas.some(item => item.clienteSuministraPlanchas === 'si')) {
+    return true
+  }
   if ((specs.preprensaDiseno.clienteSuministraPlanchas ?? 'no') === 'si') return true
   if (specs.preprensaDiseno.coloresPlanchas.length > 0) return true
   if (specs.preprensaDiseno.nombreDiseno.trim()) return true

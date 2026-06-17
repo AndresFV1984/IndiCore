@@ -36,6 +36,8 @@ import {
   isCorteRegistroCompleto,
   syncPaperRowsWithColoresPlanchas,
 } from './utils/paperRowsSync'
+import { cortePapelHasRegisteredContent } from './utils/corteClienteSuministraPapelChange'
+import { confirmAction } from '../../utils/actionFeedback'
 
 interface ProductionCortePapelFormProps {
   row: PaperRow
@@ -50,7 +52,7 @@ interface ProductionCortePapelFormProps {
   onPaperRowCommit: (row: PaperRow) => void
   onPaperRowDelete: (activeId: string) => void
   onMargenRedondeoChange: (value: number) => void
-  onClienteSuministraPapelChange: (value: YesNoChoice) => void
+  onClienteSuministraPapelChange: (value: YesNoChoice) => void | Promise<void>
   onAddFaltanteLitografia?: (parent: PaperRow, hojasFaltante: number) => void
 }
 
@@ -72,6 +74,7 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
 }) => {
   const [draftRow, setDraftRow] = useState<PaperRow>(row)
   const lastActiveRegistroId = useRef(activeColorPlanchaId)
+  const lastClienteSuministraPapel = useRef(clienteSuministraPapel)
 
   const esFaltanteLitografia = isFaltanteLitografiaRow(draftRow)
   const clienteSuministra = clienteSuministraPapel === 'si' && !esFaltanteLitografia
@@ -131,6 +134,18 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
       })
     )
   }, [activeColorPlanchaId, coloresPlanchas, catalogTipos, margenRedondeo, clienteSuministraPapel])
+
+  useEffect(() => {
+    if (lastClienteSuministraPapel.current === clienteSuministraPapel) return
+    lastClienteSuministraPapel.current = clienteSuministraPapel
+
+    if (!activeColorPlanchaId) {
+      setDraftRow(emptyPaperRow())
+      return
+    }
+
+    setDraftRow(findPaperRowForActiveId(paperRows, activeColorPlanchaId))
+  }, [clienteSuministraPapel, paperRows, activeColorPlanchaId])
 
   useEffect(() => {
     if (!draftRow.tipoPapelId || tiposPapel.length === 0) return
@@ -268,6 +283,25 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
     setDraftRow(next)
   }
 
+  const handleSuministroChange = async (value: YesNoChoice) => {
+    if (value === clienteSuministraPapel) return
+
+    if (cortePapelHasRegisteredContent(paperRows, [draftRow])) {
+      const targetLabel =
+        value === 'si'
+          ? copy.suministro.opciones.cliente.title
+          : copy.suministro.opciones.empresa.title
+      const confirmed = await confirmAction(copy.suministro.switchConfirmMessage(targetLabel), {
+        title: copy.suministro.switchConfirmTitle,
+        confirmLabel: copy.suministro.switchConfirmLabel,
+        variant: 'danger',
+      })
+      if (!confirmed) return
+    }
+
+    await onClienteSuministraPapelChange(value)
+  }
+
   const handleCancelRegistro = () => {
     onActiveColorPlanchaIdChange('')
   }
@@ -295,9 +329,22 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
     showRegistroForm && despieceSeleccionado ? (
       <CorteFormPanel
         step="2"
-        title={copy.sections.valores.title}
-        subtitle={copy.sections.valores.subtitle}
-        className="production-corte-panel--valores"
+        title={
+          clienteSuministra
+            ? copy.sections.valores.cliente.title
+            : copy.sections.valores.title
+        }
+        subtitle={
+          clienteSuministra
+            ? copy.sections.valores.cliente.subtitle
+            : copy.sections.valores.subtitle
+        }
+        className={[
+          'production-corte-panel--valores',
+          clienteSuministra ? 'production-corte-panel--valores-cliente' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         <ProductionCorteValoresSection
           row={draftRow}
@@ -329,7 +376,7 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
 
       <CortePapelSuministroShell
         value={clienteSuministraPapel}
-        onChange={onClienteSuministraPapelChange}
+        onChange={handleSuministroChange}
       />
 
       {clienteSuministra ? (

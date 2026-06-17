@@ -142,10 +142,34 @@ export const isClienteSuministraPlanchas = (
   clienteSuministraPlanchas: YesNoChoice | undefined
 ): boolean => (clienteSuministraPlanchas ?? 'no') === 'si'
 
+export const resolveItemClienteSuministraPlanchas = (
+  item: DisenoColorPlanchaItem,
+  context?: ColoresPlanchasPricingContext
+): YesNoChoice =>
+  item.clienteSuministraPlanchas ?? context?.clienteSuministraPlanchas ?? 'no'
+
+export const isItemClienteSuministraPlanchas = (
+  item: DisenoColorPlanchaItem,
+  context?: ColoresPlanchasPricingContext
+): boolean => isClienteSuministraPlanchas(resolveItemClienteSuministraPlanchas(item, context))
+
+export const deriveClienteSuministraPlanchasFromItems = (
+  items: DisenoColorPlanchaItem[]
+): YesNoChoice =>
+  items.some(item => item.clienteSuministraPlanchas === 'si') ? 'si' : 'no'
+
 export type ColoresPlanchasPricingContext = {
   historialMode?: boolean
   clienteSuministraPlanchas?: YesNoChoice
 }
+
+export const buildItemPricingContext = (
+  item: DisenoColorPlanchaItem,
+  context: ColoresPlanchasPricingContext = {}
+): ColoresPlanchasPricingContext => ({
+  historialMode: context.historialMode,
+  clienteSuministraPlanchas: resolveItemClienteSuministraPlanchas(item, context),
+})
 
 /** Diseño existente: precio solo si hay reposición o registro manual de esta orden. */
 export const itemAplicaPrecioPlancha = (
@@ -157,7 +181,7 @@ export const itemAplicaPrecioPlancha = (
   const clienteSuministra =
     typeof context === 'boolean'
       ? false
-      : isClienteSuministraPlanchas(context?.clienteSuministraPlanchas)
+      : isItemClienteSuministraPlanchas(item, context)
   if (clienteSuministra) return false
   return !historialMode || Boolean(item.registroManual) || Boolean(item.reposicionPlancha)
 }
@@ -174,15 +198,27 @@ export const clearColoresPlanchasPrecios = (
   }))
 
 /** Texto estándar en descripción cuando el cliente entrega la plancha. */
-const CLIENTE_SUMINISTRA_PLANCHA_LEAD = 'cliente suministra plancha'
+const CLIENTE_SUMINISTRA_PLANCHA_LEAD = 'cliente suministra'
+const LEGACY_CLIENTE_SUMINISTRA_PLANCHA_LEAD = 'cliente suministra plancha'
 
 const stripDetalleSeparador = (value: string): string =>
   value.replace(/^[:.\-—–|]\s*/, '').trim()
 
 const buildClienteSuministraPlanchaSuffix = (tipoPlancha: string): string => {
   const tipo = tipoPlancha.trim()
+  return tipo ? `Cliente suministra — ${tipo}` : 'Cliente suministra planchas'
+}
+
+/** Formato anterior (duplicaba «plancha» con el nombre del tipo). */
+const buildLegacyClienteSuministraPlanchaSuffix = (tipoPlancha: string): string => {
+  const tipo = tipoPlancha.trim()
   return tipo ? `Cliente suministra plancha ${tipo}` : 'Cliente suministra plancha'
 }
+
+const clienteSuministraSuffixCandidates = (tipoPlancha: string): string[] => [
+  buildClienteSuministraPlanchaSuffix(tipoPlancha),
+  buildLegacyClienteSuministraPlanchaSuffix(tipoPlancha),
+]
 
 /** Extrae la parte editable del usuario, sin el texto automático de suministro. */
 export const extractDescripcionUsuarioClienteSuministra = (
@@ -192,21 +228,34 @@ export const extractDescripcionUsuarioClienteSuministra = (
   const rest = detalle.trim()
   if (!rest) return ''
 
-  const suffix = buildClienteSuministraPlanchaSuffix(tipoPlancha)
-  const suffixLower = suffix.toLowerCase()
-
-  // Orden actual: «Usuario — Cliente suministra plancha Tipo»
-  const suffixIndex = rest.toLowerCase().indexOf(suffixLower)
-  if (suffixIndex > 0) {
-    const before = rest.slice(0, suffixIndex).replace(/\s*[—–\-|]\s*$/, '').trim()
-    if (before && !before.toLowerCase().startsWith(CLIENTE_SUMINISTRA_PLANCHA_LEAD)) {
-      return before
+  for (const suffix of clienteSuministraSuffixCandidates(tipoPlancha)) {
+    const suffixLower = suffix.toLowerCase()
+    const suffixIndex = rest.toLowerCase().indexOf(suffixLower)
+    if (suffixIndex > 0) {
+      const before = rest.slice(0, suffixIndex).replace(/\s*[—–\-|]\s*$/, '').trim()
+      if (
+        before &&
+        !before.toLowerCase().startsWith(CLIENTE_SUMINISTRA_PLANCHA_LEAD) &&
+        !before.toLowerCase().startsWith(LEGACY_CLIENTE_SUMINISTRA_PLANCHA_LEAD)
+      ) {
+        return before
+      }
     }
+    if (rest.toLowerCase() === suffixLower) return ''
   }
 
-  if (rest.toLowerCase() === suffixLower) return ''
-
   // Compatibilidad con orden anterior: prefijo al inicio
+  if (rest.toLowerCase().startsWith(LEGACY_CLIENTE_SUMINISTRA_PLANCHA_LEAD)) {
+    let legacy = rest.slice(LEGACY_CLIENTE_SUMINISTRA_PLANCHA_LEAD.length).trim()
+    legacy = stripDetalleSeparador(legacy)
+    const tipo = tipoPlancha.trim()
+    if (tipo && legacy.toLowerCase().startsWith(tipo.toLowerCase())) {
+      legacy = legacy.slice(tipo.length).trim()
+      legacy = stripDetalleSeparador(legacy)
+    }
+    return legacy
+  }
+
   if (rest.toLowerCase().startsWith(CLIENTE_SUMINISTRA_PLANCHA_LEAD)) {
     let legacy = rest.slice(CLIENTE_SUMINISTRA_PLANCHA_LEAD.length).trim()
     legacy = stripDetalleSeparador(legacy)
@@ -236,9 +285,59 @@ export const applyClienteSuministraPlanchaDetalleToItems = (
 ): DisenoColorPlanchaItem[] =>
   items.map(item => {
     const nombre = item.planchaNombreMedida?.trim()
-    if (!nombre) return item
+    const withDetalle = nombre
+      ? {
+          ...item,
+          detalle: buildClienteSuministraPlanchaDetalle(
+            nombre,
+            extractDescripcionUsuarioClienteSuministra(item.detalle, nombre)
+          ),
+        }
+      : item
+    return {
+      ...withDetalle,
+      planchaValor: 0,
+      valorTotal: 0,
+    }
+  })
+
+/** Restaura la descripción editable al volver a cobrar planchas de la empresa. */
+export const applyLitografiaPlanchaDetalleToItems = (
+  items: DisenoColorPlanchaItem[]
+): DisenoColorPlanchaItem[] =>
+  items.map(item => {
+    const nombre = item.planchaNombreMedida?.trim() ?? ''
     const userPart = extractDescripcionUsuarioClienteSuministra(item.detalle, nombre)
-    return { ...item, detalle: buildClienteSuministraPlanchaDetalle(nombre, userPart) }
+    return { ...item, detalle: userPart }
+  })
+
+/** Recalcula precios guardados al volver a litografía (p. ej. tras suministro del cliente). */
+export const restoreLitografiaPlanchaPreciosInItems = (
+  items: DisenoColorPlanchaItem[],
+  planchas: TamanoPlancha[] = [],
+  context: ColoresPlanchasPricingContext = {}
+): DisenoColorPlanchaItem[] =>
+  items.map(item => {
+    if (!itemAplicaPrecioPlancha(item, context)) {
+      if (item.planchaValor > 0 || item.valorTotal > 0) {
+        return { ...item, planchaValor: 0, valorTotal: 0 }
+      }
+      return item
+    }
+    const cantidadCobro = item.reposicionPlancha
+      ? resolveCantidadReposicionCobro(item)
+      : item.numeroPlanchas
+    const plancha = planchas.find(p => p.id === item.planchaId)
+    if (plancha) {
+      return { ...item, ...buildPrecioPatchFromCatalog(item, plancha, cantidadCobro, context) }
+    }
+    if (item.planchaValor > 0 && cantidadCobro > 0) {
+      return {
+        ...item,
+        valorTotal: computeRegistroValorTotal(cantidadCobro, item.planchaValor),
+      }
+    }
+    return item
   })
 
 export const resolveItemValorTotal = (

@@ -41,6 +41,8 @@ export interface DisenoColorPlanchaItem {
   cantidadReposicion?: number
   /** Registro agregado manualmente en esta orden (no importado del historial) */
   registroManual?: boolean
+  /** Quién suministra las planchas en este registro */
+  clienteSuministraPlanchas?: YesNoChoice
 }
 
 export interface PreprensaDisenoSpecs {
