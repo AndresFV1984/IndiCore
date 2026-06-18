@@ -1,31 +1,68 @@
-import React, { useId } from 'react'
+import React, { useId, useMemo } from 'react'
 import clsx from 'clsx'
+import type { ImpresionTipoBifronte } from '../../../core/domain/entities/Order'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
-import { computeTamanosBuenos, computeTamanosBuenosReferencia } from './utils/coloresPlanchasUtils'
+import { isImpresionConVolteo } from './constants/impresionTipoBifronte'
+import {
+  computeTamanosBuenos,
+  computeTamanosBuenosReferencia,
+  resolveUsarReferenciaTamanosBuenosConVolteo,
+} from './utils/coloresPlanchasUtils'
 
 const detalleCopy = copy.tintas.planchaDetalle
 
 interface ImpresionPlanchaDetalleFieldsProps {
   cantidad: number
   numeroCavidades: number
-  sobrante?: number
+  tipoBifronteColorBasico?: ImpresionTipoBifronte | ''
+  tipoBifrontePantone?: ImpresionTipoBifronte | ''
+}
+
+interface FormulaStep {
+  stepRule: string
+  stepCalc?: string
+}
+
+interface DatosFormulaDetailsProps {
+  summary: string
+  steps: FormulaStep[]
 }
 
 interface DatosMetricTileProps {
   labelId: string
   label: string
   value: string
-  formula?: string
+  formulaSummary?: string
+  formulaSteps?: FormulaStep[]
   note?: string
   accent?: boolean
   empty?: boolean
 }
 
+const formatEntero = (value: number): string => new Intl.NumberFormat('es-CO').format(value)
+
+const DatosFormulaDetails: React.FC<DatosFormulaDetailsProps> = ({ summary, steps }) => (
+  <details className="production-impresion-datos__formula">
+    <summary>{summary}</summary>
+    <div className="production-impresion-datos__formula-body">
+      {steps.map((step, index) => (
+        <p key={index} className="production-impresion-datos__formula-line">
+          <span className="production-impresion-datos__formula-line-label">{step.stepRule}</span>
+          {step.stepCalc ? (
+            <code className="production-impresion-datos__formula-line-calc">{step.stepCalc}</code>
+          ) : null}
+        </p>
+      ))}
+    </div>
+  </details>
+)
+
 const DatosMetricTile: React.FC<DatosMetricTileProps> = ({
   labelId,
   label,
   value,
-  formula,
+  formulaSummary,
+  formulaSteps,
   note,
   accent = false,
   empty = false,
@@ -40,16 +77,11 @@ const DatosMetricTile: React.FC<DatosMetricTileProps> = ({
     <span className="production-impresion-datos__tile-label" id={labelId}>
       {label}
     </span>
-    <p
-      className="production-impresion-datos__tile-value"
-      aria-labelledby={labelId}
-      role="status"
-      title={formula}
-    >
+    <p className="production-impresion-datos__tile-value" aria-labelledby={labelId} role="status">
       {value}
     </p>
-    {formula && !empty ? (
-      <span className="production-impresion-datos__tile-formula">{formula}</span>
+    {formulaSummary && formulaSteps && formulaSteps.length > 0 && !empty ? (
+      <DatosFormulaDetails summary={formulaSummary} steps={formulaSteps} />
     ) : note ? (
       <span className="production-impresion-datos__tile-note">{note}</span>
     ) : null}
@@ -59,23 +91,57 @@ const DatosMetricTile: React.FC<DatosMetricTileProps> = ({
 const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps> = ({
   cantidad,
   numeroCavidades,
-  sobrante = 0,
+  tipoBifronteColorBasico = 'diferente-plancha',
+  tipoBifrontePantone = 'diferente-plancha',
 }) => {
   const headId = useId()
   const cavidadesId = useId()
   const tamanosBuenosId = useId()
   const tamanosBuenosReferenciaId = useId()
+  const usarReferenciaConVolteo = resolveUsarReferenciaTamanosBuenosConVolteo({
+    conVolteoColorBasico: isImpresionConVolteo(tipoBifronteColorBasico),
+    conVolteoPantone: isImpresionConVolteo(tipoBifrontePantone),
+  })
   const tamanosBuenosCalc = computeTamanosBuenos(cantidad, numeroCavidades)
   const tamanosBuenosReferenciaCalc = computeTamanosBuenosReferencia(
     cantidad,
     numeroCavidades,
-    sobrante
+    usarReferenciaConVolteo
   )
   const tamanosBuenosPendingMessage = !tamanosBuenosCalc.ok
     ? tamanosBuenosCalc.reason === 'sin-cavidad'
       ? detalleCopy.tamanosBuenosNeedCavidades
       : detalleCopy.tamanosBuenosNeedCantidad
     : ''
+
+  const tamanosBuenosFormulaSteps = useMemo<FormulaStep[]>(() => {
+    if (!tamanosBuenosCalc.ok) return []
+    return [
+      {
+        stepRule: detalleCopy.tamanosBuenosFormula,
+        stepCalc: `${formatEntero(cantidad)} ÷ ${formatEntero(numeroCavidades)} = ${formatEntero(tamanosBuenosCalc.value)}`,
+      },
+    ]
+  }, [cantidad, numeroCavidades, tamanosBuenosCalc])
+
+  const tamanosBuenosReferenciaFormulaSteps = useMemo<FormulaStep[]>(() => {
+    if (!tamanosBuenosReferenciaCalc.ok || !tamanosBuenosCalc.ok) return []
+    const formulaLines = usarReferenciaConVolteo
+      ? detalleCopy.tamanosBuenosReferenciaFormulaLinesConVolteo
+      : detalleCopy.tamanosBuenosReferenciaFormulaLinesSinVolteo
+    const formulaDescripcion = usarReferenciaConVolteo
+      ? detalleCopy.tamanosBuenosReferenciaFormulaConVolteo
+      : detalleCopy.tamanosBuenosReferenciaFormulaSinVolteo
+    return [
+      { stepRule: detalleCopy.tamanosBuenosReferenciaFormula },
+      { stepRule: formulaDescripcion },
+      ...formulaLines.map(line => ({ stepRule: line })),
+      {
+        stepRule: 'Resultado aplicado',
+        stepCalc: `${formatEntero(tamanosBuenosCalc.value)} → ${formatEntero(tamanosBuenosReferenciaCalc.value)}`,
+      },
+    ]
+  }, [tamanosBuenosCalc, tamanosBuenosReferenciaCalc, usarReferenciaConVolteo])
 
   return (
     <section className="production-impresion-datos" aria-labelledby={headId}>
@@ -106,7 +172,8 @@ const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps
               ? tamanosBuenosCalc.value.toLocaleString('es-CO')
               : detalleCopy.tamanosBuenosEmpty
           }
-          formula={tamanosBuenosCalc.ok ? detalleCopy.tamanosBuenosFormula : undefined}
+          formulaSummary={detalleCopy.tamanosBuenosFormulaSummary}
+          formulaSteps={tamanosBuenosFormulaSteps}
           note={!tamanosBuenosCalc.ok ? tamanosBuenosPendingMessage : undefined}
           accent={tamanosBuenosCalc.ok}
           empty={!tamanosBuenosCalc.ok}
@@ -120,9 +187,8 @@ const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps
               ? tamanosBuenosReferenciaCalc.value.toLocaleString('es-CO')
               : detalleCopy.tamanosBuenosReferenciaEmpty
           }
-          formula={
-            tamanosBuenosReferenciaCalc.ok ? detalleCopy.tamanosBuenosReferenciaFormula : undefined
-          }
+          formulaSummary={detalleCopy.tamanosBuenosReferenciaFormulaSummary}
+          formulaSteps={tamanosBuenosReferenciaFormulaSteps}
           note={!tamanosBuenosReferenciaCalc.ok ? tamanosBuenosPendingMessage : undefined}
           accent={tamanosBuenosReferenciaCalc.ok}
           empty={!tamanosBuenosReferenciaCalc.ok}

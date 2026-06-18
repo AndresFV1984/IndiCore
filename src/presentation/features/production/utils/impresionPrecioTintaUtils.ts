@@ -16,6 +16,7 @@ import { isImpresionConVolteo, normalizeImpresionTipoBifronte } from '../constan
 import {
   computeMillaresCalculados,
   computeValorImpresionPorMillaresReferencia,
+  computeValorImpresionColorBasicoPorReferencia,
   resolveMillaresParaCobro,
 } from './tarifaMillarPricingUtils'
 
@@ -39,12 +40,15 @@ export interface ImpresionPrecioTintaBreakdown {
 
 export type ImpresionGrupoMillaresAjuste = 'ninguno' | 'minimoPorTope' | 'millarUno'
 
+export type ImpresionTamanosBuenosMillaresFuente = 'referencia' | 'tamanosBuenos'
+
 export interface ImpresionGrupoMillaresPreview {
   variant: 'colorBasico' | 'pantone'
   cantidadTintas: number
   tintasTiro: number
   tintasRetiro: number
   tamanosBuenos: number
+  tamanosBuenosFuente: ImpresionTamanosBuenosMillaresFuente
   millaresBase: number
   millaresCalculados: number
   ajuste: ImpresionGrupoMillaresAjuste
@@ -201,7 +205,8 @@ export const buildImpresionGrupoMillaresPreview = (
   tintasTiro: number,
   tintasRetiro: number,
   tamanosBuenos: number,
-  pricing: TarifaMillarPricing
+  pricing: TarifaMillarPricing,
+  tamanosBuenosFuente: ImpresionTamanosBuenosMillaresFuente = 'tamanosBuenos'
 ): ImpresionGrupoMillaresPreview | null => {
   const cantidadTintas = tintasTiro + tintasRetiro
   if (cantidadTintas <= 0 || tamanosBuenos <= 0) return null
@@ -219,6 +224,7 @@ export const buildImpresionGrupoMillaresPreview = (
     tintasTiro,
     tintasRetiro,
     tamanosBuenos,
+    tamanosBuenosFuente,
     millaresBase,
     millaresCalculados,
     ajuste,
@@ -264,7 +270,8 @@ const computeGrupoImpresionCobro = (
   precioPorMillar: number,
   conVolteo: boolean,
   basePricing: TarifaMillarPricing,
-  volteoPricing: TarifaMillarPricing
+  volteoPricing: TarifaMillarPricing,
+  tamanosBuenosReferencia: number | null = null
 ): { millares: number; precio: number } => {
   const millares = resolveGrupoMillaresReferencia(
     variant,
@@ -275,15 +282,23 @@ const computeGrupoImpresionCobro = (
     basePricing,
     volteoPricing
   )
-  const precio = computeValorImpresionPorMillaresReferencia({
-    millaresReferencia: millares,
-    precioInicial,
-    precioPorMillar: conVolteo ? precioPorMillar : precioInicial,
-    conVolteo,
-    topeMinimoMillar: conVolteo
-      ? volteoPricing.topeMinimoMillar
-      : basePricing.topeMinimoMillar,
-  })
+  const precio =
+    variant === 'colorBasico'
+      ? computeValorImpresionColorBasicoPorReferencia({
+          millaresReferencia: millares,
+          tamanosBuenosReferencia,
+          precioConVolteo: precioPorMillar > 0 ? precioPorMillar : volteoPricing.precio,
+          precioSinVolteo: precioInicial,
+        })
+      : computeValorImpresionPorMillaresReferencia({
+          millaresReferencia: millares,
+          precioInicial,
+          precioPorMillar: conVolteo ? precioPorMillar : precioInicial,
+          conVolteo,
+          topeMinimoMillar: conVolteo
+            ? volteoPricing.topeMinimoMillar
+            : basePricing.topeMinimoMillar,
+        })
   return { millares, precio }
 }
 
@@ -308,11 +323,16 @@ export interface ImpresionPrecioTintaBreakdownInput {
   umbralDecimalMillarVolteoPantone?: number
 }
 
+export interface ImpresionPrecioTintaBreakdownOptions {
+  tamanosBuenosReferencia?: number | null
+}
+
 export const computeImpresionPrecioTintaBreakdown = (
   tiro: ImpresionLadoTintas,
   retiro: ImpresionLadoTintas,
   tamanosBuenos: number,
-  input: ImpresionPrecioTintaBreakdownInput
+  input: ImpresionPrecioTintaBreakdownInput,
+  options: ImpresionPrecioTintaBreakdownOptions = {}
 ): ImpresionPrecioTintaBreakdown => {
   const cantidadTintasColorBasico = sumDistinctNonPantoneColorsBySide(tiro, retiro)
   const cantidadTintasPantone = sumDistinctPantoneColorsBySide(tiro, retiro)
@@ -354,7 +374,8 @@ export const computeImpresionPrecioTintaBreakdown = (
     input.precioVolteoColorBasicoMillar ?? 0,
     conVolteoColorBasico,
     pricingColorBasico,
-    volteoColorBasicoPricing
+    volteoColorBasicoPricing,
+    options.tamanosBuenosReferencia ?? null
   )
   const pantoneGrupo = computeGrupoImpresionCobro(
     'pantone',

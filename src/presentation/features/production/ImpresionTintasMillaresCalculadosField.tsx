@@ -15,6 +15,8 @@ interface ImpresionTintasMillaresCalculadosFieldProps {
   conVolteo?: boolean
   precioInicial?: number
   precioPorMillar?: number
+  precioConVolteoMillar?: number
+  usaPrecioConVolteoColorBasico?: boolean
   topeMinimoMillarActivo?: number
   showTotal?: boolean
 }
@@ -70,6 +72,8 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
   conVolteo = false,
   precioInicial = 0,
   precioPorMillar = 0,
+  precioConVolteoMillar = 0,
+  usaPrecioConVolteoColorBasico = false,
   topeMinimoMillarActivo = 0,
   showTotal = true,
 }) => {
@@ -85,7 +89,10 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
       hasPreview
         ? [
             {
-              stepRule: millaresCopy.baseFormula,
+              stepRule:
+                preview!.tamanosBuenosFuente === 'referencia'
+                  ? millaresCopy.baseFormula
+                  : millaresCopy.baseFormulaTamanosBuenos,
               stepCalc: `(${formatEntero(preview!.tintasTiro)} + ${formatEntero(preview!.tintasRetiro)}) × ${formatEntero(preview!.tamanosBuenos)} ÷ 1.000 = ${formatMillaresFactor(preview!.millaresBase)}`,
             },
           ]
@@ -100,14 +107,27 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
     const topeEnMillares =
       topeMinimoMillarActivo > 0 ? topeMinimoMillarActivo / TARIFA_MILLAR_UNIDAD : 0
     const usaPrecioInicial =
-      conVolteo &&
-      topeEnMillares > 0 &&
-      preview.millaresCalculados >= topeEnMillares - 0.000001
-    const precioUnitario = usaPrecioInicial ? precioInicial : precioPorMillar
+      variant === 'colorBasico'
+        ? !usaPrecioConVolteoColorBasico
+        : conVolteo &&
+          topeEnMillares > 0 &&
+          preview.millaresCalculados >= topeEnMillares - 0.000001
+    const precioUnitario =
+      variant === 'colorBasico'
+        ? usaPrecioConVolteoColorBasico
+          ? precioConVolteoMillar
+          : precioInicial
+        : usaPrecioInicial
+          ? precioInicial
+          : precioPorMillar
     const formulaRule =
-      usaPrecioInicial || !conVolteo
-        ? millaresCopy.valorImpresionFormulaPrecioSinVolteo
-        : millaresCopy.valorImpresionFormulaPrecioConVolteo
+      variant === 'colorBasico'
+        ? usaPrecioConVolteoColorBasico
+          ? millaresCopy.valorImpresionFormulaColorBasicoReferencia500
+          : millaresCopy.valorImpresionFormulaColorBasicoReferenciaOtro
+        : usaPrecioInicial || !conVolteo
+          ? millaresCopy.valorImpresionFormulaPrecioSinVolteo
+          : millaresCopy.valorImpresionFormulaPrecioConVolteo
     return [
       {
         stepRule: formulaRule,
@@ -117,11 +137,14 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
   }, [
     conVolteo,
     hasPreview,
+    precioConVolteoMillar,
     precioInicial,
     precioPorMillar,
     preview,
     topeMinimoMillarActivo,
+    usaPrecioConVolteoColorBasico,
     valorImpresion,
+    variant,
   ])
 
   const valorImpresionDisplay =

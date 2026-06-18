@@ -30,7 +30,7 @@ export const resolveCantidadReposicionCobro = (item: DisenoColorPlanchaItem): nu
 
 export type TamanosBuenosCalcResult =
   | { ok: true; value: number }
-  | { ok: false; reason: 'sin-cavidad' | 'sin-cantidad' }
+  | { ok: false; reason: 'sin-cavidad' | 'sin-cantidad' | 'fuera-rango' }
 
 /** Redondeo matemático al entero más cercano (valores positivos). */
 export const roundToInteger = (value: number): number => {
@@ -66,28 +66,168 @@ export const resolveTamanosBuenosValue = (
   return result.ok ? result.value : 0
 }
 
-/** Tamaños buenos referencia = tamaños buenos + sobrante del registro. */
+const INCREMENTOS_RANGO_TAMANOS_BUENOS_REFERENCIA = [600, 400] as const
+const AJUSTE_POR_RANGO_TAMANOS_BUENOS_REFERENCIA = 500
+const CANTIDAD_RANGOS_TAMANOS_BUENOS_REFERENCIA = 100
+
+/** Referencia que activa precio con volteo en Color básico (Precio impresión). */
+export const TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO = 500
+
+type TamanosBuenosReferenciaRango = {
+  minExclusive: number
+  maxInclusive: number
+  ajuste: number
+}
+
+const generarRangosTamanosBuenosReferencia = (cantidadRangos: number): TamanosBuenosReferenciaRango[] => {
+  let minExclusive = 0
+  let ajuste = 0
+  return Array.from({ length: cantidadRangos }, (_, i) => {
+    const ancho =
+      i === 0
+        ? INCREMENTOS_RANGO_TAMANOS_BUENOS_REFERENCIA[0]
+        : INCREMENTOS_RANGO_TAMANOS_BUENOS_REFERENCIA[(i - 1) % 2]
+    ajuste += AJUSTE_POR_RANGO_TAMANOS_BUENOS_REFERENCIA
+    const maxInclusive = minExclusive + ancho
+    const rango: TamanosBuenosReferenciaRango = { minExclusive, maxInclusive, ajuste }
+    minExclusive = maxInclusive
+    return rango
+  })
+}
+
+const RANGOS_TAMANOS_BUENOS_REFERENCIA_CON_VOLTEO = generarRangosTamanosBuenosReferencia(
+  CANTIDAD_RANGOS_TAMANOS_BUENOS_REFERENCIA
+)
+
+const INCREMENTO_RANGO_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO = 1000
+const CANTIDAD_RANGOS_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO = 100
+const MINIMO_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO = 0
+const TOPE_INICIAL_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO = 1200
+
+const generarRangosTamanosBuenosReferenciaSinVolteo = (
+  cantidadRangos: number
+): TamanosBuenosReferenciaRango[] => {
+  let minExclusive = MINIMO_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO
+  let ajuste = 0
+  return Array.from({ length: cantidadRangos }, (_, i) => {
+    ajuste += INCREMENTO_RANGO_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO
+    const maxInclusive =
+      i === 0 ? TOPE_INICIAL_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO : minExclusive + INCREMENTO_RANGO_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO
+    const rango: TamanosBuenosReferenciaRango = { minExclusive, maxInclusive, ajuste }
+    minExclusive = maxInclusive
+    return rango
+  })
+}
+
+const RANGOS_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO = generarRangosTamanosBuenosReferenciaSinVolteo(
+  CANTIDAD_RANGOS_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO
+)
+
+const ajustarTamanosBuenosReferenciaPorRangos = (
+  tamanosBuenos: number,
+  rangos: TamanosBuenosReferenciaRango[]
+): number | null => {
+  if (!Number.isFinite(tamanosBuenos) || tamanosBuenos <= 0) return null
+
+  const rango = rangos.find(
+    item => tamanosBuenos > item.minExclusive && tamanosBuenos <= item.maxInclusive
+  )
+
+  return rango ? rango.ajuste : null
+}
+
+/** Ajuste con volteo (Color básico / Pantone con volteo activo). */
+export const ajustarTamanosBuenosReferenciaConVolteo = (tamanosBuenos: number): number | null =>
+  ajustarTamanosBuenosReferenciaPorRangos(tamanosBuenos, RANGOS_TAMANOS_BUENOS_REFERENCIA_CON_VOLTEO)
+
+/** Ajuste sin volteo (Color básico y Pantone sin volteo). */
+export const ajustarTamanosBuenosReferenciaSinVolteo = (tamanosBuenos: number): number | null =>
+  ajustarTamanosBuenosReferenciaPorRangos(tamanosBuenos, RANGOS_TAMANOS_BUENOS_REFERENCIA_SIN_VOLTEO)
+
+/** Ajuste de tamaños buenos referencia según tabla de rangos (x → ajuste). */
+export const ajustarTamanosBuenosReferencia = (
+  tamanosBuenos: number,
+  usarReferenciaConVolteo = false
+): number | null =>
+  usarReferenciaConVolteo
+    ? ajustarTamanosBuenosReferenciaConVolteo(tamanosBuenos)
+    : ajustarTamanosBuenosReferenciaSinVolteo(tamanosBuenos)
+
+/** Tabla con volteo si algún selector de volteo está activo (Color básico o Pantone). */
+export const resolveUsarReferenciaTamanosBuenosConVolteo = (options: {
+  conVolteoColorBasico: boolean
+  conVolteoPantone: boolean
+}): boolean => options.conVolteoColorBasico || options.conVolteoPantone
+
+/** Tamaños buenos referencia = ajuste por rango según tamaños buenos calculados. */
 export const computeTamanosBuenosReferencia = (
   cantidad: number,
   numeroCavidades: number,
-  sobrante: number
+  usarReferenciaConVolteo = false
 ): TamanosBuenosCalcResult => {
   const base = computeTamanosBuenos(cantidad, numeroCavidades)
   if (!base.ok) return base
-  return { ok: true, value: base.value + Math.max(0, sobrante) }
+  const ajuste = ajustarTamanosBuenosReferencia(base.value, usarReferenciaConVolteo)
+  if (ajuste === null) return { ok: false, reason: 'fuera-rango' }
+  return { ok: true, value: ajuste }
 }
 
 export const resolveTamanosBuenosReferenciaValue = (
   cantidad: number,
   numeroCavidades: number,
-  sobrante: number
+  usarReferenciaConVolteo = false
 ): number => {
-  const result = computeTamanosBuenosReferencia(cantidad, numeroCavidades, sobrante)
+  const result = computeTamanosBuenosReferencia(cantidad, numeroCavidades, usarReferenciaConVolteo)
   return result.ok ? result.value : 0
 }
 
-export const resolveTamanosBuenosReferenciaForItem = (item: DisenoColorPlanchaItem): number =>
-  resolveTamanosBuenosReferenciaValue(item.cantidad, item.numeroCavidades, item.sobrante ?? 0)
+export const resolveTamanosBuenosReferenciaForItem = (
+  item: DisenoColorPlanchaItem,
+  usarReferenciaConVolteo = false
+): number =>
+  resolveTamanosBuenosReferenciaValue(item.cantidad, item.numeroCavidades, usarReferenciaConVolteo)
+
+export type TamanosBuenosMillaresFuente = 'referencia' | 'tamanosBuenos'
+
+export interface TamanosBuenosParaMillares {
+  value: number
+  source: TamanosBuenosMillaresFuente
+  tamanosBuenos: number
+  tamanosBuenosReferencia: number | null
+}
+
+/** Valor para millares: prioriza tamaños buenos referencia; si no hay, usa tamaños buenos. */
+export const resolveTamanosBuenosParaMillares = (
+  cantidad: number,
+  numeroCavidades: number,
+  usarReferenciaConVolteo = false
+): TamanosBuenosParaMillares | null => {
+  const base = computeTamanosBuenos(cantidad, numeroCavidades)
+  if (!base.ok) return null
+
+  const referencia = computeTamanosBuenosReferencia(cantidad, numeroCavidades, usarReferenciaConVolteo)
+  if (referencia.ok) {
+    return {
+      value: referencia.value,
+      source: 'referencia',
+      tamanosBuenos: base.value,
+      tamanosBuenosReferencia: referencia.value,
+    }
+  }
+
+  return {
+    value: base.value,
+    source: 'tamanosBuenos',
+    tamanosBuenos: base.value,
+    tamanosBuenosReferencia: null,
+  }
+}
+
+export const resolveTamanosBuenosParaMillaresForItem = (
+  item: DisenoColorPlanchaItem,
+  usarReferenciaConVolteo = false
+): TamanosBuenosParaMillares | null =>
+  resolveTamanosBuenosParaMillares(item.cantidad, item.numeroCavidades, usarReferenciaConVolteo)
 
 export const applyTamanosBuenosToItem = (
   item: DisenoColorPlanchaItem

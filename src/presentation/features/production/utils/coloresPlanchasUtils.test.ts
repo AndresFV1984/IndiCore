@@ -9,6 +9,10 @@ import {
   buildColoresPlanchasPatch,
   computeTamanosBuenos,
   computeTamanosBuenosReferencia,
+  ajustarTamanosBuenosReferencia,
+  ajustarTamanosBuenosReferenciaConVolteo,
+  ajustarTamanosBuenosReferenciaSinVolteo,
+  resolveUsarReferenciaTamanosBuenosConVolteo,
   deriveCantidadHojas,
   hasDuplicateColoresPlanchaRegistro,
   resolvePrecioPlanchaDisplay,
@@ -16,6 +20,8 @@ import {
   sumTamanosBuenosYSobrante,
   resolveTamanosBuenosValue,
   resolveTamanosBuenosReferenciaValue,
+  resolveTamanosBuenosParaMillares,
+  resolveTamanosBuenosParaMillaresForItem,
   sumValorTotalPlanchas,
   syncColoresPlanchasCantidadFromOrder,
 } from './coloresPlanchasUtils'
@@ -85,9 +91,110 @@ describe('computeTamanosBuenos', () => {
 })
 
 describe('computeTamanosBuenosReferencia', () => {
-  it('suma tamaños buenos y sobrante', () => {
-    expect(computeTamanosBuenosReferencia(5000, 2, 100)).toEqual({ ok: true, value: 2600 })
-    expect(resolveTamanosBuenosReferenciaValue(5000, 2, 100)).toBe(2600)
+  it('aplica ajuste con volteo por rango según tamaños buenos', () => {
+    expect(computeTamanosBuenosReferencia(5000, 2, true)).toEqual({ ok: true, value: 2500 })
+    expect(resolveTamanosBuenosReferenciaValue(5000, 2, true)).toBe(2500)
+  })
+
+  it('ajusta con volteo según los rangos definidos por el negocio', () => {
+    expect(ajustarTamanosBuenosReferenciaConVolteo(600)).toBe(500)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(601)).toBe(1000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(1200)).toBe(1000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(1201)).toBe(1500)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(1600)).toBe(1500)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(1601)).toBe(2000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(2200)).toBe(2000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(2201)).toBe(2500)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(2600)).toBe(2500)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(2601)).toBe(3000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(3200)).toBe(3000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(3201)).toBe(3500)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(3600)).toBe(3500)
+  })
+
+  it('continúa el patrón con volteo para valores mayores', () => {
+    expect(ajustarTamanosBuenosReferenciaConVolteo(3601)).toBe(4000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(4200)).toBe(4000)
+    expect(ajustarTamanosBuenosReferenciaConVolteo(4201)).toBe(4500)
+    expect(computeTamanosBuenosReferencia(1202, 2, true)).toEqual({ ok: true, value: 1000 })
+    expect(computeTamanosBuenosReferencia(4400, 2, true)).toEqual({ ok: true, value: 2000 })
+  })
+
+  it('ajusta sin volteo según los rangos iniciales de 1.000', () => {
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(1)).toBe(1000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(2)).toBe(1000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(1200)).toBe(1000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(1201)).toBe(2000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(2200)).toBe(2000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(2201)).toBe(3000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(3200)).toBe(3000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(3201)).toBe(4000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(4200)).toBe(4000)
+    expect(ajustarTamanosBuenosReferenciaSinVolteo(4201)).toBe(5000)
+  })
+
+  it('usa la tabla sin volteo por defecto y con volteo cuando se indica', () => {
+    expect(computeTamanosBuenosReferencia(4800, 2)).toEqual({ ok: true, value: 3000 })
+    expect(computeTamanosBuenosReferencia(4800, 2, false)).toEqual({ ok: true, value: 3000 })
+    expect(computeTamanosBuenosReferencia(4400, 2, true)).toEqual({ ok: true, value: 2000 })
+  })
+})
+
+describe('resolveUsarReferenciaTamanosBuenosConVolteo', () => {
+  it('usa referencia con volteo si algún selector tiene volteo activo', () => {
+    expect(
+      resolveUsarReferenciaTamanosBuenosConVolteo({
+        conVolteoColorBasico: true,
+        conVolteoPantone: false,
+      })
+    ).toBe(true)
+    expect(
+      resolveUsarReferenciaTamanosBuenosConVolteo({
+        conVolteoColorBasico: false,
+        conVolteoPantone: true,
+      })
+    ).toBe(true)
+  })
+
+  it('usa referencia sin volteo cuando ambos selectores están sin volteo', () => {
+    expect(
+      resolveUsarReferenciaTamanosBuenosConVolteo({
+        conVolteoColorBasico: false,
+        conVolteoPantone: false,
+      })
+    ).toBe(false)
+  })
+})
+
+describe('resolveTamanosBuenosParaMillares', () => {
+  it('prioriza tamaños buenos referencia cuando está disponible', () => {
+    expect(resolveTamanosBuenosParaMillares(4400, 2, true)).toEqual({
+      value: 2000,
+      source: 'referencia',
+      tamanosBuenos: 2200,
+      tamanosBuenosReferencia: 2000,
+    })
+    expect(resolveTamanosBuenosParaMillares(4800, 2)).toEqual({
+      value: 3000,
+      source: 'referencia',
+      tamanosBuenos: 2400,
+      tamanosBuenosReferencia: 3000,
+    })
+    expect(resolveTamanosBuenosParaMillaresForItem({
+      ...baseItem(),
+      cantidad: 4400,
+      numeroCavidades: 2,
+    })).toEqual({
+      value: 2000,
+      source: 'referencia',
+      tamanosBuenos: 2200,
+      tamanosBuenosReferencia: 2000,
+    })
+  })
+
+  it('usa tamaños buenos cuando referencia no está disponible', () => {
+    expect(resolveTamanosBuenosParaMillares(0, 2)).toBeNull()
+    expect(resolveTamanosBuenosParaMillares(5000, 0)).toBeNull()
   })
 })
 

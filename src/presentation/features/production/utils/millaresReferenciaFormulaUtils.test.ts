@@ -10,6 +10,7 @@ const preview = (
   tintasTiro: 2,
   tintasRetiro: 2,
   tamanosBuenos: 2500,
+  tamanosBuenosFuente: 'referencia',
   ajuste: 'ninguno',
   ...partial,
 })

@@ -16,7 +16,7 @@ import ImpresionPlanchaDetalleFields from './ImpresionPlanchaDetalleFields'
 import ImpresionPlanchaSelect from './ImpresionPlanchaSelect'
 import ImpresionTintasEntradasList from './ImpresionTintasEntradasList'
 import ProductionImpresionTintasResumen from './ProductionImpresionTintasResumen'
-import { resolveTamanosBuenosForItem } from './utils/coloresPlanchasUtils'
+import { resolveTamanosBuenosParaMillaresForItem, resolveUsarReferenciaTamanosBuenosConVolteo } from './utils/coloresPlanchasUtils'
 import {
   buildImpresionGrupoMillaresPreview,
   computeImpresionPrecioTintaBreakdown,
@@ -129,6 +129,23 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     draftTarifa.tipoBifrontePantone
   )
   const showComposerForm = !hasActiveEntrada || Boolean(editingEntradaId)
+  const showTiroRetiroDiagram = !hasActiveEntrada || Boolean(editingEntradaId)
+  const usarReferenciaConVolteo = useMemo(
+    () =>
+      resolveUsarReferenciaTamanosBuenosConVolteo({
+        conVolteoColorBasico: isImpresionConVolteo(draftTarifa.tipoBifronteColorBasico),
+        conVolteoPantone: isImpresionConVolteo(draftTarifa.tipoBifrontePantone),
+      }),
+    [draftTarifa.tipoBifronteColorBasico, draftTarifa.tipoBifrontePantone]
+  )
+
+  const tamanosBuenosMillares = useMemo(
+    () =>
+      activePlancha
+        ? resolveTamanosBuenosParaMillaresForItem(activePlancha, usarReferenciaConVolteo)
+        : null,
+    [activePlancha, usarReferenciaConVolteo]
+  )
 
   const buildBreakdownInput = (): ImpresionPrecioTintaBreakdownInput => ({
     precioColorBasicoMillar: draftTarifa.precioColorBasicoMillar || tarifaColorBasico?.precio || 0,
@@ -154,7 +171,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   })
 
   const millaresPreviewColorBasico = useMemo(() => {
-    if (!activePlancha || !showColorBasicoTarifa) return null
+    if (!activePlancha || !showColorBasicoTarifa || !tamanosBuenosMillares) return null
     const tintasTiro = countDistinctNonPantoneInLado(draftTiro)
     const tintasRetiro = countDistinctNonPantoneInLado(draftRetiro)
     if (tintasTiro + tintasRetiro <= 0) return null
@@ -176,8 +193,9 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       'colorBasico',
       tintasTiro,
       tintasRetiro,
-      resolveTamanosBuenosForItem(activePlancha),
-      pricing
+      tamanosBuenosMillares.value,
+      pricing,
+      tamanosBuenosMillares.source
     )
   }, [
     activePlancha,
@@ -189,11 +207,12 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     draftTiro,
     showColorBasicoTarifa,
     tarifaColorBasico,
+    tamanosBuenosMillares,
     volteoMillarRulesColorBasico,
   ])
 
   const millaresPreviewPantone = useMemo(() => {
-    if (!activePlancha || !showPantoneTarifa) return null
+    if (!activePlancha || !showPantoneTarifa || !tamanosBuenosMillares) return null
     const tintasTiro = countDistinctPantoneInLado(draftTiro)
     const tintasRetiro = countDistinctPantoneInLado(draftRetiro)
     if (tintasTiro + tintasRetiro <= 0) return null
@@ -215,8 +234,9 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       'pantone',
       tintasTiro,
       tintasRetiro,
-      resolveTamanosBuenosForItem(activePlancha),
-      pricing
+      tamanosBuenosMillares.value,
+      pricing,
+      tamanosBuenosMillares.source
     )
   }, [
     activePlancha,
@@ -228,6 +248,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     draftTiro,
     showPantoneTarifa,
     tarifaPantone,
+    tamanosBuenosMillares,
     volteoMillarRulesPantone,
   ])
 
@@ -330,11 +351,14 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       setDraftError(entradasCopy.validationError(maxColoresPlancha))
       return
     }
+    if (!tamanosBuenosMillares) return
+
     const precioTintaBreakdown = computeImpresionPrecioTintaBreakdown(
       draftTiro,
       draftRetiro,
-      resolveTamanosBuenosForItem(activePlancha),
-      buildBreakdownInput()
+      tamanosBuenosMillares.value,
+      buildBreakdownInput(),
+      { tamanosBuenosReferencia: tamanosBuenosMillares.tamanosBuenosReferencia }
     )
     const entrada = clampImpresionEntradaToPlanchaColores(
       {
@@ -474,7 +498,8 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                 <ImpresionPlanchaDetalleFields
                   cantidad={activePlancha.cantidad}
                   numeroCavidades={activePlancha.numeroCavidades}
-                  sobrante={activePlancha.sobrante}
+                  tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
+                  tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
                 />
               ) : null}
 
@@ -493,17 +518,6 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                     {!showComposerForm && hasActiveEntrada && activeEntrada ? (
                       <div className="production-impresion-tintas-draft__body">
                         <p className="production-diseno-cliente-hint">{entradasCopy.planchaCompletaHint}</p>
-                        <ImpresionTiroRetiroDiagram
-                          tiro={activeEntrada.tiro}
-                          retiro={activeEntrada.retiro}
-                          tipoBifronteColorBasico={activeRegistro?.tipoBifronteColorBasico}
-                          tipoBifrontePantone={activeRegistro?.tipoBifrontePantone}
-                          showColorBasico={entradaUsesPrimaryOrSecondaryInks(
-                            activeEntrada.tiro,
-                            activeEntrada.retiro
-                          )}
-                          showPantone={entradaUsesPantoneInks(activeEntrada.tiro, activeEntrada.retiro)}
-                        />
                       </div>
                     ) : null}
 
@@ -564,7 +578,8 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                         </div>
 
                         {showColorBasicoTarifa || showPantoneTarifa ? (
-                          <ImpresionTintasVolteoSection
+                          <div className="production-impresion-tintas-tarifas-zone">
+                            <ImpresionTintasVolteoSection
                             hasColorBasico={showColorBasicoTarifa}
                             hasPantone={showPantoneTarifa}
                             tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
@@ -606,16 +621,22 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                             onPrecioVolteoColorBasicoMillarChange={handlePrecioVolteoColorBasicoChange}
                             onPrecioVolteoPantoneMillarChange={handlePrecioVolteoPantoneChange}
                           />
+                          </div>
                         ) : null}
 
-                        <ImpresionTiroRetiroDiagram
-                          tiro={draftTiro}
-                          retiro={draftRetiro}
-                          tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
-                          tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
-                          showColorBasico={showColorBasicoTarifa}
-                          showPantone={showPantoneTarifa}
-                        />
+                        {showTiroRetiroDiagram ? (
+                          <div className="production-impresion-tintas-diagram-zone">
+                            <ImpresionTiroRetiroDiagram
+                              tiro={draftTiro}
+                              retiro={draftRetiro}
+                              tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
+                              tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
+                              showColorBasico={showColorBasicoTarifa}
+                              showPantone={showPantoneTarifa}
+                              showVolteoChips={!(showColorBasicoTarifa || showPantoneTarifa)}
+                            />
+                          </div>
+                        ) : null}
 
                         <div className="production-plancha-draft__actions production-impresion-tintas-draft__actions">
                           {editingEntradaId ? (
