@@ -8,6 +8,13 @@ import {
 
 export type { PlacedPiece, CortePliegoPackingAlgorithm }
 
+export interface CortePliegoOccupiedBounds {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+}
+
 export interface CortePliegoLayout {
   paperWidth: number
   paperHeight: number
@@ -19,6 +26,7 @@ export interface CortePliegoLayout {
   totalPieces: number
   pieceRotated: boolean
   paperSwapped: boolean
+  occupiedBounds: CortePliegoOccupiedBounds
   usedWidth: number
   usedHeight: number
   wasteArea: number
@@ -64,6 +72,28 @@ const fromMillimeters = (value: number, unit: string): number => {
     default:
       return value / 10
   }
+}
+
+export const derivePlacementBounds = (
+  placements: PlacedPiece[]
+): CortePliegoOccupiedBounds => {
+  if (placements.length === 0) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0 }
+  }
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = 0
+  let maxY = 0
+
+  for (const piece of placements) {
+    minX = Math.min(minX, piece.x)
+    minY = Math.min(minY, piece.y)
+    maxX = Math.max(maxX, piece.x + piece.width)
+    maxY = Math.max(maxY, piece.y + piece.height)
+  }
+
+  return { minX, minY, maxX, maxY }
 }
 
 export const computeCortePliegoLayout = (
@@ -125,12 +155,9 @@ export const computeCortePliegoLayout = (
     }))
   }
 
-  const usedWidth = best.paperSwapped
-    ? fromMillimeters(best.usedHeightMm, paperUnit)
-    : fromMillimeters(best.usedWidthMm, paperUnit)
-  const usedHeight = best.paperSwapped
-    ? fromMillimeters(best.usedWidthMm, paperUnit)
-    : fromMillimeters(best.usedHeightMm, paperUnit)
+  const occupiedBounds = derivePlacementBounds(placements)
+  const usedWidth = occupiedBounds.maxX - occupiedBounds.minX
+  const usedHeight = occupiedBounds.maxY - occupiedBounds.minY
   const paperArea = catalogPaperWidth * catalogPaperHeight
   const pieceArea = pieceWidth * pieceHeight
   const wasteArea = Math.max(0, paperArea - totalPieces * pieceArea)
@@ -146,6 +173,7 @@ export const computeCortePliegoLayout = (
     totalPieces,
     pieceRotated: best.pieceRotated,
     paperSwapped: best.paperSwapped,
+    occupiedBounds,
     usedWidth,
     usedHeight,
     wasteArea,
@@ -155,6 +183,63 @@ export const computeCortePliegoLayout = (
     shelfCounts: best.shelfCounts,
     placements,
   }
+}
+
+export interface CortePliegoPlacementRow {
+  y: number
+  height: number
+  usedWidth: number
+  count: number
+}
+
+export const derivePlacementRows = (
+  placements: PlacedPiece[]
+): CortePliegoPlacementRow[] => {
+  if (placements.length === 0) return []
+
+  const rowMap = new Map<string, CortePliegoPlacementRow>()
+
+  for (const piece of placements) {
+    const key = `${Math.round(piece.y * 1000)}:${Math.round(piece.height * 1000)}`
+    const existing = rowMap.get(key)
+    if (existing) {
+      existing.count += 1
+      existing.usedWidth = Math.max(existing.usedWidth, piece.x + piece.width)
+    } else {
+      rowMap.set(key, {
+        y: piece.y,
+        height: piece.height,
+        usedWidth: piece.x + piece.width,
+        count: 1,
+      })
+    }
+  }
+
+  return [...rowMap.values()].sort((a, b) => a.y - b.y)
+}
+
+export const formatCortePliegoVisualLayoutLabel = (
+  placements: PlacedPiece[],
+  totalPieces: number
+): string => {
+  const rows = derivePlacementRows(placements)
+  if (rows.length === 0) {
+    return `${totalPieces.toLocaleString('es-CO')} pzas`
+  }
+
+  const cols = Math.max(...rows.map(row => row.count))
+  const counts = rows.map(row => row.count)
+  const uniform = counts.every(count => count === cols)
+
+  if (rows.length === 1) {
+    return `${totalPieces.toLocaleString('es-CO')} pza${totalPieces === 1 ? '' : 's'} en 1 fila`
+  }
+
+  if (uniform) {
+    return `${rows.length} filas × ${cols} columnas · ${totalPieces.toLocaleString('es-CO')} pzas`
+  }
+
+  return `${rows.length} filas (${counts.join(' + ')}) · ${totalPieces.toLocaleString('es-CO')} pzas`
 }
 
 export const formatCortePliegoDimension = (value: number): string => {
@@ -168,8 +253,8 @@ export const formatCortePliegoLayoutCaption = (
   despieceName: string
 ): string => {
   const unit = layout.unidadMedida.toLowerCase()
-  const paper = `${formatCortePliegoDimension(layout.paperWidth)}×${formatCortePliegoDimension(layout.paperHeight)} ${unit} (ancho×largo)`
+  const paper = `${formatCortePliegoDimension(layout.paperWidth)}×${formatCortePliegoDimension(layout.paperHeight)} ${unit}`
   const piece = `${formatCortePliegoDimension(layout.pieceWidth)}×${formatCortePliegoDimension(layout.pieceHeight)} ${unit}`
   const name = despieceName.trim() || 'Pieza'
-  return `Pliego ${paper} · ${name} ${piece} · ${layout.totalPieces} piezas`
+  return `Pliego ${paper} · ${name} ${piece} · ${layout.totalPieces} pzas`
 }

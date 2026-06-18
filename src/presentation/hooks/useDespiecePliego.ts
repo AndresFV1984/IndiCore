@@ -3,8 +3,19 @@ import { Container } from '../../di/container.js'
 import { dedupedFetch } from '../utils/dedupedFetch.js'
 import { CreateDespiecePliegoDTO, DespiecePliego } from '../../core/domain/entities/DespiecePliego.js'
 import { useDespiecePliegoStore } from '../stores/despiecePliegoStore.js'
+import { useTipoPapelStore } from '../stores/tipoPapelStore.js'
+import { useCortePapelStore } from '../stores/cortePapelStore.js'
 
 const container = Container.getInstance()
+
+const refreshCatalogsUsingDespiece = async () => {
+  const [tiposPapel, cortesPapel] = await Promise.all([
+    container.getTipoPapelUseCases().getTiposPapel(),
+    container.getCortePapelUseCases().getCortesPapel(),
+  ])
+  useTipoPapelStore.getState().setItems(tiposPapel)
+  useCortePapelStore.getState().setItems(cortesPapel)
+}
 
 export const useDespiecePliegoHook = () => {
   const {
@@ -53,6 +64,7 @@ export const useDespiecePliegoHook = () => {
     const item = DespiecePliego.create(dto)
     await container.getDespiecePliegoUseCases().updateDespiecePliego(item)
     updateItem(item)
+    await refreshCatalogsUsingDespiece()
     return item
   }
 

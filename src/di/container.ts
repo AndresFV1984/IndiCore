@@ -41,6 +41,7 @@ import { CreateTipoPapelUseCase } from '../core/use-cases/tipo-papel/CreateTipoP
 import { IDespiecePliegoRepository } from '../core/ports/out/IDespiecePliegoRepository.js';
 import { InMemoryDespiecePliegoRepository } from '../infrastructure/repositories/InMemoryDespiecePliegoRepository.js';
 import { CreateDespiecePliegoUseCase } from '../core/use-cases/despiece-pliego/CreateDespiecePliegoUseCase.js';
+import { UpdateDespiecePliegoUseCase } from '../core/use-cases/despiece-pliego/UpdateDespiecePliegoUseCase.js';
 import { ICortePapelRepository } from '../core/ports/out/ICortePapelRepository.js';
 import { InMemoryCortePapelRepository } from '../infrastructure/repositories/InMemoryCortePapelRepository.js';
 import { CreateCortePapelUseCase } from '../core/use-cases/corte-papel/CreateCortePapelUseCase.js';
@@ -266,6 +267,7 @@ class TipoPapelUseCases implements ITipoPapelUseCases {
 class DespiecePliegoUseCases implements IDespiecePliegoUseCases {
   constructor(
     private readonly createDespiecePliegoUseCase: CreateDespiecePliegoUseCase,
+    private readonly updateDespiecePliegoUseCase: UpdateDespiecePliegoUseCase,
     private readonly despiecePliegoRepository: IDespiecePliegoRepository
   ) {}
 
@@ -282,7 +284,7 @@ class DespiecePliegoUseCases implements IDespiecePliegoUseCases {
   }
 
   async updateDespiecePliego(item: any): Promise<void> {
-    return this.despiecePliegoRepository.update(item);
+    return this.updateDespiecePliegoUseCase.execute(item);
   }
 
   async deleteDespiecePliego(id: string): Promise<void> {
@@ -428,6 +430,11 @@ export class Container {
 
     this.despiecePliegoUseCases = new DespiecePliegoUseCases(
       new CreateDespiecePliegoUseCase(this.despiecePliegoRepository),
+      new UpdateDespiecePliegoUseCase(
+        this.despiecePliegoRepository,
+        this.tipoPapelRepository,
+        this.cortePapelRepository
+      ),
       this.despiecePliegoRepository
     );
 

@@ -5,15 +5,19 @@ import { CORTE_PAPEL_COPY } from './constants/cortePapelCopy'
 import { deriveCutLinesFromPlacements } from './utils/cortePliegoBinPacking'
 import {
   computeCortePliegoLayout,
+  derivePlacementRows,
   formatCortePliegoDimension,
   formatCortePliegoLayoutCaption,
+  formatCortePliegoVisualLayoutLabel,
 } from './utils/cortePliegoLayoutUtils'
 
 const copy = CORTE_PAPEL_COPY.sections.papel.pliegoDiagram
 
-const MAX_DIAGRAM_WIDTH = 450
-const MAX_DIAGRAM_HEIGHT = 282
-const LABEL_PADDING = 18
+const MAX_DIAGRAM_WIDTH = 640
+const MAX_DIAGRAM_HEIGHT = 440
+const LABEL_PADDING = 22
+const RIGHT_LABEL_PADDING = 40
+const EPS = 1e-6
 
 interface ProductionCortePliegoDiagramProps {
   tipoPapel: TipoPapel
@@ -32,7 +36,10 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
 
   const displaySize = useMemo(() => {
     if (!layout) return { width: MAX_DIAGRAM_WIDTH, height: MAX_DIAGRAM_HEIGHT }
-    const ratio = layout.paperWidth / layout.paperHeight
+    const horizontalPad = Math.max(LABEL_PADDING, RIGHT_LABEL_PADDING)
+    const viewWidth = layout.paperWidth + horizontalPad * 2
+    const viewHeight = layout.paperHeight + LABEL_PADDING * 2
+    const ratio = viewWidth / viewHeight
     let width = MAX_DIAGRAM_WIDTH
     let height = width / ratio
     if (height > MAX_DIAGRAM_HEIGHT) {
@@ -42,38 +49,68 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
     return { width: Math.round(width), height: Math.round(height) }
   }, [layout])
 
+  const occupied = layout?.occupiedBounds
+
   const cutLines = useMemo(
     () =>
-      layout
-        ? deriveCutLinesFromPlacements(layout.placements, {
-            usedWidth: layout.usedWidth,
-            usedHeight: layout.usedHeight,
-          })
+      layout && occupied
+        ? deriveCutLinesFromPlacements(layout.placements, occupied)
         : { vertical: [], horizontal: [], verticalSegments: [] },
+    [layout, occupied]
+  )
+
+  const placementRows = useMemo(
+    () => (layout ? derivePlacementRows(layout.placements) : []),
     [layout]
   )
 
+  const sortedPlacements = useMemo(
+    () =>
+      layout
+        ? [...layout.placements].sort((a, b) => a.y - b.y || a.x - b.x)
+        : [],
+    [layout]
+  )
+
+  const displayNumberByIndex = useMemo(() => {
+    const map = new Map<number, number>()
+    sortedPlacements.forEach((piece, index) => {
+      map.set(piece.index, index + 1)
+    })
+    return map
+  }, [sortedPlacements])
+
   const wastePatternId = `${titleId}-waste-pattern`
 
-  if (!layout) {
+  if (!layout || !occupied) {
     return (
       <p className="production-corte-pliego-diagram__unavailable">{copy.unavailable}</p>
     )
   }
 
   const caption = formatCortePliegoLayoutCaption(layout, despiece.name)
+  const visualLayoutLabel = formatCortePliegoVisualLayoutLabel(
+    layout.placements,
+    layout.totalPieces
+  )
   const unit = layout.unidadMedida.toLowerCase()
   const pieceAncho = formatCortePliegoDimension(layout.pieceWidth)
   const pieceLargo = formatCortePliegoDimension(layout.pieceHeight)
   const labelSize = Math.max(layout.paperWidth, layout.paperHeight) * 0.058
-  const pieceLabelSize = Math.min(layout.pieceWidth, layout.pieceHeight) * 0.2
-  const viewMinX = -LABEL_PADDING
+  const pieceLabelSize = Math.min(layout.pieceWidth, layout.pieceHeight) * 0.28
+  const rowLabelSize = Math.max(layout.paperWidth, layout.paperHeight) * 0.045
+  const showRowCounts = placementRows.length > 1
+  const horizontalPad = showRowCounts
+    ? Math.max(LABEL_PADDING, RIGHT_LABEL_PADDING)
+    : LABEL_PADDING
+  const viewMinX = -horizontalPad
   const viewMinY = -LABEL_PADDING
-  const viewWidth = layout.paperWidth + LABEL_PADDING * 2
+  const viewWidth = layout.paperWidth + horizontalPad * 2
   const viewHeight = layout.paperHeight + LABEL_PADDING * 2
 
-  const hasRightWaste = layout.usedWidth < layout.paperWidth - 1e-6
-  const hasBottomWaste = layout.usedHeight < layout.paperHeight - 1e-6
+  const hasLeftWaste = occupied.minX > EPS
+  const hasRightWaste = occupied.maxX < layout.paperWidth - EPS
+  const hasBottomWaste = occupied.maxY < layout.paperHeight - EPS
 
   return (
     <figure
@@ -87,7 +124,7 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
           {copy.title}
         </span>
         <span className="production-corte-pliego-diagram__badge">
-          {copy.algorithmLabel(layout.algorithm)}
+          {copy.pieceSizeLabel(pieceAncho, pieceLargo, unit)}
         </span>
         {layout.pieceRotated ? (
           <span className="production-corte-pliego-diagram__badge">{copy.rotatedHint}</span>
@@ -99,10 +136,17 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
         ) : null}
       </div>
 
-      <div
-        className="production-corte-pliego-diagram__canvas-wrap"
-        style={{ width: displaySize.width, height: displaySize.height }}
-      >
+      <p className="production-corte-pliego-diagram__hint">{copy.readHint}</p>
+
+      <div className="production-corte-pliego-diagram__visual">
+        <div
+          className="production-corte-pliego-diagram__canvas-wrap"
+          style={{
+            width: displaySize.width,
+            height: displaySize.height,
+            maxWidth: 'min(100%, 640px)',
+          }}
+        >
         <svg
           className="production-corte-pliego-diagram__svg"
           viewBox={`${viewMinX} ${viewMinY} ${viewWidth} ${viewHeight}`}
@@ -137,13 +181,24 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
             rx={Math.min(layout.paperWidth, layout.paperHeight) * 0.012}
           />
 
+          {hasLeftWaste ? (
+            <rect
+              className="production-corte-pliego-diagram__waste"
+              fill={`url(#${wastePatternId})`}
+              x={0}
+              y={0}
+              width={occupied.minX}
+              height={layout.paperHeight}
+            />
+          ) : null}
+
           {hasRightWaste ? (
             <rect
               className="production-corte-pliego-diagram__waste"
               fill={`url(#${wastePatternId})`}
-              x={layout.usedWidth}
+              x={occupied.maxX}
               y={0}
-              width={layout.paperWidth - layout.usedWidth}
+              width={layout.paperWidth - occupied.maxX}
               height={layout.paperHeight}
             />
           ) : null}
@@ -152,36 +207,47 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
             <rect
               className="production-corte-pliego-diagram__waste"
               fill={`url(#${wastePatternId})`}
-              x={0}
-              y={layout.usedHeight}
-              width={layout.usedWidth}
-              height={layout.paperHeight - layout.usedHeight}
+              x={occupied.minX}
+              y={occupied.maxY}
+              width={occupied.maxX - occupied.minX}
+              height={layout.paperHeight - occupied.maxY}
             />
           ) : null}
 
-          {layout.placements.map(piece => (
-            <g key={piece.index}>
-              <rect
-                className="production-corte-pliego-diagram__piece"
-                x={piece.x}
-                y={piece.y}
-                width={piece.width}
-                height={piece.height}
-              />
-              {piece.width >= 8 && piece.height >= 5 ? (
-                <text
-                  className="production-corte-pliego-diagram__piece-label"
-                  x={piece.x + piece.width / 2}
-                  y={piece.y + piece.height / 2}
-                  fontSize={pieceLabelSize}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                >
-                  {copy.pieceDimLabel(pieceAncho, pieceLargo)}
-                </text>
-              ) : null}
-            </g>
-          ))}
+          {layout.placements.map(piece => {
+            const displayNumber = displayNumberByIndex.get(piece.index) ?? piece.index + 1
+            return (
+              <g key={piece.index}>
+                <rect
+                  className="production-corte-pliego-diagram__piece"
+                  x={piece.x}
+                  y={piece.y}
+                  width={piece.width}
+                  height={piece.height}
+                />
+                {piece.width >= 6 && piece.height >= 4 ? (
+                  <text
+                    className="production-corte-pliego-diagram__piece-label"
+                    x={piece.x + piece.width / 2}
+                    y={piece.y + piece.height / 2}
+                    fontSize={pieceLabelSize}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {displayNumber}
+                  </text>
+                ) : null}
+              </g>
+            )
+          })}
+
+          <rect
+            className="production-corte-pliego-diagram__occupied-outline"
+            x={occupied.minX}
+            y={occupied.minY}
+            width={occupied.maxX - occupied.minX}
+            height={occupied.maxY - occupied.minY}
+          />
 
           {cutLines.verticalSegments.map(segment => (
             <line
@@ -198,12 +264,28 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
             <line
               key={`cut-h-${y}`}
               className="production-corte-pliego-diagram__cut-line"
-              x1={0}
+              x1={occupied.minX}
               y1={y}
-              x2={layout.usedWidth}
+              x2={occupied.maxX}
               y2={y}
             />
           ))}
+
+          {showRowCounts
+            ? placementRows.map(row => (
+                <text
+                  key={`row-count-${row.y}`}
+                  className="production-corte-pliego-diagram__row-count"
+                  x={occupied.maxX + 5}
+                  y={row.y + row.height / 2}
+                  fontSize={rowLabelSize}
+                  textAnchor="start"
+                  dominantBaseline="middle"
+                >
+                  {copy.rowCountLabel(row.count)}
+                </text>
+              ))
+            : null}
 
           <text
             className="production-corte-pliego-diagram__dim-label"
@@ -232,19 +314,44 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
             )}
           </text>
         </svg>
-      </div>
+        </div>
 
-      <figcaption className="production-corte-pliego-diagram__caption">{caption}</figcaption>
-      <p className="production-corte-pliego-diagram__grid">
-        {copy.gridLabel(layout.cols, layout.rows, layout.totalPieces, layout.shelfCounts)}
-      </p>
-      <p className="production-corte-pliego-diagram__waste-label">
-        {copy.wasteLabel(
-          layout.wasteArea,
-          layout.wastePercent,
-          layout.unidadMedida
-        )}
-      </p>
+        <div className="production-corte-pliego-diagram__summary">
+        <ul className="production-corte-pliego-diagram__legend" aria-label="Leyenda del diagrama">
+          <li className="production-corte-pliego-diagram__legend-item">
+            <span
+              className="production-corte-pliego-diagram__legend-swatch production-corte-pliego-diagram__legend-swatch--piece"
+              aria-hidden
+            />
+            {copy.legendPiece}
+          </li>
+          <li className="production-corte-pliego-diagram__legend-item">
+            <span
+              className="production-corte-pliego-diagram__legend-swatch production-corte-pliego-diagram__legend-swatch--cut"
+              aria-hidden
+            />
+            {copy.legendCut}
+          </li>
+          <li className="production-corte-pliego-diagram__legend-item">
+            <span
+              className="production-corte-pliego-diagram__legend-swatch production-corte-pliego-diagram__legend-swatch--waste"
+              aria-hidden
+            />
+            {copy.legendWaste}
+          </li>
+        </ul>
+
+        <figcaption className="production-corte-pliego-diagram__caption">{caption}</figcaption>
+        <p className="production-corte-pliego-diagram__grid">{visualLayoutLabel}</p>
+        <p className="production-corte-pliego-diagram__waste-label">
+          {copy.wasteLabel(
+            layout.wasteArea,
+            layout.wastePercent,
+            layout.unidadMedida
+          )}
+        </p>
+      </div>
+      </div>
     </figure>
   )
 }

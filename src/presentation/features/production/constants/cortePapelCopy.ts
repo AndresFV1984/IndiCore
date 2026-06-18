@@ -138,14 +138,26 @@ export const CORTE_PAPEL_COPY = {
         unavailable: 'No se pudo calcular la distribución con las medidas actuales.',
         rotatedHint: 'Pieza rotada 90°',
         paperSwappedHint: 'Pliego rotado 90°',
+        readHint:
+          'El bloque azul muestra las piezas tal como quedan en el pliego. Lo rayado es papel sobrante.',
         algorithmLabel: (algorithm: string) => {
-          if (algorithm === 'strip') return 'Strip packing (bandas horizontales)'
-          if (algorithm === 'skyline') return '2D bin packing (skyline)'
-          return 'Cuadrícula guillotina'
+          if (algorithm === 'strip') return 'Filas horizontales'
+          if (algorithm === 'skyline') return 'Acomodo optimizado'
+          return 'Cuadrícula regular'
         },
+        pieceSizeLabel: (ancho: string, largo: string, unit: string) =>
+          `Pieza ${ancho}×${largo} ${unit}`,
+        legendPiece: 'Pieza',
+        legendCut: 'Corte',
+        legendWaste: 'Desperdicio',
+        rowCountLabel: (count: number) =>
+          `${count.toLocaleString('es-CO')} pza${count === 1 ? '' : 's'}`,
         gridLabel: (cols: number, rows: number, total: number, shelfCounts: number[]) => {
-          if (shelfCounts.length > 0) {
-            return `${shelfCounts.length} bandas: ${shelfCounts.join(' + ')} = ${total.toLocaleString('es-CO')} piezas`
+          if (shelfCounts.length > 1) {
+            return `${shelfCounts.length} filas (${shelfCounts.join(' + ')} piezas por fila) = ${total.toLocaleString('es-CO')} piezas en el pliego`
+          }
+          if (shelfCounts.length === 1) {
+            return `${total.toLocaleString('es-CO')} pieza${total === 1 ? '' : 's'} en 1 fila`
           }
           return `${cols} columnas × ${rows} filas = ${total.toLocaleString('es-CO')} piezas por pliego`
         },
@@ -153,8 +165,8 @@ export const CORTE_PAPEL_COPY = {
           const areaUnit = unit.toLowerCase() === 'cm' ? 'cm²' : `${unit}²`
           const waste = Math.round(wasteArea * 10) / 10
           const percent = Math.round(wastePercent * 10) / 10
-          if (waste <= 0) return 'Desperdicio mínimo: aprovechamiento total del pliego'
-          return `Desperdicio: ${waste.toLocaleString('es-CO')} ${areaUnit} (${percent.toLocaleString('es-CO')}%)`
+          if (waste <= 0) return 'Sin desperdicio'
+          return `Desperdicio ${percent.toLocaleString('es-CO')}%`
         },
         dimAnchoLabel: (value: string, unit: string) => `Ancho ${value} ${unit}`,
         dimLargoLabel: (value: string, unit: string) => `Largo ${value} ${unit}`,

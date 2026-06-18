@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { computeCortePliegoLayout } from './cortePliegoLayoutUtils'
+import {
+  computeCortePliegoLayout,
+  derivePlacementRows,
+  formatCortePliegoVisualLayoutLabel,
+} from './cortePliegoLayoutUtils'
 import { solveCortePliegoBinPackingMm } from './cortePliegoBinPacking'
 
 describe('cortePliegoBinPacking', () => {
@@ -123,6 +127,24 @@ describe('computeCortePliegoLayout', () => {
     ).toBeNull()
   })
 
+  it('agrupa piezas por fila para la visualización', () => {
+    const layout = computeCortePliegoLayout(
+      { ancho: '70', alto: '100', unidadMedida: 'cm' },
+      {
+        ancho: '10',
+        alto: '5',
+        unidadMedida: 'cm',
+        piezasPorPliego: 24,
+      }
+    )
+
+    const rows = derivePlacementRows(layout?.placements ?? [])
+
+    expect(rows.length).toBeGreaterThan(1)
+    expect(rows.reduce((sum, row) => sum + row.count, 0)).toBe(24)
+    expect(rows.map(row => row.count)).toEqual(layout?.shelfCounts ?? [])
+  })
+
   it('calcula desperdicio en cm² como área pliego menos área útil de piezas', () => {
     const layout = computeCortePliegoLayout(
       { ancho: '70', alto: '100', unidadMedida: 'cm' },
@@ -137,6 +159,25 @@ describe('computeCortePliegoLayout', () => {
     expect(layout?.paperArea).toBe(7000)
     expect(layout?.wasteArea).toBe(5800)
     expect(layout?.wastePercent).toBeCloseTo((5800 / 7000) * 100, 5)
+  })
+
+  it('calcula límites reales cuando el pliego se rota para el acomodo', () => {
+    const layout = computeCortePliegoLayout(
+      { ancho: '64', alto: '90', unidadMedida: 'cm' },
+      {
+        ancho: '9',
+        alto: '5',
+        unidadMedida: 'cm',
+        piezasPorPliego: 32,
+      }
+    )
+
+    expect(layout?.occupiedBounds.minX).toBeGreaterThan(0)
+    expect(layout?.occupiedBounds.maxX).toBeCloseTo(64, 1)
+    expect(layout?.occupiedBounds.maxY).toBeCloseTo(72, 1)
+    expect(formatCortePliegoVisualLayoutLabel(layout?.placements ?? [], 32)).toBe(
+      '8 filas × 4 columnas · 32 pzas'
+    )
   })
 
   it('reporta 0 desperdicio cuando el pliego se aprovecha por completo', () => {

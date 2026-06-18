@@ -463,25 +463,29 @@ export const solveAllCortePliegoOrientationsMm = (input: {
 
 export const deriveCutLinesFromPlacements = (
   placements: PlacedPiece[],
-  bounds?: { usedWidth: number; usedHeight: number }
+  bounds?: { minX?: number; minY?: number; maxX: number; maxY: number }
 ): { vertical: number[]; horizontal: number[]; verticalSegments: Array<{ x: number; y1: number; y2: number }> } => {
   const horizontal = new Set<number>()
   const vertical = new Set<number>()
   const verticalSegments: Array<{ x: number; y1: number; y2: number }> = []
+  const minX = bounds?.minX ?? 0
+  const minY = bounds?.minY ?? 0
+  const maxX = bounds?.maxX
+  const maxY = bounds?.maxY
 
   for (const piece of placements) {
     const right = piece.x + piece.width
     const bottom = piece.y + piece.height
 
-    if (piece.y > EPS) horizontal.add(piece.y)
-    if (bounds && bottom < bounds.usedHeight - EPS) horizontal.add(bottom)
-    if (!bounds && bottom > EPS) horizontal.add(bottom)
+    if (piece.y > minY + EPS) horizontal.add(piece.y)
+    if (bounds && bottom < maxY - EPS) horizontal.add(bottom)
+    if (!bounds && bottom > minY + EPS) horizontal.add(bottom)
 
-    if (piece.x > EPS) {
+    if (piece.x > minX + EPS) {
       vertical.add(piece.x)
       verticalSegments.push({ x: piece.x, y1: piece.y, y2: bottom })
     }
-    if (right > EPS && (!bounds || right < bounds.usedWidth - EPS)) {
+    if (right > minX + EPS && (!bounds || right < maxX - EPS)) {
       vertical.add(right)
       verticalSegments.push({ x: right, y1: piece.y, y2: bottom })
     }
