@@ -96,7 +96,7 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
     expect(breakdown.grandTotal).toBe(290_000)
   })
 
-  it('con volteo y millares referencia bajo el tope usa precio con volteo', () => {
+  it('con tamaños buenos referencia 500 usa precio con volteo en Color básico', () => {
     const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1)
     const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
 
@@ -107,7 +107,7 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
       conVolteoColorBasico: true,
       topeMinimoMillarVolteoColorBasico: 600,
       millarMinimoVentaVolteoColorBasico: 500,
-    })
+    }, { tamanosBuenosReferencia: 500 })
 
     expect(breakdown.millaresColorBasico).toBe(0.5)
     expect(breakdown.colorBasico).toBe(10_000)
@@ -116,7 +116,7 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
     expect(breakdown.grandTotal).toBe(10_000)
   })
 
-  it('con volteo y millares referencia ≥ tope usa precio millar sin volteo', () => {
+  it('con referencia distinta de 500 usa precio millar sin volteo en Color básico', () => {
     const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
     const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
 
@@ -126,7 +126,7 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
       precioVolteoColorBasicoMillar: 20_000,
       conVolteoColorBasico: true,
       topeMinimoMillarVolteoColorBasico: 600,
-    })
+    }, { tamanosBuenosReferencia: 2500 })
 
     expect(breakdown.millaresColorBasico).toBe(10)
     expect(breakdown.colorBasico).toBe(175_000)

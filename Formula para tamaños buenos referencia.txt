@@ -1,0 +1,22 @@
+En el "Datos de impresión", cuando el campo "Tamaños buenos" tenga un valor asignado o cambie, 
+calcular automáticamente el campo "Tamaños buenos referencia" usando esta función:
+
+function generarRangos(cantidadRangos) {
+  const incrementos = [600, 400];
+  let hasta = 0, ajuste = 0;
+  return Array.from({ length: cantidadRangos }, (_, i) => {
+    hasta += incrementos[i % 2];
+    ajuste += 500;
+    return { hasta, ajuste };
+  });
+}
+
+const RANGOS = generarRangos(100);
+
+function ajustar(x) {
+  const rango = RANGOS.find(r => x <= r.hasta);
+  return rango ? rango.ajuste : null;
+}
+
+El campo "Tamaños buenos referencia" debe actualizarse automáticamente 
+cada vez que "Tamaños buenos" cambie.

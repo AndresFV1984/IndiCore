@@ -175,7 +175,8 @@ export const CORTE_PAPEL_COPY = {
       formulaTotal: '(Cantidad hojas ÷ Unidad empaque) × Valor corte unitario',
       formulaCantidadHojas:
         'Cantidad hojas = Σ (Tamaños buenos + Sobrante) ÷ Piezas por pliego (redondeo al entero más cercano)',
-      helpSummary: 'Ver detalle del cálculo',
+      helpSummary: 'Ver fórmula de cálculo',
+      formulaSummary: 'Ver fórmula de cálculo',
       pasoAjuste: 'Ajuste de redondeo',
       awaitDespiece: 'Seleccione tipo de papel y despiece por pliego para ver los cálculos.',
       helpDetalle: {

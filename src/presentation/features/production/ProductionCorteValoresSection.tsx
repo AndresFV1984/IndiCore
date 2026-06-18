@@ -5,7 +5,10 @@ import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
 import { formatValorHojaDisplay } from './utils/tipoPapelDisplay'
 import { parseMargenRedondeoInput } from './utils/cortePapelCalculations'
 import type { CortePapelValores } from './utils/cortePapelCalculations'
-import { buildCorteValoresHelpDetalle } from './utils/buildCorteValoresHelpDetalle'
+import {
+  buildCorteValoresHelpDetalle,
+  type CorteValoresHelpPaso,
+} from './utils/buildCorteValoresHelpDetalle'
 
 interface ProductionCorteValoresSectionProps {
   row: PaperRow
@@ -19,6 +22,70 @@ interface ProductionCorteValoresSectionProps {
   esFaltanteLitografia?: boolean
   papelSinCortar: boolean
 }
+
+interface FormulaSection {
+  title: string
+  description: string
+  calcs: string[]
+  result: string
+}
+
+const buildHelpFormulaSections = (pasos: CorteValoresHelpPaso[]): FormulaSection[] =>
+  pasos.map(paso => {
+    const lines = paso.formula.split('\n').filter(Boolean)
+    return {
+      title: paso.titulo,
+      description: lines[0] ?? '',
+      calcs: lines.slice(1),
+      result: paso.resultado,
+    }
+  })
+
+interface CorteFormulaDetailsProps {
+  summary: string
+  children: React.ReactNode
+}
+
+const CorteFormulaDetails: React.FC<CorteFormulaDetailsProps> = ({ summary, children }) => (
+  <details className="production-corte-valores__formula">
+    <summary>{summary}</summary>
+    <div className="production-corte-valores__formula-body">{children}</div>
+  </details>
+)
+
+interface CorteFormulaHelpDetailsProps {
+  summary: string
+  sections: FormulaSection[]
+}
+
+const CorteFormulaHelpDetails: React.FC<CorteFormulaHelpDetailsProps> = ({ summary, sections }) => (
+  <details className="production-corte-valores__formula">
+    <summary>{summary}</summary>
+    <div className="production-corte-valores__formula-body production-corte-valores__formula-body--help">
+      {sections.map(section => (
+        <article key={section.title} className="production-corte-valores__formula-group">
+          <h5 className="production-corte-valores__formula-group-title">{section.title}</h5>
+          {section.description ? (
+            <p className="production-corte-valores__formula-desc">{section.description}</p>
+          ) : null}
+          {section.calcs.length > 0 ? (
+            <ul className="production-corte-valores__formula-calcs">
+              {section.calcs.map(line => (
+                <li key={line}>
+                  <code className="production-corte-valores__formula-calc">{line}</code>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="production-corte-valores__formula-result">
+            <span className="production-corte-valores__formula-result-label">Resultado aplicado</span>
+            <strong className="production-corte-valores__formula-result-value">{section.result}</strong>
+          </div>
+        </article>
+      ))}
+    </div>
+  </details>
+)
 
 const valoresCopy = copy.sections.valores
 
@@ -87,17 +154,19 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
     ]
   )
 
+  const helpFormulaSections = useMemo(() => buildHelpFormulaSections(helpPasos), [helpPasos])
+
   const clienteMetaParts = [
     valores.unidadEmpaqueCantidad > 0 ? `Unidad empaque ${unidadEmpaqueDisplay}` : '',
     valores.valorCorteUnitario > 0 ? `Corte unit. ${valorUnitarioDisplay}` : '',
   ].filter(Boolean)
 
-  const margenAdjust = (
-    <details className="production-corte-valores__collapsible production-corte-valores__adjust">
-      <summary>{valoresCopy.pasoAjuste}</summary>
-      <div className="production-corte-valores__adjust-body">
-        <div className="production-form-field production-corte-valores__margen-field">
-          <label className="production-form-label" htmlFor="prod-margen-redondeo">
+  const formulasFooter = (
+    <div className="production-corte-valores__formulas">
+      <CorteFormulaDetails summary={valoresCopy.pasoAjuste}>
+        <p className="production-corte-valores__formula-desc">{copy.sections.margenRedondeo.hint}</p>
+        <div className="production-corte-valores__formula-field">
+          <label className="production-corte-valores__formula-field-label" htmlFor="prod-margen-redondeo">
             {copy.sections.margenRedondeo.label}
           </label>
           <input
@@ -108,36 +177,14 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
             className="production-form-input production-corte-valores__margen-input"
             value={margenRedondeo}
             onChange={e => onMargenRedondeoChange(parseMargenRedondeoInput(e.target.value))}
-            aria-describedby="prod-margen-redondeo-hint"
           />
-          <p id="prod-margen-redondeo-hint" className="production-corte-valores__margen-hint">
-            {copy.sections.margenRedondeo.hint}
-          </p>
         </div>
-      </div>
-    </details>
-  )
+      </CorteFormulaDetails>
 
-  const helpDetalle = (
-    <details className="production-corte-valores__collapsible production-corte-valores__help">
-      <summary>{valoresCopy.helpSummary}</summary>
-      <ol className="production-corte-valores__help-steps">
-        {helpPasos.map((paso, index) => (
-          <li key={paso.id} className="production-corte-valores__help-step">
-            <div className="production-corte-valores__help-step-head">
-              <span className="production-corte-valores__help-step-num">{index + 1}</span>
-              <strong className="production-corte-valores__help-step-campo">{paso.titulo}</strong>
-              <span className="production-corte-valores__help-step-resultado">{paso.resultado}</span>
-            </div>
-            <div className="production-corte-valores__help-formula">
-              {paso.formula.split('\n').map((linea, i) => (
-                <p key={i}>{linea}</p>
-              ))}
-            </div>
-          </li>
-        ))}
-      </ol>
-    </details>
+      {helpFormulaSections.length > 0 ? (
+        <CorteFormulaHelpDetails summary={valoresCopy.helpSummary} sections={helpFormulaSections} />
+      ) : null}
+    </div>
   )
 
   return (
@@ -315,8 +362,7 @@ const ProductionCorteValoresSection: React.FC<ProductionCorteValoresSectionProps
         </>
       )}
 
-      {margenAdjust}
-      {helpDetalle}
+      {formulasFooter}
     </div>
   )
 }

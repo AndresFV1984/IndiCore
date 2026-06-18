@@ -3,6 +3,7 @@ import {
   TARIFA_MILLAR_UNIDAD,
   type TarifaMillarPricing,
 } from '../../../../core/domain/entities/TarifaMillar'
+import { TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO } from './coloresPlanchasUtils'
 
 export interface TarifaMillarCobro {
   millares: number
@@ -103,6 +104,31 @@ export interface ValorImpresionPorMillaresReferenciaInput {
   precioPorMillar: number
   conVolteo: boolean
   topeMinimoMillar: number
+}
+
+export const shouldUsarPrecioConVolteoColorBasico = (
+  tamanosBuenosReferencia: number | null | undefined
+): boolean =>
+  tamanosBuenosReferencia === TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO
+
+/** Precio impresión Color básico según tamaños buenos referencia (500 → con volteo). */
+export const computeValorImpresionColorBasicoPorReferencia = ({
+  millaresReferencia,
+  tamanosBuenosReferencia,
+  precioConVolteo,
+  precioSinVolteo,
+}: {
+  millaresReferencia: number
+  tamanosBuenosReferencia: number | null | undefined
+  precioConVolteo: number
+  precioSinVolteo: number
+}): number => {
+  if (millaresReferencia <= 0) return 0
+  const precioUnitario = shouldUsarPrecioConVolteoColorBasico(tamanosBuenosReferencia)
+    ? precioConVolteo
+    : precioSinVolteo
+  if (precioUnitario <= 0) return 0
+  return Math.round(millaresReferencia * precioUnitario)
 }
 
 /** Valor impresión = millares referencia × precio con/sin volteo según tope mínimo. */

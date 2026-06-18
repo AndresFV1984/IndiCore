@@ -7,7 +7,7 @@ import { IMPRESION_GRUPO_VOLTEO_SELECT_OPTIONS, isImpresionConVolteo } from './c
 import ImpresionVolteoSelector from './ImpresionVolteoSelector'
 import ImpresionTarifaMetricsStrip from './ImpresionTarifaMetricsStrip'
 import ImpresionTintasMillaresCalculadosField from './ImpresionTintasMillaresCalculadosField'
-import { computeValorImpresionPorMillaresReferencia } from './utils/tarifaMillarPricingUtils'
+import { computeValorImpresionPorMillaresReferencia, computeValorImpresionColorBasicoPorReferencia, shouldUsarPrecioConVolteoColorBasico } from './utils/tarifaMillarPricingUtils'
 import type { ImpresionGrupoMillaresPreview } from './utils/impresionPrecioTintaUtils'
 import { formatPrecioMillar } from './utils/impresionVolteoTarifaUtils'
 
@@ -92,9 +92,23 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
     precioVolteoMillar > 0 ? precioVolteoMillar : (tarifa?.precio ?? 0)
   const precioPorMillarBase = precioInicial
   const topeActivo = conVolteo ? (topeMinimoMillarVolteo ?? 0) : (topeMinimoMillar ?? 0)
+  const tamanosBuenosReferencia =
+    millaresPreview?.tamanosBuenosFuente === 'referencia' ? millaresPreview.tamanosBuenos : null
+  const usaPrecioConVolteoColorBasico =
+    variant === 'colorBasico' && shouldUsarPrecioConVolteoColorBasico(tamanosBuenosReferencia)
   const valorImpresion = useMemo(() => {
     const millaresReferencia = millaresPreview?.millaresCalculados ?? 0
     if (millaresReferencia <= 0) return 0
+
+    if (variant === 'colorBasico') {
+      return computeValorImpresionColorBasicoPorReferencia({
+        millaresReferencia,
+        tamanosBuenosReferencia,
+        precioConVolteo: precioPorMillarVolteo,
+        precioSinVolteo: precioInicial,
+      })
+    }
+
     return computeValorImpresionPorMillaresReferencia({
       millaresReferencia,
       precioInicial,
@@ -108,7 +122,9 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
     precioInicial,
     precioPorMillarBase,
     precioPorMillarVolteo,
+    tamanosBuenosReferencia,
     topeActivo,
+    variant,
   ])
 
   const valorImpresionDisplay =
@@ -218,6 +234,8 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
           conVolteo={conVolteo}
           precioInicial={precioInicial}
           precioPorMillar={conVolteo ? precioPorMillarVolteo : precioPorMillarBase}
+          precioConVolteoMillar={precioPorMillarVolteo}
+          usaPrecioConVolteoColorBasico={usaPrecioConVolteoColorBasico}
           topeMinimoMillarActivo={topeActivo}
         />
       </div>

@@ -5,6 +5,7 @@ import {
   applyTopeMinimoMillar,
   computeMillaresCalculados,
   computeTarifaMillarCobro,
+  computeValorImpresionColorBasicoPorReferencia,
   computeValorImpresionPorMillaresReferencia,
   getMillarParteDecimal,
   resolveMillaresParaCobro,
@@ -133,6 +134,30 @@ describe('computeTarifaMillarCobro', () => {
         umbralDecimalMillar: 0.2,
       })
     ).toEqual({ millares: 0.5, precio: 8750 })
+  })
+})
+
+describe('computeValorImpresionColorBasicoPorReferencia', () => {
+  it('usa precio con volteo cuando tamaños buenos referencia es 500', () => {
+    expect(
+      computeValorImpresionColorBasicoPorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 500,
+        precioConVolteo: 20_000,
+        precioSinVolteo: 17_500,
+      })
+    ).toBe(40_000)
+  })
+
+  it('usa precio sin volteo cuando tamaños buenos referencia no es 500', () => {
+    expect(
+      computeValorImpresionColorBasicoPorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 2000,
+        precioConVolteo: 20_000,
+        precioSinVolteo: 17_500,
+      })
+    ).toBe(35_000)
   })
 })
 
