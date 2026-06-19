@@ -3,7 +3,10 @@ import {
   TARIFA_MILLAR_UNIDAD,
   type TarifaMillarPricing,
 } from '../../../../core/domain/entities/TarifaMillar'
-import { TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO } from './coloresPlanchasUtils'
+import {
+  TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO,
+  TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_PANTONE,
+} from './coloresPlanchasUtils'
 
 export interface TarifaMillarCobro {
   millares: number
@@ -111,6 +114,13 @@ export const shouldUsarPrecioConVolteoColorBasico = (
 ): boolean =>
   tamanosBuenosReferencia === TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO
 
+export const shouldUsarPrecioConVolteoPantone = (
+  tamanosBuenosReferencia: number | null | undefined
+): boolean =>
+  typeof tamanosBuenosReferencia === 'number' &&
+  tamanosBuenosReferencia > 0 &&
+  tamanosBuenosReferencia <= TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_PANTONE
+
 /** Precio impresión Color básico según tamaños buenos referencia (500 → con volteo). */
 export const computeValorImpresionColorBasicoPorReferencia = ({
   millaresReferencia,
@@ -129,6 +139,54 @@ export const computeValorImpresionColorBasicoPorReferencia = ({
     : precioSinVolteo
   if (precioUnitario <= 0) return 0
   return Math.round(millaresReferencia * precioUnitario)
+}
+
+/** Precio impresión Pantone sin volteo según tamaños buenos pantone (≤ 500 → con volteo). */
+export const computeValorImpresionPantonePorReferencia = ({
+  millaresReferencia,
+  tamanosBuenosReferencia,
+  precioConVolteo,
+  precioSinVolteo,
+}: {
+  millaresReferencia: number
+  tamanosBuenosReferencia: number | null | undefined
+  precioConVolteo: number
+  precioSinVolteo: number
+}): number => {
+  if (millaresReferencia <= 0) return 0
+  const precioUnitario = shouldUsarPrecioConVolteoPantone(tamanosBuenosReferencia)
+    ? precioConVolteo
+    : precioSinVolteo
+  if (precioUnitario <= 0) return 0
+  return Math.round(millaresReferencia * precioUnitario)
+}
+
+/** Pantone con volteo: ≤ 500 fuerza precio con volteo; si no, aplica tope mínimo. */
+export const computeValorImpresionPantoneConVolteoPorReferencia = ({
+  millaresReferencia,
+  tamanosBuenosReferencia,
+  precioConVolteo,
+  precioSinVolteo,
+  topeMinimoMillar,
+}: {
+  millaresReferencia: number
+  tamanosBuenosReferencia: number | null | undefined
+  precioConVolteo: number
+  precioSinVolteo: number
+  topeMinimoMillar: number
+}): number => {
+  if (shouldUsarPrecioConVolteoPantone(tamanosBuenosReferencia)) {
+    if (millaresReferencia <= 0 || precioConVolteo <= 0) return 0
+    return Math.round(millaresReferencia * precioConVolteo)
+  }
+
+  return computeValorImpresionPorMillaresReferencia({
+    millaresReferencia,
+    precioInicial: precioSinVolteo,
+    precioPorMillar: precioConVolteo,
+    conVolteo: true,
+    topeMinimoMillar,
+  })
 }
 
 /** Valor impresión = millares referencia × precio con/sin volteo según tope mínimo. */

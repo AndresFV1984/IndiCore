@@ -1,12 +1,13 @@
 import React, { useId, useMemo } from 'react'
 import clsx from 'clsx'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
-import { TARIFA_MILLAR_UNIDAD } from '../../../core/domain/entities/TarifaMillar'
-import { formatMillaresFactor } from './utils/impresionPrecioTintaUtils'
+import { formatMillaresFactor, buildValorImpresionFormulaSteps, resolveValorImpresionPrecioUnitario } from './utils/impresionPrecioTintaUtils'
 import type { ImpresionGrupoMillaresPreview } from './utils/impresionPrecioTintaUtils'
 import { formatPrecioMillar } from './utils/impresionVolteoTarifaUtils'
 
 const millaresCopy = copy.tintas.millaresCalculados
+const colorBasicoCopy = copy.tintas.colorBasico
+const pantoneCopy = copy.tintas.pantone
 
 interface ImpresionTintasMillaresCalculadosFieldProps {
   preview: ImpresionGrupoMillaresPreview | null
@@ -17,6 +18,7 @@ interface ImpresionTintasMillaresCalculadosFieldProps {
   precioPorMillar?: number
   precioConVolteoMillar?: number
   usaPrecioConVolteoColorBasico?: boolean
+  usaPrecioConVolteoPantone?: boolean
   topeMinimoMillarActivo?: number
   showTotal?: boolean
 }
@@ -25,6 +27,7 @@ interface MillaresFormulaDetailsProps {
   stepTag?: string
   steps: Array<{ stepRule: string; stepCalc: string }>
   compact?: boolean
+  summary?: string
 }
 
 const formatEntero = (value: number): string => new Intl.NumberFormat('es-CO').format(value)
@@ -33,20 +36,14 @@ const MillaresFormulaDetails: React.FC<MillaresFormulaDetailsProps> = ({
   stepTag,
   steps,
   compact = false,
+  summary = millaresCopy.formulaSummary,
 }) => (
   <details className="production-impresion-millares-calculados__formula">
-    <summary>{millaresCopy.formulaSummary}</summary>
+    <summary>{summary}</summary>
     {compact ? (
-      <div className="production-impresion-millares-calculados__formula-compact">
-        {steps.map((step, index) => (
-          <p key={index} className="production-impresion-millares-calculados__formula-line">
-            <span className="production-impresion-millares-calculados__formula-line-label">
-              {step.stepRule}
-            </span>
-            <code className="production-impresion-millares-calculados__step-calc">{step.stepCalc}</code>
-          </p>
-        ))}
-      </div>
+      <p className="production-impresion-millares-calculados__formula-resumen">
+        <code className="production-impresion-millares-calculados__step-calc">{steps[0]?.stepCalc}</code>
+      </p>
     ) : (
       <ol className="production-impresion-millares-calculados__steps">
         {steps.map((step, index) => (
@@ -74,6 +71,7 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
   precioPorMillar = 0,
   precioConVolteoMillar = 0,
   usaPrecioConVolteoColorBasico = false,
+  usaPrecioConVolteoPantone = false,
   topeMinimoMillarActivo = 0,
   showTotal = true,
 }) => {
@@ -91,49 +89,67 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
             {
               stepRule:
                 preview!.tamanosBuenosFuente === 'referencia'
-                  ? millaresCopy.baseFormula
+                  ? variant === 'pantone'
+                    ? millaresCopy.baseFormulaPantone
+                    : millaresCopy.baseFormula
                   : millaresCopy.baseFormulaTamanosBuenos,
               stepCalc: `(${formatEntero(preview!.tintasTiro)} + ${formatEntero(preview!.tintasRetiro)}) × ${formatEntero(preview!.tamanosBuenos)} ÷ 1.000 = ${formatMillaresFactor(preview!.millaresBase)}`,
             },
           ]
         : [],
-    [hasPreview, preview]
+    [hasPreview, preview, variant]
   )
 
   const valorImpresionFormulaSteps = useMemo(() => {
     if (!hasPreview || !preview || preview.millaresCalculados <= 0 || valorImpresion <= 0) {
       return []
     }
-    const topeEnMillares =
-      topeMinimoMillarActivo > 0 ? topeMinimoMillarActivo / TARIFA_MILLAR_UNIDAD : 0
-    const usaPrecioInicial =
+    const { precioUnitario, usaPrecioInicial } = resolveValorImpresionPrecioUnitario({
+      variant,
+      conVolteo,
+      usaPrecioConVolteoColorBasico,
+      usaPrecioConVolteoPantone,
+      millaresCalculados: preview.millaresCalculados,
+      topeMinimoMillarActivo,
+      precioInicial,
+      precioPorMillar,
+      precioConVolteoMillar,
+    })
+
+    const priceLabels =
       variant === 'colorBasico'
-        ? !usaPrecioConVolteoColorBasico
-        : conVolteo &&
-          topeEnMillares > 0 &&
-          preview.millaresCalculados >= topeEnMillares - 0.000001
-    const precioUnitario =
-      variant === 'colorBasico'
-        ? usaPrecioConVolteoColorBasico
-          ? precioConVolteoMillar
-          : precioInicial
-        : usaPrecioInicial
-          ? precioInicial
-          : precioPorMillar
-    const formulaRule =
-      variant === 'colorBasico'
-        ? usaPrecioConVolteoColorBasico
-          ? millaresCopy.valorImpresionFormulaColorBasicoReferencia500
-          : millaresCopy.valorImpresionFormulaColorBasicoReferenciaOtro
-        : usaPrecioInicial || !conVolteo
-          ? millaresCopy.valorImpresionFormulaPrecioSinVolteo
-          : millaresCopy.valorImpresionFormulaPrecioConVolteo
-    return [
-      {
-        stepRule: formulaRule,
-        stepCalc: `${formatMillaresFactor(preview.millaresCalculados)} × ${formatPrecioMillar(precioUnitario)} = ${formatPrecioMillar(valorImpresion)}`,
+        ? {
+            precioConVolteo: colorBasicoCopy.precioConVolteoLabel,
+            precioSinVolteo: colorBasicoCopy.precioInicialLabel,
+          }
+        : {
+            precioConVolteo: pantoneCopy.precioConVolteoLabel,
+            precioSinVolteo: pantoneCopy.precioInicialLabel,
+          }
+
+    return buildValorImpresionFormulaSteps({
+      variant,
+      conVolteo,
+      usaPrecioConVolteoColorBasico,
+      usaPrecioConVolteoPantone,
+      usaPrecioInicial,
+      millaresCalculados: preview.millaresCalculados,
+      precioUnitario,
+      valorImpresion,
+      copy: {
+        millaresReferencia: millaresCopy.label,
+        precioImpresion: millaresCopy.valorImpresionLabel,
+        operacion: millaresCopy.valorImpresionFormulaOperacion,
+        tarifaConVolteo: millaresCopy.valorImpresionTarifaConVolteo,
+        tarifaSinVolteo: millaresCopy.valorImpresionTarifaSinVolteo,
+        motivoRef500: millaresCopy.valorImpresionMotivoRef500,
+        motivoRef1000: millaresCopy.valorImpresionMotivoRef1000,
+        motivoVolteoBajoTope: millaresCopy.valorImpresionMotivoVolteoBajoTope,
+        motivoVolteoSobreTope: millaresCopy.valorImpresionMotivoVolteoSobreTope,
       },
-    ]
+      priceLabels,
+      formatPrecio: formatPrecioMillar,
+    })
   }, [
     conVolteo,
     hasPreview,
@@ -143,6 +159,7 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
     preview,
     topeMinimoMillarActivo,
     usaPrecioConVolteoColorBasico,
+    usaPrecioConVolteoPantone,
     valorImpresion,
     variant,
   ])
@@ -218,7 +235,11 @@ const ImpresionTintasMillaresCalculadosField: React.FC<
               </span>
             </div>
             {valorImpresionFormulaSteps.length > 0 ? (
-              <MillaresFormulaDetails steps={valorImpresionFormulaSteps} compact />
+              <MillaresFormulaDetails
+                steps={valorImpresionFormulaSteps}
+                compact
+                summary={millaresCopy.valorImpresionFormulaSummary}
+              />
             ) : null}
           </div>
         ) : null}

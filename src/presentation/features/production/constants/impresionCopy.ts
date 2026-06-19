@@ -26,6 +26,10 @@ export const IMPRESION_COPY = {
       cavidadesLabel: 'Cavidades',
       cavidadesHint: 'Del registro de Preprensa.',
       cavidadesEmpty: 'Sin cavidades',
+      grupoBaseLabel: 'Origen',
+      grupoBaseHint: 'Cantidad y cavidades del registro de Preprensa.',
+      grupoReferenciaLabel: 'Referencia por tinta',
+      grupoReferenciaHint: 'Ajuste para millares según el volteo de cada grupo.',
       tamanosBuenosLabel: 'Tamaños buenos',
       tamanosBuenosHint: 'Calculado desde cantidad y cavidades del registro de Preprensa.',
       tamanosBuenosFormula: 'Cantidad ÷ Cavidades (redondeo al entero más cercano)',
@@ -35,32 +39,28 @@ export const IMPRESION_COPY = {
         'Indique las cavidades en Preprensa para calcular los tamaños buenos.',
       tamanosBuenosNeedCantidad:
         'Indique la cantidad en Preprensa para calcular los tamaños buenos.',
-      tamanosBuenosReferenciaLabel: 'Tamaños buenos referencia',
-      tamanosBuenosReferenciaFormula:
-        'Ajuste por tabla de rangos según los tamaños buenos y el volteo seleccionado.',
-      tamanosBuenosReferenciaFormulaConVolteo:
-        'Con volteo en Color básico o Pantone: ajuste por rangos alternos de 600 y 400.',
-      tamanosBuenosReferenciaFormulaSinVolteo:
-        'Sin volteo en Color básico y Pantone: ajuste por rangos iniciales de 1.200 y 1.000.',
+      tamanosBuenosReferenciaLabel: 'Tamaños buenos colores básicos',
+      tamanosBuenosReferenciaFormulaPatronInicioConVolteo:
+        'Inicio: ≤ 600 → 500 · > 600 y ≤ 1.200 → 1.000 · > 1.200 y ≤ 1.600 → 1.500',
+      tamanosBuenosReferenciaFormulaPatronContinuaConVolteo:
+        'Continúa: alternando rangos de 600 y 400 unidades (+500 por tramo).',
+      tamanosBuenosReferenciaFormulaPatronInicioSinVolteo:
+        'Inicio: > 0 y ≤ 1.200 → 1.000 · > 1.200 y ≤ 2.200 → 2.000',
+      tamanosBuenosReferenciaFormulaPatronContinuaSinVolteo:
+        'Continúa: sumando rangos de 1.000 unidades (+1.000 por tramo).',
       tamanosBuenosReferenciaFormulaSummary: 'Ver fórmula de cálculo',
-      tamanosBuenosReferenciaFormulaLinesConVolteo: [
-        'Si tamaños buenos ≤ 600 → ajustar a 500',
-        'Si tamaños buenos > 600 y ≤ 1.200 → ajustar a 1.000',
-        'Si tamaños buenos > 1.200 y ≤ 1.600 → ajustar a 1.500',
-        'Si tamaños buenos > 1.600 y ≤ 2.200 → ajustar a 2.000',
-        'Si tamaños buenos > 2.200 y ≤ 2.600 → ajustar a 2.500',
-        'Si tamaños buenos > 2.600 y ≤ 3.200 → ajustar a 3.000',
-        'Si tamaños buenos > 3.200 y ≤ 3.600 → ajustar a 3.500',
-        'El patrón continúa alternando rangos de 600 y 400 unidades para valores mayores.',
-      ],
-      tamanosBuenosReferenciaFormulaLinesSinVolteo: [
-        'Si tamaños buenos > 0 y ≤ 1.200 → ajustar a 1.000',
-        'Si tamaños buenos > 1.200 y ≤ 2.200 → ajustar a 2.000',
-        'Si tamaños buenos > 2.200 y ≤ 3.200 → ajustar a 3.000',
-        'Si tamaños buenos > 3.200 y ≤ 4.200 → ajustar a 4.000',
-        'El patrón continúa sumando rangos de 1.000 unidades para valores mayores.',
-      ],
       tamanosBuenosReferenciaEmpty: '—',
+      tamanosBuenosPantoneLabel: 'Tamaños buenos pantone',
+      tamanosBuenosPantoneFormulaPatronInicioConVolteo:
+        'Inicio: ≤ 600 → 500 · > 600 y ≤ 1.200 → 1.000 · > 1.200 y ≤ 1.600 → 1.500',
+      tamanosBuenosPantoneFormulaPatronContinuaConVolteo:
+        'Continúa: alternando rangos de 600 y 400 unidades (+500 por tramo).',
+      tamanosBuenosPantoneFormulaPatronInicioSinVolteo:
+        'Inicio: > 0 y ≤ 1.200 → 1.000 · > 1.200 y ≤ 2.200 → 2.000',
+      tamanosBuenosPantoneFormulaPatronContinuaSinVolteo:
+        'Continúa: sumando rangos de 1.000 unidades (+1.000 por tramo).',
+      tamanosBuenosPantoneFormulaSummary: 'Ver fórmula de cálculo',
+      tamanosBuenosPantoneEmpty: '—',
       sourceBadge: 'Preprensa',
       impresionConVolteoLabel: 'Impresión con volteo',
       impresionConVolteoHint: 'Active si la plancha se imprime por el reverso con volteo.',
@@ -197,6 +197,10 @@ export const IMPRESION_COPY = {
       opcionConVolteoDesc: 'Misma plancha; elige pinza o escuadra.',
       volteoRequiereCavidadesPares:
         'El volteo solo está disponible cuando las cavidades del registro de Preprensa son un número par.',
+      volteoRequiereTiroRetiroColorBasico:
+        'El volteo en Color básico requiere colores básicos configurados en tiro y en retiro.',
+      volteoRequiereTiroRetiroPantone:
+        'El volteo en Pantone requiere colores Pantone configurados en tiro y en retiro.',
       opcionPinzaDesc: 'Se voltea por la pinza.',
       opcionEscuadraDesc: 'Se voltea por la escuadra.',
       volteoSelectPlaceholder: 'Seleccione volteo…',
@@ -225,7 +229,8 @@ export const IMPRESION_COPY = {
       formulaPasoReferenciaTitulo: 'Millares referencia',
       formulaPasoBaseTitulo: 'Base',
       formulaPasoAjusteTitulo: 'Ajuste',
-      baseFormula: '(Tiro + Retiro) × Tamaños buenos referencia ÷ 1.000',
+      baseFormula: '(Tiro + Retiro) × Tamaños buenos colores básicos ÷ 1.000',
+      baseFormulaPantone: '(Tiro + Retiro) × Tamaños buenos pantone ÷ 1.000',
       baseFormulaTamanosBuenos: '(Tiro + Retiro) × Tamaños buenos ÷ 1.000',
       referenciaPasoOrigen: 'Parte de millares calculados',
       referenciaPasoTope: 'Comparación con tope mínimo millar',
@@ -239,13 +244,14 @@ export const IMPRESION_COPY = {
       referenciaPasoResultado: 'Millares referencia',
       calculoSectionTitle: 'Resultado del cálculo',
       valorImpresionLabel: 'Precio impresión',
-      valorImpresionFormulaSummary: 'Ver fórmula de precio',
-      valorImpresionFormulaPrecioConVolteo: 'Millares referencia × Precio con volteo',
-      valorImpresionFormulaPrecioSinVolteo: 'Millares referencia × Precio millar sin volteo',
-      valorImpresionFormulaColorBasicoReferencia500:
-        'Tamaños buenos referencia = 500 → Millares referencia × Precio con volteo',
-      valorImpresionFormulaColorBasicoReferenciaOtro:
-        'Tamaños buenos referencia ≠ 500 → Millares referencia × Precio millar sin volteo',
+      valorImpresionFormulaSummary: 'Ver cálculo del precio',
+      valorImpresionTarifaConVolteo: 'Precio con volteo',
+      valorImpresionTarifaSinVolteo: 'Precio sin volteo',
+      valorImpresionMotivoRef500: 'ref. 500',
+      valorImpresionMotivoRef1000: 'ref. 1.000',
+      valorImpresionMotivoVolteoBajoTope: 'bajo tope mínimo',
+      valorImpresionMotivoVolteoSobreTope: 'sobre tope mínimo',
+      valorImpresionFormulaOperacion: 'Operación',
     },
     entradas: {
       addTitle: 'Nuevo registro tiro / retiro',

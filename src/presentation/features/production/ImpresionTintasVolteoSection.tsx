@@ -7,9 +7,16 @@ import { IMPRESION_GRUPO_VOLTEO_SELECT_OPTIONS, isImpresionConVolteo } from './c
 import ImpresionVolteoSelector from './ImpresionVolteoSelector'
 import ImpresionTarifaMetricsStrip from './ImpresionTarifaMetricsStrip'
 import ImpresionTintasMillaresCalculadosField from './ImpresionTintasMillaresCalculadosField'
-import { computeValorImpresionPorMillaresReferencia, computeValorImpresionColorBasicoPorReferencia, shouldUsarPrecioConVolteoColorBasico } from './utils/tarifaMillarPricingUtils'
+import {
+  computeValorImpresionPorMillaresReferencia,
+  computeValorImpresionColorBasicoPorReferencia,
+  computeValorImpresionPantonePorReferencia,
+  computeValorImpresionPantoneConVolteoPorReferencia,
+  shouldUsarPrecioConVolteoColorBasico,
+  shouldUsarPrecioConVolteoPantone,
+} from './utils/tarifaMillarPricingUtils'
 import type { ImpresionGrupoMillaresPreview } from './utils/impresionPrecioTintaUtils'
-import { formatPrecioMillar } from './utils/impresionVolteoTarifaUtils'
+import { formatPrecioMillar, resolveImpresionPrecioConVolteoMillar } from './utils/impresionVolteoTarifaUtils'
 
 const colorBasicoCopy = copy.tintas.colorBasico
 const pantoneCopy = copy.tintas.pantone
@@ -21,6 +28,7 @@ interface VolteoTarifaBlockProps {
   variant: VolteoVariant
   tipoBifronte: ImpresionTipoBifronte | ''
   tarifa: TarifaMillar | null
+  tamanosBuenosReferencia?: number | null
   precioMillar?: number
   millarMinimoVenta?: number
   topeMinimoMillar?: number
@@ -32,6 +40,7 @@ interface VolteoTarifaBlockProps {
   tarifasMillarLoading?: boolean
   millaresPreview?: ImpresionGrupoMillaresPreview | null
   conVolteoPermitido?: boolean
+  conVolteoBloqueadoHint?: string | null
   onTipoBifronteChange: (value: ImpresionTipoBifronte | '') => void
   onPrecioMillarChange: (value: number) => void
   onPrecioVolteoMillarChange: (value: number) => void
@@ -64,6 +73,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
   variant,
   tipoBifronte,
   tarifa,
+  tamanosBuenosReferencia = null,
   precioMillar = 0,
   millarMinimoVenta,
   topeMinimoMillar,
@@ -75,6 +85,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
   tarifasMillarLoading = false,
   millaresPreview = null,
   conVolteoPermitido = true,
+  conVolteoBloqueadoHint = null,
   onTipoBifronteChange,
   onPrecioMillarChange,
   onPrecioVolteoMillarChange,
@@ -88,33 +99,57 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
       option => option.value === (tipoBifronte || 'diferente-plancha')
     )?.label ?? volteoCopy.volteoStatusSin
   const precioInicial = precioMillar > 0 ? precioMillar : (tarifa?.precio ?? 0)
-  const precioPorMillarVolteo =
-    precioVolteoMillar > 0 ? precioVolteoMillar : (tarifa?.precio ?? 0)
+  const precioPorMillarVolteo = resolveImpresionPrecioConVolteoMillar(
+    tarifa,
+    precioVolteoMillar,
+    tipoBifronte
+  )
   const precioPorMillarBase = precioInicial
   const topeActivo = conVolteo ? (topeMinimoMillarVolteo ?? 0) : (topeMinimoMillar ?? 0)
-  const tamanosBuenosReferencia =
-    millaresPreview?.tamanosBuenosFuente === 'referencia' ? millaresPreview.tamanosBuenos : null
+  const referenciaParaPrecio =
+    tamanosBuenosReferencia ??
+    (millaresPreview?.tamanosBuenosFuente === 'referencia' ? millaresPreview.tamanosBuenos : null)
   const usaPrecioConVolteoColorBasico =
-    variant === 'colorBasico' && shouldUsarPrecioConVolteoColorBasico(tamanosBuenosReferencia)
+    variant === 'colorBasico' && shouldUsarPrecioConVolteoColorBasico(referenciaParaPrecio)
+  const usaPrecioConVolteoPantone =
+    variant === 'pantone' && shouldUsarPrecioConVolteoPantone(referenciaParaPrecio)
   const valorImpresion = useMemo(() => {
     const millaresReferencia = millaresPreview?.millaresCalculados ?? 0
     if (millaresReferencia <= 0) return 0
 
     if (variant === 'colorBasico') {
+      if (conVolteo) {
+        return computeValorImpresionPorMillaresReferencia({
+          millaresReferencia,
+          precioInicial,
+          precioPorMillar: precioPorMillarVolteo,
+          conVolteo: true,
+          topeMinimoMillar: topeActivo,
+        })
+      }
       return computeValorImpresionColorBasicoPorReferencia({
         millaresReferencia,
-        tamanosBuenosReferencia,
+        tamanosBuenosReferencia: referenciaParaPrecio,
         precioConVolteo: precioPorMillarVolteo,
         precioSinVolteo: precioInicial,
       })
     }
 
-    return computeValorImpresionPorMillaresReferencia({
+    if (conVolteo) {
+      return computeValorImpresionPantoneConVolteoPorReferencia({
+        millaresReferencia,
+        tamanosBuenosReferencia: referenciaParaPrecio,
+        precioConVolteo: precioPorMillarVolteo,
+        precioSinVolteo: precioInicial,
+        topeMinimoMillar: topeActivo,
+      })
+    }
+
+    return computeValorImpresionPantonePorReferencia({
       millaresReferencia,
-      precioInicial,
-      precioPorMillar: conVolteo ? precioPorMillarVolteo : precioPorMillarBase,
-      conVolteo,
-      topeMinimoMillar: topeActivo,
+      tamanosBuenosReferencia: referenciaParaPrecio,
+      precioConVolteo: precioPorMillarVolteo,
+      precioSinVolteo: precioInicial,
     })
   }, [
     conVolteo,
@@ -122,7 +157,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
     precioInicial,
     precioPorMillarBase,
     precioPorMillarVolteo,
-    tamanosBuenosReferencia,
+    referenciaParaPrecio,
     topeActivo,
     variant,
   ])
@@ -223,6 +258,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
           onChange={onTipoBifronteChange}
           disabled={tarifasMillarLoading}
           conVolteoPermitido={conVolteoPermitido}
+          conVolteoBloqueadoHint={conVolteoBloqueadoHint}
         />
 
         <ImpresionTarifaMetricsStrip {...tarifaStripProps} />
@@ -236,6 +272,7 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
           precioPorMillar={conVolteo ? precioPorMillarVolteo : precioPorMillarBase}
           precioConVolteoMillar={precioPorMillarVolteo}
           usaPrecioConVolteoColorBasico={usaPrecioConVolteoColorBasico}
+          usaPrecioConVolteoPantone={usaPrecioConVolteoPantone}
           topeMinimoMillarActivo={topeActivo}
         />
       </div>
@@ -269,7 +306,12 @@ interface ImpresionTintasVolteoSectionProps {
   tarifasMillarLoading?: boolean
   millaresPreviewColorBasico?: ImpresionGrupoMillaresPreview | null
   millaresPreviewPantone?: ImpresionGrupoMillaresPreview | null
-  conVolteoPermitido?: boolean
+  tamanosBuenosReferenciaColorBasico?: number | null
+  tamanosBuenosReferenciaPantone?: number | null
+  conVolteoPermitidoColorBasico?: boolean
+  conVolteoPermitidoPantone?: boolean
+  conVolteoBloqueadoHintColorBasico?: string | null
+  conVolteoBloqueadoHintPantone?: string | null
   onTipoBifronteColorBasicoChange: (value: ImpresionTipoBifronte | '') => void
   onTipoBifrontePantoneChange: (value: ImpresionTipoBifronte | '') => void
   onPrecioColorBasicoMillarChange: (value: number) => void
@@ -304,7 +346,12 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
   tarifasMillarLoading = false,
   millaresPreviewColorBasico = null,
   millaresPreviewPantone = null,
-  conVolteoPermitido = true,
+  tamanosBuenosReferenciaColorBasico = null,
+  tamanosBuenosReferenciaPantone = null,
+  conVolteoPermitidoColorBasico = true,
+  conVolteoPermitidoPantone = true,
+  conVolteoBloqueadoHintColorBasico = null,
+  conVolteoBloqueadoHintPantone = null,
   onTipoBifronteColorBasicoChange,
   onTipoBifrontePantoneChange,
   onPrecioColorBasicoMillarChange,
@@ -333,7 +380,9 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
         umbralDecimalMillarVolteo={umbralDecimalMillarVolteoColorBasico}
         tarifasMillarLoading={tarifasMillarLoading}
         millaresPreview={millaresPreviewColorBasico}
-        conVolteoPermitido={conVolteoPermitido}
+        tamanosBuenosReferencia={tamanosBuenosReferenciaColorBasico}
+        conVolteoPermitido={conVolteoPermitidoColorBasico}
+        conVolteoBloqueadoHint={conVolteoBloqueadoHintColorBasico}
         onTipoBifronteChange={onTipoBifronteColorBasicoChange}
         onPrecioMillarChange={onPrecioColorBasicoMillarChange}
         onPrecioVolteoMillarChange={onPrecioVolteoColorBasicoMillarChange}
@@ -354,7 +403,9 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
         umbralDecimalMillarVolteo={umbralDecimalMillarVolteoPantone}
         tarifasMillarLoading={tarifasMillarLoading}
         millaresPreview={millaresPreviewPantone}
-        conVolteoPermitido={conVolteoPermitido}
+        tamanosBuenosReferencia={tamanosBuenosReferenciaPantone}
+        conVolteoPermitido={conVolteoPermitidoPantone}
+        conVolteoBloqueadoHint={conVolteoBloqueadoHintPantone}
         onTipoBifronteChange={onTipoBifrontePantoneChange}
         onPrecioMillarChange={onPrecioPantoneMillarChange}
         onPrecioVolteoMillarChange={onPrecioVolteoPantoneMillarChange}

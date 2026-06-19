@@ -4,6 +4,7 @@ import type {
   ImpresionTiroRetiroEntrada,
 } from '../../../../core/domain/entities/Order'
 import type { TarifaMillarPricing } from '../../../../core/domain/entities/TarifaMillar'
+import { TARIFA_MILLAR_UNIDAD } from '../../../../core/domain/entities/TarifaMillar'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
 import { getColoresOptionMeta } from './coloresPlanchasUtils'
 import {
@@ -17,6 +18,8 @@ import {
   computeMillaresCalculados,
   computeValorImpresionPorMillaresReferencia,
   computeValorImpresionColorBasicoPorReferencia,
+  computeValorImpresionPantonePorReferencia,
+  computeValorImpresionPantoneConVolteoPorReferencia,
   resolveMillaresParaCobro,
 } from './tarifaMillarPricingUtils'
 
@@ -166,6 +169,194 @@ export const formatMillaresFactor = (value: number): string =>
     ? new Intl.NumberFormat('es-CO', { maximumFractionDigits: 3 }).format(value)
     : '—'
 
+export interface ValorImpresionFormulaCopy {
+  millaresReferencia: string
+  precioImpresion: string
+  operacion: string
+  tarifaConVolteo: string
+  tarifaSinVolteo: string
+  motivoRef500: string
+  motivoRef1000: string
+  motivoVolteoBajoTope: string
+  motivoVolteoSobreTope: string
+}
+
+export interface ValorImpresionFormulaPriceLabels {
+  precioConVolteo: string
+  precioSinVolteo: string
+}
+
+export interface ValorImpresionFormulaStep {
+  stepRule: string
+  stepCalc: string
+}
+
+export interface BuildValorImpresionFormulaStepsInput {
+  variant: 'colorBasico' | 'pantone'
+  conVolteo: boolean
+  usaPrecioConVolteoColorBasico: boolean
+  usaPrecioConVolteoPantone: boolean
+  usaPrecioInicial: boolean
+  millaresCalculados: number
+  precioUnitario: number
+  valorImpresion: number
+  copy: ValorImpresionFormulaCopy
+  priceLabels: ValorImpresionFormulaPriceLabels
+  formatMillares?: (value: number) => string
+  formatPrecio?: (value: number) => string
+}
+
+export const resolveValorImpresionPrecioUnitarioLabel = ({
+  variant,
+  conVolteo,
+  usaPrecioConVolteoColorBasico,
+  usaPrecioConVolteoPantone,
+  usaPrecioInicial,
+  priceLabels,
+}: Pick<
+  BuildValorImpresionFormulaStepsInput,
+  | 'variant'
+  | 'conVolteo'
+  | 'usaPrecioConVolteoColorBasico'
+  | 'usaPrecioConVolteoPantone'
+  | 'usaPrecioInicial'
+  | 'priceLabels'
+>): string => {
+  if (variant === 'colorBasico') {
+    if (conVolteo) {
+      return usaPrecioInicial ? priceLabels.precioSinVolteo : priceLabels.precioConVolteo
+    }
+    return usaPrecioConVolteoColorBasico
+      ? priceLabels.precioConVolteo
+      : priceLabels.precioSinVolteo
+  }
+  if (!conVolteo) {
+    return usaPrecioConVolteoPantone
+      ? priceLabels.precioConVolteo
+      : priceLabels.precioSinVolteo
+  }
+  return usaPrecioInicial ? priceLabels.precioSinVolteo : priceLabels.precioConVolteo
+}
+
+export interface ResolveValorImpresionPrecioUnitarioInput {
+  variant: 'colorBasico' | 'pantone'
+  conVolteo: boolean
+  usaPrecioConVolteoColorBasico: boolean
+  usaPrecioConVolteoPantone: boolean
+  millaresCalculados: number
+  topeMinimoMillarActivo: number
+  precioInicial: number
+  precioPorMillar: number
+  precioConVolteoMillar: number
+}
+
+/** Precio unitario efectivo para fórmula y cobro según volteo, referencia y tope. */
+export const resolveValorImpresionPrecioUnitario = ({
+  variant,
+  conVolteo,
+  usaPrecioConVolteoColorBasico,
+  usaPrecioConVolteoPantone,
+  millaresCalculados,
+  topeMinimoMillarActivo,
+  precioInicial,
+  precioPorMillar,
+  precioConVolteoMillar,
+}: ResolveValorImpresionPrecioUnitarioInput): {
+  precioUnitario: number
+  usaPrecioInicial: boolean
+} => {
+  const topeEnMillares =
+    topeMinimoMillarActivo > 0 ? topeMinimoMillarActivo / TARIFA_MILLAR_UNIDAD : 0
+  const sobreTope =
+    topeEnMillares > 0 && millaresCalculados >= topeEnMillares - 0.000001
+
+  if (variant === 'colorBasico') {
+    if (conVolteo) {
+      return {
+        usaPrecioInicial: sobreTope,
+        precioUnitario: sobreTope ? precioInicial : precioConVolteoMillar,
+      }
+    }
+    return {
+      usaPrecioInicial: !usaPrecioConVolteoColorBasico,
+      precioUnitario: usaPrecioConVolteoColorBasico
+        ? precioConVolteoMillar
+        : precioInicial,
+    }
+  }
+
+  if (conVolteo) {
+    if (usaPrecioConVolteoPantone) {
+      return {
+        usaPrecioInicial: false,
+        precioUnitario: precioConVolteoMillar,
+      }
+    }
+    return {
+      usaPrecioInicial: sobreTope,
+      precioUnitario: sobreTope ? precioInicial : precioPorMillar,
+    }
+  }
+
+  if (usaPrecioConVolteoPantone) {
+    return {
+      usaPrecioInicial: false,
+      precioUnitario: precioConVolteoMillar,
+    }
+  }
+
+  return {
+    usaPrecioInicial: true,
+    precioUnitario: precioInicial,
+  }
+}
+
+/** Fórmula resumida de Precio impresión con etiqueta antes de cada valor. */
+export const buildValorImpresionFormulaSteps = (
+  input: BuildValorImpresionFormulaStepsInput
+): ValorImpresionFormulaStep[] => {
+  const {
+    millaresCalculados,
+    precioUnitario,
+    valorImpresion,
+    copy,
+    formatMillares = formatMillaresFactor,
+    formatPrecio,
+  } = input
+
+  if (millaresCalculados <= 0 || valorImpresion <= 0 || !formatPrecio) {
+    return []
+  }
+
+  const precioUnitarioEfectivo =
+    precioUnitario > 0
+      ? precioUnitario
+      : valorImpresion > 0
+        ? valorImpresion / millaresCalculados
+        : 0
+
+  if (precioUnitarioEfectivo <= 0) {
+    return []
+  }
+
+  const millaresLabel = formatMillares(millaresCalculados)
+  const precioLabel = formatPrecio(precioUnitarioEfectivo)
+  const totalLabel = formatPrecio(valorImpresion)
+  const precioUnitarioLabel = resolveValorImpresionPrecioUnitarioLabel(input)
+
+  return [
+    {
+      stepRule: '',
+      stepCalc: `${copy.millaresReferencia}: (${millaresLabel}) × ${precioUnitarioLabel} (${precioLabel} ) = ${totalLabel}`,
+    },
+  ]
+}
+
+/** @deprecated Usar buildValorImpresionFormulaSteps. */
+export const buildValorImpresionFormulaStep = (
+  input: BuildValorImpresionFormulaStepsInput
+): ValorImpresionFormulaStep | null => buildValorImpresionFormulaSteps(input).at(-1) ?? null
+
 export const resolveImpresionTarifaMillarPricing = (
   precio: number,
   millarMinimoVenta?: number,
@@ -282,23 +473,29 @@ const computeGrupoImpresionCobro = (
     basePricing,
     volteoPricing
   )
+  const precioConVolteo = precioPorMillar > 0 ? precioPorMillar : volteoPricing.precio
   const precio =
     variant === 'colorBasico'
       ? computeValorImpresionColorBasicoPorReferencia({
           millaresReferencia: millares,
           tamanosBuenosReferencia,
-          precioConVolteo: precioPorMillar > 0 ? precioPorMillar : volteoPricing.precio,
+          precioConVolteo,
           precioSinVolteo: precioInicial,
         })
-      : computeValorImpresionPorMillaresReferencia({
-          millaresReferencia: millares,
-          precioInicial,
-          precioPorMillar: conVolteo ? precioPorMillar : precioInicial,
-          conVolteo,
-          topeMinimoMillar: conVolteo
-            ? volteoPricing.topeMinimoMillar
-            : basePricing.topeMinimoMillar,
-        })
+      : conVolteo
+        ? computeValorImpresionPantoneConVolteoPorReferencia({
+            millaresReferencia: millares,
+            tamanosBuenosReferencia,
+            precioConVolteo,
+            precioSinVolteo: precioInicial,
+            topeMinimoMillar: volteoPricing.topeMinimoMillar,
+          })
+        : computeValorImpresionPantonePorReferencia({
+            millaresReferencia: millares,
+            tamanosBuenosReferencia,
+            precioConVolteo,
+            precioSinVolteo: precioInicial,
+          })
   return { millares, precio }
 }
 
@@ -324,6 +521,11 @@ export interface ImpresionPrecioTintaBreakdownInput {
 }
 
 export interface ImpresionPrecioTintaBreakdownOptions {
+  tamanosBuenosColorBasico?: number
+  tamanosBuenosPantone?: number
+  tamanosBuenosReferenciaColorBasico?: number | null
+  tamanosBuenosReferenciaPantone?: number | null
+  /** @deprecated Use tamanosBuenosReferenciaColorBasico / tamanosBuenosReferenciaPantone */
   tamanosBuenosReferencia?: number | null
 }
 
@@ -334,6 +536,12 @@ export const computeImpresionPrecioTintaBreakdown = (
   input: ImpresionPrecioTintaBreakdownInput,
   options: ImpresionPrecioTintaBreakdownOptions = {}
 ): ImpresionPrecioTintaBreakdown => {
+  const tamanosBuenosColorBasico = options.tamanosBuenosColorBasico ?? tamanosBuenos
+  const tamanosBuenosPantone = options.tamanosBuenosPantone ?? tamanosBuenos
+  const referenciaColorBasico =
+    options.tamanosBuenosReferenciaColorBasico ?? options.tamanosBuenosReferencia ?? null
+  const referenciaPantone =
+    options.tamanosBuenosReferenciaPantone ?? options.tamanosBuenosReferencia ?? null
   const cantidadTintasColorBasico = sumDistinctNonPantoneColorsBySide(tiro, retiro)
   const cantidadTintasPantone = sumDistinctPantoneColorsBySide(tiro, retiro)
 
@@ -369,24 +577,25 @@ export const computeImpresionPrecioTintaBreakdown = (
     'colorBasico',
     tiro,
     retiro,
-    tamanosBuenos,
+    tamanosBuenosColorBasico,
     input.precioColorBasicoMillar,
     input.precioVolteoColorBasicoMillar ?? 0,
     conVolteoColorBasico,
     pricingColorBasico,
     volteoColorBasicoPricing,
-    options.tamanosBuenosReferencia ?? null
+    referenciaColorBasico
   )
   const pantoneGrupo = computeGrupoImpresionCobro(
     'pantone',
     tiro,
     retiro,
-    tamanosBuenos,
+    tamanosBuenosPantone,
     input.precioPantoneMillar,
     input.precioVolteoPantoneMillar ?? 0,
     conVolteoPantone,
     pricingPantone,
-    volteoPantonePricing
+    volteoPantonePricing,
+    referenciaPantone
   )
 
   const total = colorBasicoGrupo.precio + pantoneGrupo.precio

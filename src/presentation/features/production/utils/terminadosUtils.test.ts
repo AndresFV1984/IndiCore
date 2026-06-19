@@ -11,7 +11,7 @@ import {
   resolveCompletedTerminadosCorteRowKeys,
   terminadosRegistroMatchesContext,
 } from './terminadosUtils'
-import { buildTerminadoProduccionLinea } from './terminadosUtils'
+import { buildTerminadoProduccionLinea, isReservaUvTerminadoLinea } from './terminadosUtils'
 import type { CatalogRecord } from '../../catalog/catalogRecord'
 
 const baseItem = (id: string, detalle: string): DisenoColorPlanchaItem => ({
@@ -223,6 +223,33 @@ describe('buildTerminadosCobroResumen', () => {
     expect(resumen.totalCobro).toBe(
       resumen.lineas.reduce((sum, linea) => sum + linea.totalCobro, 0)
     )
+  })
+})
+
+describe('buildTerminadoProduccionLinea reserva UV', () => {
+  it('inicializa positivo y clise desde el catálogo', () => {
+    const colores = [baseItem('a', 'Frente')]
+    const paperRows = syncPaperRowsWithColoresPlanchas(colores, [completeRow('a')])
+    const contexts = buildTerminadosCorteContexts(colores, paperRows, [], 0, 'no')
+    const context = contexts[0]!
+
+    const linea = buildTerminadoProduccionLinea(
+      {
+        id: 't5',
+        name: 'Reserva UV',
+        valorCmCuadrado: '2200',
+        cost: '28000',
+        positivo: '2',
+        clise: '4',
+      },
+      context.row,
+      context.tamanosBuenos,
+      'catalogo'
+    )
+
+    expect(isReservaUvTerminadoLinea(linea)).toBe(true)
+    expect(linea.positivo).toBe(2)
+    expect(linea.clise).toBe(4)
   })
 })
 

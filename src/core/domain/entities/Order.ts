@@ -111,6 +111,10 @@ export interface TerminadoProduccionLinea {
   precioCalculado: number;
   precioCobro: number;
   origen?: TerminadoProduccionOrigen;
+  /** Reserva UV: positivo editable por orden. */
+  positivo?: number;
+  /** Reserva UV: clise editable por orden. */
+  clise?: number;
 }
 
 /** Registro confirmado de terminados vinculados a una plancha. */

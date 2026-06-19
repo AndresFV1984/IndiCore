@@ -55,15 +55,17 @@ export const resolveVolteoPrecioMillarPorGrupoColor = (tarifaName: string): numb
 }
 
 export const resolveTarifaMillarPrecioVolteoPinza = (
-  item: Pick<TarifaMillar, 'name' | 'precioVolteoPinza'>
+  item: Pick<TarifaMillar, 'name' | 'precioVolteoPinza'> | null | undefined
 ): number | null => {
+  if (!item) return null
   if (item.precioVolteoPinza > 0) return item.precioVolteoPinza
   return resolveVolteoPrecioMillarPorGrupoColor(item.name)
 }
 
 export const resolveTarifaMillarPrecioVolteoEscuadra = (
-  item: Pick<TarifaMillar, 'name' | 'precioVolteoEscuadra'>
+  item: Pick<TarifaMillar, 'name' | 'precioVolteoEscuadra'> | null | undefined
 ): number | null => {
+  if (!item) return null
   if (item.precioVolteoEscuadra > 0) return item.precioVolteoEscuadra
   return resolveVolteoPrecioMillarPorGrupoColor(item.name)
 }
@@ -80,4 +82,12 @@ export const resolveTarifaMillarPrecioVolteoPorTipo = (
     return resolveTarifaMillarPrecioVolteoPinza(item) ?? 0
   }
   return 0
+}
+
+/** Precio con volteo por defecto (pinza) para reglas de referencia sin volteo activo. */
+export const resolveTarifaMillarPrecioConVolteoDefault = (
+  item: Pick<TarifaMillar, 'name' | 'precioVolteoPinza' | 'precioVolteoEscuadra'> | null | undefined
+): number => {
+  if (!item) return 0
+  return resolveTarifaMillarPrecioVolteoPinza(item) ?? 0
 }

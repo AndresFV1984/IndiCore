@@ -6,10 +6,11 @@ import { isImpresionConVolteo } from './constants/impresionTipoBifronte'
 import {
   computeTamanosBuenos,
   computeTamanosBuenosReferencia,
-  resolveUsarReferenciaTamanosBuenosConVolteo,
+  type TamanosBuenosCalcResult,
 } from './utils/coloresPlanchasUtils'
 
 const detalleCopy = copy.tintas.planchaDetalle
+const volteoCopy = copy.tintas.tintasVolteo
 
 interface ImpresionPlanchaDetalleFieldsProps {
   cantidad: number
@@ -23,10 +24,19 @@ interface FormulaStep {
   stepCalc?: string
 }
 
+interface TamanosBuenosAjusteFormulaCopy {
+  formulaPatronInicioConVolteo: string
+  formulaPatronContinuaConVolteo: string
+  formulaPatronInicioSinVolteo: string
+  formulaPatronContinuaSinVolteo: string
+}
+
 interface DatosFormulaDetailsProps {
   summary: string
   steps: FormulaStep[]
 }
+
+type DatosMetricVariant = 'neutral' | 'base' | 'colorBasico' | 'pantone'
 
 interface DatosMetricTileProps {
   labelId: string
@@ -35,15 +45,42 @@ interface DatosMetricTileProps {
   formulaSummary?: string
   formulaSteps?: FormulaStep[]
   note?: string
-  accent?: boolean
+  hint?: string
+  badge?: string
+  badgeActive?: boolean
+  variant?: DatosMetricVariant
   empty?: boolean
 }
 
 const formatEntero = (value: number): string => new Intl.NumberFormat('es-CO').format(value)
 
+const buildTamanosBuenosAjusteFormulaSteps = (
+  formulaCopy: TamanosBuenosAjusteFormulaCopy,
+  tamanosBuenosCalc: TamanosBuenosCalcResult,
+  ajusteCalc: TamanosBuenosCalcResult,
+  usarReferenciaConVolteo: boolean
+): FormulaStep[] => {
+  if (!ajusteCalc.ok || !tamanosBuenosCalc.ok) return []
+
+  return [
+    {
+      stepRule: usarReferenciaConVolteo
+        ? formulaCopy.formulaPatronInicioConVolteo
+        : formulaCopy.formulaPatronInicioSinVolteo,
+    },
+    {
+      stepRule: usarReferenciaConVolteo
+        ? formulaCopy.formulaPatronContinuaConVolteo
+        : formulaCopy.formulaPatronContinuaSinVolteo,
+    },
+  ]
+}
+
 const DatosFormulaDetails: React.FC<DatosFormulaDetailsProps> = ({ summary, steps }) => (
   <details className="production-impresion-datos__formula">
-    <summary>{summary}</summary>
+    <summary>
+      <span className="production-impresion-datos__formula-summary">{summary}</span>
+    </summary>
     <div className="production-impresion-datos__formula-body">
       {steps.map((step, index) => (
         <p key={index} className="production-impresion-datos__formula-line">
@@ -64,19 +101,34 @@ const DatosMetricTile: React.FC<DatosMetricTileProps> = ({
   formulaSummary,
   formulaSteps,
   note,
-  accent = false,
+  hint,
+  badge,
+  badgeActive = false,
+  variant = 'neutral',
   empty = false,
 }) => (
   <article
     className={clsx(
       'production-impresion-datos__tile',
-      accent && 'production-impresion-datos__tile--accent',
+      variant !== 'neutral' && `production-impresion-datos__tile--${variant}`,
       empty && 'production-impresion-datos__tile--empty'
     )}
   >
-    <span className="production-impresion-datos__tile-label" id={labelId}>
-      {label}
-    </span>
+    <div className="production-impresion-datos__tile-head">
+      <span className="production-impresion-datos__tile-label" id={labelId}>
+        {label}
+      </span>
+      {badge ? (
+        <span
+          className={clsx(
+            'production-impresion-datos__tile-badge',
+            badgeActive && 'production-impresion-datos__tile-badge--active'
+          )}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </div>
     <p className="production-impresion-datos__tile-value" aria-labelledby={labelId} role="status">
       {value}
     </p>
@@ -84,9 +136,25 @@ const DatosMetricTile: React.FC<DatosMetricTileProps> = ({
       <DatosFormulaDetails summary={formulaSummary} steps={formulaSteps} />
     ) : note ? (
       <span className="production-impresion-datos__tile-note">{note}</span>
+    ) : hint ? (
+      <span className="production-impresion-datos__tile-hint">{hint}</span>
     ) : null}
   </article>
 )
+
+const colorBasicoAjusteCopy: TamanosBuenosAjusteFormulaCopy = {
+  formulaPatronInicioConVolteo: detalleCopy.tamanosBuenosReferenciaFormulaPatronInicioConVolteo,
+  formulaPatronContinuaConVolteo: detalleCopy.tamanosBuenosReferenciaFormulaPatronContinuaConVolteo,
+  formulaPatronInicioSinVolteo: detalleCopy.tamanosBuenosReferenciaFormulaPatronInicioSinVolteo,
+  formulaPatronContinuaSinVolteo: detalleCopy.tamanosBuenosReferenciaFormulaPatronContinuaSinVolteo,
+}
+
+const pantoneAjusteCopy: TamanosBuenosAjusteFormulaCopy = {
+  formulaPatronInicioConVolteo: detalleCopy.tamanosBuenosPantoneFormulaPatronInicioConVolteo,
+  formulaPatronContinuaConVolteo: detalleCopy.tamanosBuenosPantoneFormulaPatronContinuaConVolteo,
+  formulaPatronInicioSinVolteo: detalleCopy.tamanosBuenosPantoneFormulaPatronInicioSinVolteo,
+  formulaPatronContinuaSinVolteo: detalleCopy.tamanosBuenosPantoneFormulaPatronContinuaSinVolteo,
+}
 
 const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps> = ({
   cantidad,
@@ -97,16 +165,20 @@ const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps
   const headId = useId()
   const cavidadesId = useId()
   const tamanosBuenosId = useId()
-  const tamanosBuenosReferenciaId = useId()
-  const usarReferenciaConVolteo = resolveUsarReferenciaTamanosBuenosConVolteo({
-    conVolteoColorBasico: isImpresionConVolteo(tipoBifronteColorBasico),
-    conVolteoPantone: isImpresionConVolteo(tipoBifrontePantone),
-  })
+  const tamanosBuenosColorBasicoId = useId()
+  const tamanosBuenosPantoneId = useId()
+  const usarReferenciaConVolteoColorBasico = isImpresionConVolteo(tipoBifronteColorBasico)
+  const usarReferenciaConVolteoPantone = isImpresionConVolteo(tipoBifrontePantone)
   const tamanosBuenosCalc = computeTamanosBuenos(cantidad, numeroCavidades)
-  const tamanosBuenosReferenciaCalc = computeTamanosBuenosReferencia(
+  const tamanosBuenosColorBasicoCalc = computeTamanosBuenosReferencia(
     cantidad,
     numeroCavidades,
-    usarReferenciaConVolteo
+    usarReferenciaConVolteoColorBasico
+  )
+  const tamanosBuenosPantoneCalc = computeTamanosBuenosReferencia(
+    cantidad,
+    numeroCavidades,
+    usarReferenciaConVolteoPantone
   )
   const tamanosBuenosPendingMessage = !tamanosBuenosCalc.ok
     ? tamanosBuenosCalc.reason === 'sin-cavidad'
@@ -124,24 +196,27 @@ const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps
     ]
   }, [cantidad, numeroCavidades, tamanosBuenosCalc])
 
-  const tamanosBuenosReferenciaFormulaSteps = useMemo<FormulaStep[]>(() => {
-    if (!tamanosBuenosReferenciaCalc.ok || !tamanosBuenosCalc.ok) return []
-    const formulaLines = usarReferenciaConVolteo
-      ? detalleCopy.tamanosBuenosReferenciaFormulaLinesConVolteo
-      : detalleCopy.tamanosBuenosReferenciaFormulaLinesSinVolteo
-    const formulaDescripcion = usarReferenciaConVolteo
-      ? detalleCopy.tamanosBuenosReferenciaFormulaConVolteo
-      : detalleCopy.tamanosBuenosReferenciaFormulaSinVolteo
-    return [
-      { stepRule: detalleCopy.tamanosBuenosReferenciaFormula },
-      { stepRule: formulaDescripcion },
-      ...formulaLines.map(line => ({ stepRule: line })),
-      {
-        stepRule: 'Resultado aplicado',
-        stepCalc: `${formatEntero(tamanosBuenosCalc.value)} → ${formatEntero(tamanosBuenosReferenciaCalc.value)}`,
-      },
-    ]
-  }, [tamanosBuenosCalc, tamanosBuenosReferenciaCalc, usarReferenciaConVolteo])
+  const tamanosBuenosColorBasicoFormulaSteps = useMemo(
+    () =>
+      buildTamanosBuenosAjusteFormulaSteps(
+        colorBasicoAjusteCopy,
+        tamanosBuenosCalc,
+        tamanosBuenosColorBasicoCalc,
+        usarReferenciaConVolteoColorBasico
+      ),
+    [tamanosBuenosCalc, tamanosBuenosColorBasicoCalc, usarReferenciaConVolteoColorBasico]
+  )
+
+  const tamanosBuenosPantoneFormulaSteps = useMemo(
+    () =>
+      buildTamanosBuenosAjusteFormulaSteps(
+        pantoneAjusteCopy,
+        tamanosBuenosCalc,
+        tamanosBuenosPantoneCalc,
+        usarReferenciaConVolteoPantone
+      ),
+    [tamanosBuenosCalc, tamanosBuenosPantoneCalc, usarReferenciaConVolteoPantone]
+  )
 
   return (
     <section className="production-impresion-datos" aria-labelledby={headId}>
@@ -159,8 +234,14 @@ const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps
         <DatosMetricTile
           labelId={cavidadesId}
           label={detalleCopy.cavidadesLabel}
-          value={numeroCavidades > 0 ? numeroCavidades.toLocaleString('es-CO') : detalleCopy.cavidadesEmpty}
-          note={numeroCavidades > 0 ? detalleCopy.cavidadesHint : undefined}
+          value={
+            numeroCavidades > 0
+              ? numeroCavidades.toLocaleString('es-CO')
+              : detalleCopy.cavidadesEmpty
+          }
+          hint={numeroCavidades > 0 ? detalleCopy.cavidadesHint : undefined}
+          note={numeroCavidades <= 0 ? detalleCopy.cavidadesEmpty : undefined}
+          variant="neutral"
           empty={numeroCavidades <= 0}
         />
 
@@ -175,23 +256,54 @@ const ImpresionPlanchaDetalleFields: React.FC<ImpresionPlanchaDetalleFieldsProps
           formulaSummary={detalleCopy.tamanosBuenosFormulaSummary}
           formulaSteps={tamanosBuenosFormulaSteps}
           note={!tamanosBuenosCalc.ok ? tamanosBuenosPendingMessage : undefined}
-          accent={tamanosBuenosCalc.ok}
+          variant="base"
           empty={!tamanosBuenosCalc.ok}
         />
 
         <DatosMetricTile
-          labelId={tamanosBuenosReferenciaId}
+          labelId={tamanosBuenosColorBasicoId}
           label={detalleCopy.tamanosBuenosReferenciaLabel}
           value={
-            tamanosBuenosReferenciaCalc.ok
-              ? tamanosBuenosReferenciaCalc.value.toLocaleString('es-CO')
+            tamanosBuenosColorBasicoCalc.ok
+              ? tamanosBuenosColorBasicoCalc.value.toLocaleString('es-CO')
               : detalleCopy.tamanosBuenosReferenciaEmpty
           }
           formulaSummary={detalleCopy.tamanosBuenosReferenciaFormulaSummary}
-          formulaSteps={tamanosBuenosReferenciaFormulaSteps}
-          note={!tamanosBuenosReferenciaCalc.ok ? tamanosBuenosPendingMessage : undefined}
-          accent={tamanosBuenosReferenciaCalc.ok}
-          empty={!tamanosBuenosReferenciaCalc.ok}
+          formulaSteps={tamanosBuenosColorBasicoFormulaSteps}
+          note={!tamanosBuenosColorBasicoCalc.ok ? tamanosBuenosPendingMessage : undefined}
+          badge={
+            tamanosBuenosColorBasicoCalc.ok
+              ? usarReferenciaConVolteoColorBasico
+                ? volteoCopy.volteoStatusCon
+                : volteoCopy.volteoStatusSin
+              : undefined
+          }
+          badgeActive={usarReferenciaConVolteoColorBasico}
+          variant="colorBasico"
+          empty={!tamanosBuenosColorBasicoCalc.ok}
+        />
+
+        <DatosMetricTile
+          labelId={tamanosBuenosPantoneId}
+          label={detalleCopy.tamanosBuenosPantoneLabel}
+          value={
+            tamanosBuenosPantoneCalc.ok
+              ? tamanosBuenosPantoneCalc.value.toLocaleString('es-CO')
+              : detalleCopy.tamanosBuenosPantoneEmpty
+          }
+          formulaSummary={detalleCopy.tamanosBuenosPantoneFormulaSummary}
+          formulaSteps={tamanosBuenosPantoneFormulaSteps}
+          note={!tamanosBuenosPantoneCalc.ok ? tamanosBuenosPendingMessage : undefined}
+          badge={
+            tamanosBuenosPantoneCalc.ok
+              ? usarReferenciaConVolteoPantone
+                ? volteoCopy.volteoStatusCon
+                : volteoCopy.volteoStatusSin
+              : undefined
+          }
+          badgeActive={usarReferenciaConVolteoPantone}
+          variant="pantone"
+          empty={!tamanosBuenosPantoneCalc.ok}
         />
       </div>
     </section>

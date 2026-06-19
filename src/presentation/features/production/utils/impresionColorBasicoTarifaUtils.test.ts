@@ -6,6 +6,8 @@ import {
   updateImpresionLadoTinta,
 } from './impresionTintasUtils'
 import {
+  entradaHasColorBasicoEnTiroYRetiro,
+  entradaHasPantoneEnTiroYRetiro,
   entradaUsesPantoneInks,
   entradaUsesPrimaryOrSecondaryInks,
   resolveColorBasicoMillarPatchForEntrada,
@@ -48,6 +50,32 @@ describe('resolveTarifaColorBasicoMillar', () => {
   it('ignora tarifas inactivas', () => {
     const inactiva = new TarifaMillar('tm-x', 'Color básico', 1000, 1, 'Colores', '', false)
     expect(resolveTarifaColorBasicoMillar([inactiva])).toBeNull()
+  })
+})
+
+describe('entradaHasColorBasicoEnTiroYRetiro', () => {
+  it('exige color básico en tiro y retiro', () => {
+    const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1)
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1)
+    expect(entradaHasColorBasicoEnTiroYRetiro(tiro, emptyImpresionLadoTintas())).toBe(false)
+    expect(entradaHasColorBasicoEnTiroYRetiro(tiro, retiro)).toBe(true)
+  })
+})
+
+describe('entradaHasPantoneEnTiroYRetiro', () => {
+  it('exige Pantone en tiro y retiro', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    expect(entradaHasPantoneEnTiroYRetiro(tiro, emptyImpresionLadoTintas())).toBe(false)
+    expect(entradaHasPantoneEnTiroYRetiro(tiro, retiro)).toBe(true)
   })
 })
 

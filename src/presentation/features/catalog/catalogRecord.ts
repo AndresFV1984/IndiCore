@@ -6,6 +6,10 @@ export interface CatalogRecord {
   cost?: string
   /** Valor por centímetro cuadrado (sin símbolo $). */
   valorCmCuadrado?: string
+  /** Reserva UV: valor por defecto al asignar en producción. */
+  positivo?: string
+  /** Reserva UV: valor por defecto al asignar en producción. */
+  clise?: string
 }
 
 export interface CatalogRecordFormValues {
@@ -13,7 +17,17 @@ export interface CatalogRecordFormValues {
   quickAccess: boolean
   cost: string
   valorCmCuadrado: string
+  positivo: string
+  clise: string
 }
+
+export const RESERVA_UV_TERMINADO_ID = 't5'
+
+export const isReservaUvTerminado = (
+  record: Pick<CatalogRecord, 'id' | 'name'>
+): boolean =>
+  record.id === RESERVA_UV_TERMINADO_ID ||
+  record.name.trim().toLowerCase() === 'reserva uv'
 
 export type CatalogRecordVariant = 'terminado' | 'operacion'
 
@@ -86,20 +100,34 @@ export function buildCatalogRecordFromFormValues(
   id?: string
 ): CatalogRecord {
   const cost = normalizeCatalogUnitCost(values.cost)
-  return {
+  const record: CatalogRecord = {
     id: id ?? `${idPrefix}-${crypto.randomUUID()}`,
     name: values.name.trim(),
     quickAccess: values.quickAccess,
     cost: cost || '—',
     valorCmCuadrado: normalizeCatalogValorCmCuadrado(values.valorCmCuadrado),
   }
+
+  if (isReservaUvTerminado(record)) {
+    record.positivo = normalizeCatalogIntegerField(values.positivo)
+    record.clise = normalizeCatalogIntegerField(values.clise)
+  }
+
+  return record
 }
 
 export function normalizeCatalogRecordList(items: readonly CatalogRecord[]): CatalogRecord[] {
-  return items.map(item => ({
-    ...item,
-    valorCmCuadrado: normalizeCatalogValorCmCuadrado(item.valorCmCuadrado),
-  }))
+  return items.map(item => {
+    const normalized: CatalogRecord = {
+      ...item,
+      valorCmCuadrado: normalizeCatalogValorCmCuadrado(item.valorCmCuadrado),
+    }
+    if (isReservaUvTerminado(normalized)) {
+      normalized.positivo = normalizeCatalogIntegerField(item.positivo)
+      normalized.clise = normalizeCatalogIntegerField(item.clise)
+    }
+    return normalized
+  })
 }
 
 /** Convierte Valor cm² a número (incluye migración de valores históricos de 2 dígitos). */
@@ -118,4 +146,15 @@ export function parseCatalogNumeric(value: string | undefined): number {
   const normalized = withoutThousands.replace(',', '.')
   const parsed = Number(normalized)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+/** Entero no negativo para campos de catálogo (Positivo, Clise). */
+export function parseCatalogIntegerField(value: string | undefined, fallback = 0): number {
+  const parsed = Math.round(parseCatalogNumeric(value))
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback
+  return parsed
+}
+
+export function normalizeCatalogIntegerField(value: string | undefined): string {
+  return String(parseCatalogIntegerField(value, 0))
 }

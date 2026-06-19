@@ -73,6 +73,9 @@ const CANTIDAD_RANGOS_TAMANOS_BUENOS_REFERENCIA = 100
 /** Referencia que activa precio con volteo en Color básico (Precio impresión). */
 export const TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO = 500
 
+/** Tope inclusive de tamaños buenos pantone que activa precio con volteo (Precio impresión). */
+export const TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_PANTONE = 500
+
 type TamanosBuenosReferenciaRango = {
   minExclusive: number
   maxInclusive: number
@@ -228,6 +231,18 @@ export const resolveTamanosBuenosParaMillaresForItem = (
   usarReferenciaConVolteo = false
 ): TamanosBuenosParaMillares | null =>
   resolveTamanosBuenosParaMillares(item.cantidad, item.numeroCavidades, usarReferenciaConVolteo)
+
+export const resolveTamanosBuenosParaMillaresColorBasicoForItem = (
+  item: DisenoColorPlanchaItem,
+  conVolteoColorBasico: boolean
+): TamanosBuenosParaMillares | null =>
+  resolveTamanosBuenosParaMillares(item.cantidad, item.numeroCavidades, conVolteoColorBasico)
+
+export const resolveTamanosBuenosParaMillaresPantoneForItem = (
+  item: DisenoColorPlanchaItem,
+  conVolteoPantone: boolean
+): TamanosBuenosParaMillares | null =>
+  resolveTamanosBuenosParaMillares(item.cantidad, item.numeroCavidades, conVolteoPantone)
 
 export const applyTamanosBuenosToItem = (
   item: DisenoColorPlanchaItem

@@ -9,6 +9,7 @@ import type { CatalogRecord, CatalogRecordFormValues } from './catalogRecord'
 import {
   CATALOG_VALOR_CM2_LABEL,
   displayCatalogValorCmCuadrado,
+  isReservaUvTerminado,
 } from './catalogRecord'
 import CatalogRecordCost from './CatalogRecordCost'
 import {
@@ -48,6 +49,14 @@ const FinishedCard: React.FC<FinishedCardProps> = ({ item, onEdit, onExport, onD
             </span>
             Acceso rápido
           </span>
+        ) : null}
+        {isReservaUvTerminado(item) ? (
+          <div className="catalog-card-cost catalog-card-cost--orange">
+            <span className="catalog-card-cost__label">Positivo / Clise (defecto)</span>
+            <span className="catalog-card-cost__value">
+              {item.positivo ?? '0'} / {item.clise ?? '0'}
+            </span>
+          </div>
         ) : null}
       </div>
     </div>

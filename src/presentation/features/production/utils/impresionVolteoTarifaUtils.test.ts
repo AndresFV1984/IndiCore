@@ -6,6 +6,7 @@ import {
   getImpresionVolteoMillarRules,
   getImpresionVolteoMillarRulesFromTarifa,
   resolveColorBasicoVolteoMillarPatch,
+  resolveImpresionPrecioConVolteoMillar,
   resolvePantoneVolteoMillarPatch,
   resolvePrecioVolteoMillarPatch,
 } from './impresionVolteoTarifaUtils'
@@ -95,6 +96,24 @@ describe('resolveColorBasicoVolteoMillarPatch', () => {
       tarifaVolteoColorBasicoMillarId: 'tm-1',
       precioVolteoColorBasicoMillar: 23_000,
     })
+  })
+})
+
+describe('resolveImpresionPrecioConVolteoMillar', () => {
+  it('usa el precio con volteo del catálogo cuando no hay volteo activo', () => {
+    expect(
+      resolveImpresionPrecioConVolteoMillar(tarifaPantone, 0, 'diferente-plancha')
+    ).toBe(IMPRESION_VOLTEO_PRECIO_PANTONE_MILLAR)
+  })
+
+  it('devuelve 0 si la tarifa aún no está disponible', () => {
+    expect(resolveImpresionPrecioConVolteoMillar(null, 0, 'diferente-plancha')).toBe(0)
+  })
+
+  it('prioriza el precio editado en el borrador', () => {
+    expect(
+      resolveImpresionPrecioConVolteoMillar(tarifaPantone, 65_000, 'diferente-plancha')
+    ).toBe(65_000)
   })
 })
 

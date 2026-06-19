@@ -52,6 +52,8 @@ export const TERMINADOS_COPY = {
         despiece: 'Despiece',
         valorCmCuadrado: 'Valor cm²',
         tamanosBuenos: 'Tamaños buenos',
+        positivo: 'Positivo',
+        clise: 'Clise',
         costoMinimo: 'Costo mínimo',
         costoCalculado: 'Costo calculado',
         cobro: 'A cobrar',

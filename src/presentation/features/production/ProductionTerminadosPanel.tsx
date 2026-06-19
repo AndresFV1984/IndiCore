@@ -24,9 +24,13 @@ import {
   resolveCompletedTerminadosCorteRowKeys,
   resolveEntradaTerminadosTotal,
   resolveTerminadosEntradasForContext,
+  isReservaUvTerminadoLinea,
 } from './utils/terminadosUtils'
 import { formatTerminadoPrecioCop } from './utils/terminadoPricingUtils'
-import { formatCatalogValorCmCuadradoNumber } from '../catalog/catalogRecord'
+import {
+  formatCatalogValorCmCuadradoNumber,
+  parseCatalogIntegerField,
+} from '../catalog/catalogRecord'
 
 const asignacionCopy = copy.asignacion
 
@@ -162,6 +166,11 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
     [draftLineas]
   )
 
+  const showReservaUvColumns = useMemo(
+    () => draftLineas.some(linea => isReservaUvTerminadoLinea(linea)),
+    [draftLineas]
+  )
+
   const canCreateRegistro =
     draftLineas.length > 0 && (!isActivePlanchaCompleta || editingEntradaId !== null)
 
@@ -233,6 +242,20 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
 
   const handleRemoveLinea = (lineaId: string) => {
     setDraftLineas(draftLineas.filter(linea => linea.id !== lineaId))
+  }
+
+  const handleUpdateReservaUvField = (
+    lineaId: string,
+    field: 'positivo' | 'clise',
+    rawValue: string
+  ) => {
+    const digitsOnly = rawValue.replace(/[^\d]/g, '')
+    const value = parseCatalogIntegerField(digitsOnly, 0)
+    setDraftLineas(
+      draftLineas.map(linea =>
+        linea.id === lineaId ? { ...linea, [field]: value } : linea
+      )
+    )
   }
 
   const handleCreateRegistro = () => {
@@ -481,6 +504,12 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
                         <th>{asignacionCopy.asignados.columns.despiece}</th>
                         <th>{asignacionCopy.asignados.columns.valorCmCuadrado}</th>
                         <th>{asignacionCopy.asignados.columns.tamanosBuenos}</th>
+                        {showReservaUvColumns ? (
+                          <>
+                            <th>{asignacionCopy.asignados.columns.positivo}</th>
+                            <th>{asignacionCopy.asignados.columns.clise}</th>
+                          </>
+                        ) : null}
                         <th>{asignacionCopy.asignados.columns.costoMinimo}</th>
                         <th>{asignacionCopy.asignados.columns.costoCalculado}</th>
                         <th>{asignacionCopy.asignados.columns.cobro}</th>
@@ -496,6 +525,56 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
                           <td>{despieceLabel}</td>
                           <td>{formatCatalogValorCmCuadradoNumber(linea.valorCmCuadrado)}</td>
                           <td>{linea.tamanosBuenos.toLocaleString('es-CO')}</td>
+                          {showReservaUvColumns ? (
+                            <>
+                              <td className="production-terminados-asignados__reserva-field">
+                                {isReservaUvTerminadoLinea(linea) ? (
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    autoComplete="off"
+                                    className="production-form-input production-terminados-asignados__reserva-input"
+                                    value={String(linea.positivo ?? 0)}
+                                    onChange={e =>
+                                      handleUpdateReservaUvField(
+                                        linea.id,
+                                        'positivo',
+                                        e.target.value
+                                      )
+                                    }
+                                    onFocus={e => e.currentTarget.select()}
+                                    aria-label={`Positivo — ${linea.terminadoNombre}`}
+                                  />
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                              <td className="production-terminados-asignados__reserva-field">
+                                {isReservaUvTerminadoLinea(linea) ? (
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    autoComplete="off"
+                                    className="production-form-input production-terminados-asignados__reserva-input"
+                                    value={String(linea.clise ?? 0)}
+                                    onChange={e =>
+                                      handleUpdateReservaUvField(
+                                        linea.id,
+                                        'clise',
+                                        e.target.value
+                                      )
+                                    }
+                                    onFocus={e => e.currentTarget.select()}
+                                    aria-label={`Clise — ${linea.terminadoNombre}`}
+                                  />
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                            </>
+                          ) : null}
                           <td>{formatTerminadoPrecioCop(linea.costoMinimo)}</td>
                           <td>{formatTerminadoPrecioCop(linea.precioCalculado)}</td>
                           <td className="production-terminados-asignados__cobro">

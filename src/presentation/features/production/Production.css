@@ -10327,201 +10327,310 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--corp-primary) 22%, var(--border));
-  border-radius: 0.65rem;
-  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 18%, var(--border));
+  border-radius: 0.55rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   overflow: hidden;
 }
 
 .production-impresion-datos__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.65rem;
-  padding: 0.65rem 0.8rem 0.6rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, #fff);
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, #fff);
   background: color-mix(in srgb, var(--corp-primary) 4%, #fff);
 }
 
 .production-impresion-datos__head-main {
   display: flex;
   flex-direction: column;
-  gap: 0.12rem;
+  gap: 0.05rem;
   min-width: 0;
 }
 
 .production-impresion-datos__title {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   color: var(--ink);
 }
 
 .production-impresion-datos__subtitle {
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.35;
+  font-size: 0.62rem;
+  line-height: 1.25;
   color: var(--txt-2);
 }
 
 .production-impresion-datos__source {
   flex-shrink: 0;
-  padding: 0.15rem 0.45rem;
+  align-self: center;
+  padding: 0.12rem 0.38rem;
   border-radius: 999px;
-  font-size: 0.62rem;
+  font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--corp-primary-strong, var(--corp-primary));
-  background: color-mix(in srgb, var(--corp-primary) 12%, #fff);
-  border: 1px solid color-mix(in srgb, var(--corp-primary) 24%, transparent);
+  background: color-mix(in srgb, var(--corp-primary) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 22%, transparent);
 }
 
 .production-impresion-datos__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
-  padding: 0.65rem 0.8rem 0.7rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem 0.5rem;
+  min-width: 0;
 }
 
-@media (min-width: 640px) {
+@media (max-width: 1080px) {
   .production-impresion-datos__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 900px) {
-  .production-impresion-datos__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(6.75rem, 1fr));
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
   }
 }
 
 .production-impresion-datos__tile {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
   min-width: 0;
-  padding: 0.55rem 0.65rem;
-  border-radius: 0.5rem;
+  min-height: 100%;
+  padding: 0.38rem 0.45rem;
+  border-radius: 0.4rem;
   background: #fff;
-  border: 1px solid color-mix(in srgb, var(--border) 85%, #fff);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #fff);
+  box-shadow: none;
+  transition: border-color 0.15s ease;
 }
 
-.production-impresion-datos__tile--accent {
-  border-color: color-mix(in srgb, var(--corp-primary) 28%, var(--border));
+.production-impresion-datos__tile:hover {
+  border-color: color-mix(in srgb, var(--corp-primary) 18%, var(--border));
+}
+
+.production-impresion-datos__tile--base {
+  border-color: color-mix(in srgb, var(--corp-primary) 22%, var(--border));
   background: linear-gradient(
-    145deg,
+    160deg,
     #fff 0%,
-    color-mix(in srgb, var(--corp-primary) 6%, #fff) 100%
+    color-mix(in srgb, var(--corp-primary) 4%, #fff) 100%
   );
 }
 
-.production-impresion-datos__tile-label {
+.production-impresion-datos__tile--colorBasico {
+  border-left: 2px solid var(--corp-primary);
+  background: linear-gradient(
+    160deg,
+    #fff 0%,
+    color-mix(in srgb, var(--corp-primary) 5%, #fff) 100%
+  );
+}
+
+.production-impresion-datos__tile--pantone {
+  border-left: 2px solid #7c3aed;
+  background: linear-gradient(
+    160deg,
+    #fff 0%,
+    color-mix(in srgb, #7c3aed 5%, #fff) 100%
+  );
+}
+
+.production-impresion-datos__tile-head {
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.64rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.production-impresion-datos__tile-label {
+  display: -webkit-box;
+  min-width: 0;
+  font-size: 0.56rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  line-height: 1.2;
+  letter-spacing: 0.015em;
+  color: var(--txt-2);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.production-impresion-datos__tile-badge {
+  flex-shrink: 0;
+  padding: 0.06rem 0.28rem;
+  border-radius: 999px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--txt-2);
+  background: #eef2f7;
+  border: 1px solid #e2e8f0;
 }
 
-.production-impresion-datos__tile-label::before {
-  content: '';
-  flex-shrink: 0;
-  width: 0.35rem;
-  height: 0.35rem;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--corp-primary) 55%, #cbd5e1);
+.production-impresion-datos__tile--colorBasico .production-impresion-datos__tile-badge--active {
+  color: var(--corp-primary-strong, var(--corp-primary));
+  background: color-mix(in srgb, var(--corp-primary) 12%, #fff);
+  border-color: color-mix(in srgb, var(--corp-primary) 24%, transparent);
 }
 
-.production-impresion-datos__tile--accent .production-impresion-datos__tile-label::before {
-  background: var(--corp-primary);
+.production-impresion-datos__tile--pantone .production-impresion-datos__tile-badge--active {
+  color: #6d28d9;
+  background: color-mix(in srgb, #7c3aed 12%, #fff);
+  border-color: color-mix(in srgb, #7c3aed 24%, transparent);
 }
 
 .production-impresion-datos__tile-value {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.production-impresion-datos__tile--base .production-impresion-datos__tile-value,
+.production-impresion-datos__tile--colorBasico .production-impresion-datos__tile-value {
   color: var(--corp-primary-strong, var(--corp-primary));
 }
 
+.production-impresion-datos__tile--pantone .production-impresion-datos__tile-value {
+  color: #6d28d9;
+}
+
 .production-impresion-datos__tile--empty .production-impresion-datos__tile-value {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--txt-3, #94a3b8);
 }
 
-.production-impresion-datos__tile-formula {
-  display: inline-flex;
-  align-self: flex-start;
-  max-width: 100%;
-  padding: 0.14rem 0.4rem;
-  border-radius: 999px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--txt-2);
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+.production-impresion-datos__tile-hint {
+  font-size: 0.55rem;
+  line-height: 1.25;
+  color: var(--txt-3, #94a3b8);
 }
 
 .production-impresion-datos__formula {
-  margin-top: 0.1rem;
-  font-size: 0.65rem;
+  margin-top: 0;
+  font-size: 0.58rem;
   color: var(--txt-2);
 }
 
 .production-impresion-datos__formula > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   cursor: pointer;
-  font-weight: 600;
   list-style: none;
+  user-select: none;
 }
 
 .production-impresion-datos__formula > summary::-webkit-details-marker {
   display: none;
 }
 
+.production-impresion-datos__formula-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.1rem 0.32rem;
+  border-radius: 999px;
+  font-size: 0.54rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--txt-2);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.production-impresion-datos__formula-summary::after {
+  content: '';
+  width: 0.28rem;
+  height: 0.28rem;
+  border-right: 1.2px solid currentColor;
+  border-bottom: 1.2px solid currentColor;
+  transform: rotate(45deg) translateY(-1px);
+  opacity: 0.75;
+  transition: transform 0.15s ease;
+}
+
+.production-impresion-datos__formula[open] > summary .production-impresion-datos__formula-summary {
+  color: var(--corp-primary-strong, var(--corp-primary));
+  background: color-mix(in srgb, var(--corp-primary) 8%, #fff);
+  border-color: color-mix(in srgb, var(--corp-primary) 20%, transparent);
+}
+
+.production-impresion-datos__tile--pantone
+  .production-impresion-datos__formula[open]
+  > summary
+  .production-impresion-datos__formula-summary {
+  color: #6d28d9;
+  background: color-mix(in srgb, #7c3aed 8%, #fff);
+  border-color: color-mix(in srgb, #7c3aed 20%, transparent);
+}
+
+.production-impresion-datos__formula[open]
+  > summary
+  .production-impresion-datos__formula-summary::after {
+  transform: rotate(225deg) translate(-1px, 1px);
+}
+
 .production-impresion-datos__formula-body {
-  margin-top: 0.35rem;
+  margin-top: 0.28rem;
+  padding: 0.35rem 0.4rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.22rem;
+  border-radius: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
 .production-impresion-datos__formula-line {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.06rem;
 }
 
 .production-impresion-datos__formula-line-label {
-  font-size: 0.64rem;
+  font-size: 0.54rem;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--txt-2);
 }
 
 .production-impresion-datos__formula-line-calc {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0.06rem 0.25rem;
+  border-radius: 0.25rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
-  font-size: 0.62rem;
-  line-height: 1.35;
+  font-size: 0.52rem;
+  line-height: 1.25;
   color: var(--ink);
+  background: #fff;
+  border: 1px solid #e2e8f0;
   word-break: break-word;
 }
 
 .production-impresion-datos__tile-note {
-  font-size: 0.65rem;
-  line-height: 1.3;
+  font-size: 0.55rem;
+  line-height: 1.25;
   color: var(--txt-2);
 }
 
@@ -11580,11 +11689,18 @@
   display: none;
 }
 
-.production-impresion-millares-calculados__formula-compact {
-  margin-top: 0.35rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+.production-impresion-millares-calculados__formula-resumen {
+  margin: 0.35rem 0 0;
+}
+
+.production-impresion-millares-calculados__formula-resumen
+  .production-impresion-millares-calculados__step-calc {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--txt-1);
+  white-space: normal;
 }
 
 .production-impresion-millares-calculados__formula-line {
@@ -11597,7 +11713,7 @@
 .production-impresion-millares-calculados__formula-line-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: var(--txt-2);
+  color: var(--txt-1);
 }
 
 .production-impresion-millares-calculados__step-tag {
@@ -13278,6 +13394,17 @@
 
 .production-terminados-cobro-resumen__formula {
   margin-top: 0.35rem;
+}
+
+.production-terminados-asignados__reserva-field {
+  min-width: 5.5rem;
+}
+
+.production-terminados-asignados__reserva-input {
+  width: 100%;
+  min-width: 4.5rem;
+  max-width: 6.5rem;
+  padding: 0.35rem 0.45rem;
 }
 
 .production-terminados-asignados__minimo {

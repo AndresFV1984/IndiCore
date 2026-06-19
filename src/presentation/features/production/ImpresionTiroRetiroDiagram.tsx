@@ -50,11 +50,11 @@ const SHEET_LAYOUTS: Record<FlipMode, Record<SheetSide, SheetMechanics>> = {
   },
   'volteo-pinza': {
     tiro: { pinza: 'left', escuadra: 'bottom' },
-    retiro: { pinza: 'right', escuadra: 'bottom' },
+    retiro: { pinza: 'left', escuadra: 'top' },
   },
   'volteo-escuadra': {
     tiro: { pinza: 'left', escuadra: 'bottom' },
-    retiro: { pinza: 'left', escuadra: 'top' },
+    retiro: { pinza: 'right', escuadra: 'bottom' },
   },
 }
 
@@ -810,24 +810,50 @@ const SHEET_VIEWBOX_H = 198
 
 type ResultadoFaceLabelPlacement = 'top-center' | 'bottom-start' | 'bottom-end'
 
-const resolveResultadoBifrontalLayout = () => {
+type ResultadoBifrontalFaceLayout = {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+type ResultadoBifrontalLayout = {
+  orientation: 'horizontal' | 'vertical'
+  tiroFace: ResultadoBifrontalFaceLayout
+  retiroFace: ResultadoBifrontalFaceLayout
+  seam: { x1: number; y1: number; x2: number; y2: number }
+  ringRadius: number
+}
+
+const resolveResultadoBifrontalLayout = (flipMode: FlipMode): ResultadoBifrontalLayout => {
+  if (flipMode === 'volteo-pinza') {
+    const leftX = SHEET_VIEWBOX_X
+    const topY = SHEET_VIEWBOX_Y
+    const faceW = SHEET_VIEWBOX_W
+    const faceH = SHEET_VIEWBOX_H / 2
+    const seamY = topY + faceH
+
+    return {
+      orientation: 'vertical',
+      tiroFace: { x: leftX, y: topY, w: faceW, h: faceH },
+      retiroFace: { x: leftX, y: seamY, w: faceW, h: faceH },
+      seam: { x1: leftX + 2, y1: seamY, x2: leftX + faceW - 2, y2: seamY },
+      ringRadius: Math.min(22, Math.max(12, Math.round(30 * (faceH / SHEET_H)))),
+    }
+  }
+
   const leftX = SHEET_VIEWBOX_X
   const topY = SHEET_VIEWBOX_Y
-  const rightX = SHEET_VIEWBOX_X + SHEET_VIEWBOX_W
-  const faceW = (rightX - leftX) / 2
+  const faceW = SHEET_VIEWBOX_W / 2
   const faceH = SHEET_VIEWBOX_H
-  const faceAX = leftX
-  const faceBX = leftX + faceW
-  const ringRadius = Math.min(28, Math.max(15, Math.round(30 * (faceW / SHEET_W))))
+  const seamX = leftX + faceW
 
   return {
-    faceAX,
-    faceBX,
-    faceW,
-    faceY: topY,
-    faceH,
-    seamX: faceBX,
-    ringRadius,
+    orientation: 'horizontal',
+    tiroFace: { x: leftX, y: topY, w: faceW, h: faceH },
+    retiroFace: { x: seamX, y: topY, w: faceW, h: faceH },
+    seam: { x1: seamX, y1: topY + 2, x2: seamX, y2: topY + faceH - 2 },
+    ringRadius: Math.min(28, Math.max(15, Math.round(30 * (faceW / SHEET_W)))),
   }
 }
 
@@ -950,15 +976,16 @@ const ResultadoSheetFaceSvg: React.FC<{
 }
 
 const ResultadoBifrontalSeamSvg: React.FC<{
-  x: number
-  y: number
-  height: number
-}> = ({ x, y, height }) => (
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}> = ({ x1, y1, x2, y2 }) => (
   <line
-    x1={x}
-    y1={y}
-    x2={x}
-    y2={y + height}
+    x1={x1}
+    y1={y1}
+    x2={x2}
+    y2={y2}
     className="production-impresion-tiro-retiro-diagram__svg-resultado-seam"
   />
 )
@@ -971,7 +998,8 @@ const ResultadoSheetSvg: React.FC<{
   hasTiro: boolean
   hasRetiro: boolean
   conVolteo: boolean
-}> = ({ tiroBars, retiroBars, patternId, idPrefix, hasTiro, hasRetiro, conVolteo }) => {
+  flipMode: FlipMode
+}> = ({ tiroBars, retiroBars, patternId, idPrefix, hasTiro, hasRetiro, conVolteo, flipMode }) => {
   const sheetCenterX = SHEET_X + SHEET_W / 2
   const sheetCenterY = SHEET_Y + SHEET_H / 2
   const ringRadius = 30
@@ -979,16 +1007,23 @@ const ResultadoSheetSvg: React.FC<{
   const showTiroRing = hasTiro || conVolteo
   const showRetiroRing = hasRetiro || conVolteo
   const resultadoBars = resolveResultadoInkBars(tiroBars, retiroBars)
-  const bifrontalLayout = resolveResultadoBifrontalLayout()
-  const { faceAX, faceBX, faceW: bifrontalFaceW, faceY, faceH, seamX, ringRadius: bifrontalRingRadius } =
-    bifrontalLayout
+  const bifrontalLayout = resolveResultadoBifrontalLayout(flipMode)
+  const tiroFaceLabelPlacement: ResultadoFaceLabelPlacement = 'bottom-start'
+  const retiroFaceLabelPlacement: ResultadoFaceLabelPlacement =
+    bifrontalLayout.orientation === 'vertical' ? 'bottom-start' : 'bottom-end'
 
   return (
     <svg
       viewBox={SHEET_VIEWBOX}
       className={clsx(
         'production-impresion-tiro-retiro-diagram__sheet-svg',
-        showBothSides && 'production-impresion-tiro-retiro-diagram__sheet-svg--bifrontal'
+        showBothSides && 'production-impresion-tiro-retiro-diagram__sheet-svg--bifrontal',
+        showBothSides &&
+          bifrontalLayout.orientation === 'vertical' &&
+          'production-impresion-tiro-retiro-diagram__sheet-svg--bifrontal-vertical',
+        showBothSides &&
+          bifrontalLayout.orientation === 'horizontal' &&
+          'production-impresion-tiro-retiro-diagram__sheet-svg--bifrontal-horizontal'
       )}
       role="img"
       aria-hidden
@@ -998,41 +1033,41 @@ const ResultadoSheetSvg: React.FC<{
         <>
           <g filter={`url(#${idPrefix}-sheet-shadow)`}>
             <ResultadoSheetFaceSvg
-              x={faceAX}
-              y={faceY}
-              sheetW={bifrontalFaceW}
-              sheetH={faceH}
+              x={bifrontalLayout.tiroFace.x}
+              y={bifrontalLayout.tiroFace.y}
+              sheetW={bifrontalLayout.tiroFace.w}
+              sheetH={bifrontalLayout.tiroFace.h}
               bars={tiroBars}
               patternId={patternId}
               idPrefix={idPrefix}
               paperFillId={`${idPrefix}-paper`}
               faceLabel={diagramCopy.faceATiro}
-              faceLabelPlacement="bottom-start"
+              faceLabelPlacement={tiroFaceLabelPlacement}
               faceClassName="production-impresion-tiro-retiro-diagram__svg-resultado-face production-impresion-tiro-retiro-diagram__svg-resultado-face--tiro"
-              ringRadius={bifrontalRingRadius}
+              ringRadius={bifrontalLayout.ringRadius}
               hasTiro={showTiroRing}
               hasRetiro={false}
               inkIdPrefix="ink-resultado-tiro"
             />
             <ResultadoSheetFaceSvg
-              x={faceBX}
-              y={faceY}
-              sheetW={bifrontalFaceW}
-              sheetH={faceH}
+              x={bifrontalLayout.retiroFace.x}
+              y={bifrontalLayout.retiroFace.y}
+              sheetW={bifrontalLayout.retiroFace.w}
+              sheetH={bifrontalLayout.retiroFace.h}
               bars={retiroBars}
               patternId={patternId}
               idPrefix={idPrefix}
               paperFillId={`${idPrefix}-paper`}
               faceLabel={diagramCopy.faceBRetiro}
-              faceLabelPlacement="bottom-end"
+              faceLabelPlacement={retiroFaceLabelPlacement}
               faceClassName="production-impresion-tiro-retiro-diagram__svg-resultado-face production-impresion-tiro-retiro-diagram__svg-resultado-face--retiro"
-              ringRadius={bifrontalRingRadius}
+              ringRadius={bifrontalLayout.ringRadius}
               hasTiro={false}
               hasRetiro={showRetiroRing}
               inkIdPrefix="ink-resultado-retiro"
             />
           </g>
-          <ResultadoBifrontalSeamSvg x={seamX} y={faceY + 2} height={faceH - 4} />
+          <ResultadoBifrontalSeamSvg {...bifrontalLayout.seam} />
         </>
       ) : (
         <g filter={`url(#${idPrefix}-sheet-shadow)`}>
@@ -1176,7 +1211,13 @@ const ResultadoColumn: React.FC<{
     className={clsx(
       'production-impresion-tiro-retiro-diagram__pasada',
       'production-impresion-tiro-retiro-diagram__pasada--resultado',
-      conVolteo && 'production-impresion-tiro-retiro-diagram__pasada--resultado-bifrontal'
+      conVolteo && 'production-impresion-tiro-retiro-diagram__pasada--resultado-bifrontal',
+      conVolteo &&
+        flipMode === 'volteo-pinza' &&
+        'production-impresion-tiro-retiro-diagram__pasada--resultado-bifrontal-vertical',
+      conVolteo &&
+        flipMode === 'volteo-escuadra' &&
+        'production-impresion-tiro-retiro-diagram__pasada--resultado-bifrontal-horizontal'
     )}
   >
     <p className="production-impresion-tiro-retiro-diagram__pasada-label">
@@ -1196,6 +1237,7 @@ const ResultadoColumn: React.FC<{
         hasTiro={tiroBars.length > 0}
         hasRetiro={retiroBars.length > 0}
         conVolteo={conVolteo}
+        flipMode={flipMode}
       />
     </div>
     <div className="production-impresion-tiro-retiro-diagram__resultado-legend">

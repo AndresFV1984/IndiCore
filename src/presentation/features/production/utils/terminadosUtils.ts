@@ -10,7 +10,7 @@ import type {
 import type { YesNoChoice } from '../../../../core/domain/entities/PreprensaDiseno'
 import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
 import type { CatalogRecord } from '../../catalog/catalogRecord'
-import { parseCatalogNumeric, parseCatalogValorCmCuadrado } from '../../catalog/catalogRecord'
+import { isReservaUvTerminado, parseCatalogIntegerField, parseCatalogNumeric, parseCatalogValorCmCuadrado } from '../../catalog/catalogRecord'
 import { despieceAsociadoMedida } from '../../../../core/domain/entities/CortePapel'
 import { listAllCortePaperRows } from './cortePapelFaltante'
 import { buildCorteResumenConsolidado, isCorteRegistroCompleto } from './paperRowsSync'
@@ -174,6 +174,10 @@ export const resolveEntradaTerminadosNombres = (entrada: TerminadosProduccionEnt
 export const formatEntradaTerminadosResumen = (entrada: TerminadosProduccionEntrada): string =>
   resolveEntradaTerminadosNombres(entrada).join(', ') || '—'
 
+export const isReservaUvTerminadoLinea = (
+  linea: Pick<TerminadoProduccionLinea, 'terminadoId' | 'terminadoNombre'>
+): boolean => isReservaUvTerminado({ id: linea.terminadoId, name: linea.terminadoNombre })
+
 export const buildTerminadoProduccionLinea = (
   terminado: CatalogRecord,
   row: PaperRow,
@@ -186,7 +190,7 @@ export const buildTerminadoProduccionLinea = (
   const alto = row.despiece?.alto ?? '0'
   const pricing = computeTerminadoPrecio(ancho, alto, valorCmCuadrado, tamanosBuenos, costoMinimo)
 
-  return {
+  const linea: TerminadoProduccionLinea = {
     id: crypto.randomUUID(),
     terminadoId: terminado.id,
     terminadoNombre: terminado.name,
@@ -198,6 +202,13 @@ export const buildTerminadoProduccionLinea = (
     precioCobro: pricing.precioCobro,
     origen,
   }
+
+  if (isReservaUvTerminado(terminado)) {
+    linea.positivo = parseCatalogIntegerField(terminado.positivo, 0)
+    linea.clise = parseCatalogIntegerField(terminado.clise, 0)
+  }
+
+  return linea
 }
 
 export const recalculateTerminadoLinea = (

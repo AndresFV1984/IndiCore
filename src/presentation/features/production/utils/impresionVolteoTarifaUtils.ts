@@ -2,6 +2,7 @@ import type { ImpresionTipoBifronte } from '../../../../core/domain/entities/Ord
 import type { TarifaMillar, TarifaMillarPricing } from '../../../../core/domain/entities/TarifaMillar'
 import {
   IMPRESION_VOLTEO_MILLAR_RULES,
+  resolveTarifaMillarPrecioConVolteoDefault,
   resolveTarifaMillarPrecioVolteoPorTipo,
 } from '../constants/impresionTarifaMillar'
 import { isImpresionConVolteo } from '../constants/impresionTipoBifronte'
@@ -53,6 +54,19 @@ const resolveVolteoPrecioFromTarifa = (
   tarifa: TarifaMillar | null,
   tipoBifronte: ImpresionTipoBifronte | ''
 ): number => resolveTarifaMillarPrecioVolteoPorTipo(tarifa, tipoBifronte)
+
+/** Precio con volteo para cobro: draft, tipo activo o default de catálogo (pinza). */
+export const resolveImpresionPrecioConVolteoMillar = (
+  tarifa: TarifaMillar | null,
+  precioVolteoMillar: number,
+  tipoBifronte: ImpresionTipoBifronte | ''
+): number => {
+  if (precioVolteoMillar > 0) return precioVolteoMillar
+  if (isImpresionConVolteo(tipoBifronte)) {
+    return resolveVolteoPrecioFromTarifa(tarifa, tipoBifronte)
+  }
+  return resolveTarifaMillarPrecioConVolteoDefault(tarifa)
+}
 
 export const resolvePrecioVolteoMillarPatch = (
   tarifas: TarifaMillar[],

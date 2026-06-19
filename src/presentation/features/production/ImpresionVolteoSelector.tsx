@@ -46,6 +46,7 @@ interface ImpresionVolteoSelectorProps {
   onChange: (value: ImpresionTipoBifronte) => void
   disabled?: boolean
   conVolteoPermitido?: boolean
+  conVolteoBloqueadoHint?: string | null
 }
 
 const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
@@ -53,6 +54,7 @@ const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
   onChange,
   disabled = false,
   conVolteoPermitido = true,
+  conVolteoBloqueadoHint = null,
 }) => {
   const groupId = useId()
   const conVolteo = isImpresionConVolteo(value)
@@ -69,7 +71,7 @@ const ImpresionVolteoSelector: React.FC<ImpresionVolteoSelectorProps> = ({
       <p className="production-impresion-volteo-selector__hint">{volteoCopy.volteoSelectHint}</p>
       {conVolteoBloqueado ? (
         <p className="production-impresion-volteo-selector__cavidades-hint" role="status">
-          {volteoCopy.volteoRequiereCavidadesPares}
+          {conVolteoBloqueadoHint ?? volteoCopy.volteoRequiereCavidadesPares}
         </p>
       ) : null}
 

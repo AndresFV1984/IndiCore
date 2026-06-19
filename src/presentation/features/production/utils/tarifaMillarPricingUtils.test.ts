@@ -6,6 +6,8 @@ import {
   computeMillaresCalculados,
   computeTarifaMillarCobro,
   computeValorImpresionColorBasicoPorReferencia,
+  computeValorImpresionPantonePorReferencia,
+  computeValorImpresionPantoneConVolteoPorReferencia,
   computeValorImpresionPorMillaresReferencia,
   getMillarParteDecimal,
   resolveMillaresParaCobro,
@@ -158,6 +160,65 @@ describe('computeValorImpresionColorBasicoPorReferencia', () => {
         precioSinVolteo: 17_500,
       })
     ).toBe(35_000)
+  })
+})
+
+describe('computeValorImpresionPantonePorReferencia', () => {
+  it('usa precio con volteo cuando tamaños buenos pantone es ≤ 500', () => {
+    expect(
+      computeValorImpresionPantonePorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 500,
+        precioConVolteo: 70_000,
+        precioSinVolteo: 50_000,
+      })
+    ).toBe(140_000)
+  })
+
+  it('usa precio sin volteo cuando tamaños buenos pantone es mayor que 500', () => {
+    expect(
+      computeValorImpresionPantonePorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 1000,
+        precioConVolteo: 70_000,
+        precioSinVolteo: 50_000,
+      })
+    ).toBe(100_000)
+
+    expect(
+      computeValorImpresionPantonePorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 2000,
+        precioConVolteo: 70_000,
+        precioSinVolteo: 50_000,
+      })
+    ).toBe(100_000)
+  })
+})
+
+describe('computeValorImpresionPantoneConVolteoPorReferencia', () => {
+  it('usa precio con volteo cuando tamaños buenos pantone es ≤ 500 aunque los millares superen el tope', () => {
+    expect(
+      computeValorImpresionPantoneConVolteoPorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 500,
+        precioConVolteo: 70_000,
+        precioSinVolteo: 50_000,
+        topeMinimoMillar: 600,
+      })
+    ).toBe(140_000)
+  })
+
+  it('aplica tope mínimo cuando tamaños buenos pantone es > 500', () => {
+    expect(
+      computeValorImpresionPantoneConVolteoPorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 1000,
+        precioConVolteo: 70_000,
+        precioSinVolteo: 50_000,
+        topeMinimoMillar: 600,
+      })
+    ).toBe(100_000)
   })
 })
 

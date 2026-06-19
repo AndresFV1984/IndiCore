@@ -22,6 +22,8 @@ import {
   resolveTamanosBuenosReferenciaValue,
   resolveTamanosBuenosParaMillares,
   resolveTamanosBuenosParaMillaresForItem,
+  resolveTamanosBuenosParaMillaresColorBasicoForItem,
+  resolveTamanosBuenosParaMillaresPantoneForItem,
   sumValorTotalPlanchas,
   syncColoresPlanchasCantidadFromOrder,
 } from './coloresPlanchasUtils'
@@ -195,6 +197,23 @@ describe('resolveTamanosBuenosParaMillares', () => {
   it('usa tamaños buenos cuando referencia no está disponible', () => {
     expect(resolveTamanosBuenosParaMillares(0, 2)).toBeNull()
     expect(resolveTamanosBuenosParaMillares(5000, 0)).toBeNull()
+  })
+
+  it('calcula referencia independiente por grupo según volteo', () => {
+    const item = { ...baseItem(), cantidad: 4800, numeroCavidades: 2 }
+
+    expect(resolveTamanosBuenosParaMillaresColorBasicoForItem(item, true)).toEqual({
+      value: 2500,
+      source: 'referencia',
+      tamanosBuenos: 2400,
+      tamanosBuenosReferencia: 2500,
+    })
+    expect(resolveTamanosBuenosParaMillaresPantoneForItem(item, false)).toEqual({
+      value: 3000,
+      source: 'referencia',
+      tamanosBuenos: 2400,
+      tamanosBuenosReferencia: 3000,
+    })
   })
 })
 

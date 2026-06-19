@@ -9,6 +9,8 @@ import {
   computeImpresionPrecioTinta,
   buildImpresionTintasResumenConsolidado,
   computeImpresionPrecioTintaBreakdown,
+  buildValorImpresionFormulaSteps,
+  resolveValorImpresionPrecioUnitario,
   resolveEntradaRegistroResumen,
   sumDistinctNonPantoneColorsBySide,
   sumDistinctPantoneColorsBySide,
@@ -133,6 +135,315 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
     expect(breakdown.millaresVolteo).toBe(0)
     expect(breakdown.volteo).toBe(0)
     expect(breakdown.grandTotal).toBe(175_000)
+  })
+
+  it('con tamaños buenos pantone ≤ 500 usa precio con volteo en Pantone sin volteo', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 500, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoPantoneMillar: 70_000,
+      conVolteoPantone: false,
+      topeMinimoMillarPantone: 600,
+      millarMinimoVentaPantone: 500,
+    }, { tamanosBuenosReferenciaPantone: 500 })
+
+    expect(breakdown.millaresPantone).toBe(0.5)
+    expect(breakdown.pantone).toBe(35_000)
+    expect(breakdown.grandTotal).toBe(35_000)
+  })
+
+  it('con volteo Pantone y tamaños buenos pantone ≤ 500 usa precio con volteo aunque supere tope', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 500, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoPantoneMillar: 70_000,
+      conVolteoPantone: true,
+      topeMinimoMillarVolteoPantone: 600,
+      millarMinimoVentaVolteoPantone: 500,
+    }, {
+      tamanosBuenosPantone: 500,
+      tamanosBuenosReferenciaPantone: 500,
+    })
+
+    expect(breakdown.millaresPantone).toBe(1)
+    expect(breakdown.pantone).toBe(70_000)
+    expect(breakdown.grandTotal).toBe(70_000)
+  })
+
+  it('con tamaños buenos pantone > 500 usa precio millar sin volteo en Pantone sin volteo', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 1000, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoPantoneMillar: 70_000,
+      conVolteoPantone: false,
+      topeMinimoMillarPantone: 600,
+      millarMinimoVentaPantone: 500,
+    }, { tamanosBuenosReferenciaPantone: 1000 })
+
+    expect(breakdown.millaresPantone).toBe(1)
+    expect(breakdown.pantone).toBe(50_000)
+    expect(breakdown.grandTotal).toBe(50_000)
+  })
+
+  it('con tamaños buenos pantone > 500 usa precio sin volteo aunque el millar sea 2', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 2000, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoPantoneMillar: 70_000,
+      conVolteoPantone: false,
+      topeMinimoMillarPantone: 600,
+    }, { tamanosBuenosReferenciaPantone: 2000 })
+
+    expect(breakdown.millaresPantone).toBe(2)
+    expect(breakdown.pantone).toBe(100_000)
+    expect(breakdown.grandTotal).toBe(100_000)
+  })
+})
+
+describe('buildValorImpresionFormulaSteps', () => {
+  const copy = {
+    millaresReferencia: 'Millares calculados',
+    precioImpresion: 'Precio impresión',
+    operacion: 'Operación',
+    tarifaConVolteo: 'Precio con volteo',
+    tarifaSinVolteo: 'Precio sin volteo',
+    motivoRef500: 'ref. 500',
+    motivoRef1000: 'ref. 1.000',
+    motivoVolteoBajoTope: 'bajo tope mínimo',
+    motivoVolteoSobreTope: 'sobre tope mínimo',
+  }
+
+  const priceLabels = {
+    precioConVolteo: 'Precio con volteo',
+    precioSinVolteo: 'Precio millar sin volteo',
+  }
+
+  const formatPrecioEsCo = (value: number) => `$ ${value.toLocaleString('es-CO')}`
+
+  it('resume Color básico sin volteo con referencia 500 sin motivo en etiqueta', () => {
+    expect(
+      buildValorImpresionFormulaSteps({
+        variant: 'colorBasico',
+        conVolteo: false,
+        usaPrecioConVolteoColorBasico: true,
+        usaPrecioConVolteoPantone: false,
+        usaPrecioInicial: false,
+        millaresCalculados: 1,
+        precioUnitario: 70_000,
+        valorImpresion: 70_000,
+        copy,
+        priceLabels,
+        formatPrecio: formatPrecioEsCo,
+      })
+    ).toEqual([
+      {
+        stepRule: '',
+        stepCalc:
+          'Millares calculados: (1) × Precio con volteo ($ 70.000 ) = $ 70.000',
+      },
+    ])
+  })
+
+  it('resume Color básico con volteo bajo tope sin motivo en etiqueta', () => {
+    expect(
+      buildValorImpresionFormulaSteps({
+        variant: 'colorBasico',
+        conVolteo: true,
+        usaPrecioConVolteoColorBasico: true,
+        usaPrecioConVolteoPantone: false,
+        usaPrecioInicial: false,
+        millaresCalculados: 1,
+        precioUnitario: 70_000,
+        valorImpresion: 70_000,
+        copy,
+        priceLabels,
+        formatPrecio: formatPrecioEsCo,
+      })
+    ).toEqual([
+      {
+        stepRule: '',
+        stepCalc:
+          'Millares calculados: (1) × Precio con volteo ($ 70.000 ) = $ 70.000',
+      },
+    ])
+  })
+
+  it('resume Color básico sin volteo ni referencia 500 con precio millar sin volteo', () => {
+    expect(
+      buildValorImpresionFormulaSteps({
+        variant: 'colorBasico',
+        conVolteo: false,
+        usaPrecioConVolteoColorBasico: false,
+        usaPrecioConVolteoPantone: false,
+        usaPrecioInicial: true,
+        millaresCalculados: 2,
+        precioUnitario: 17_500,
+        valorImpresion: 35_000,
+        copy,
+        priceLabels,
+        formatPrecio: formatPrecioEsCo,
+      })
+    ).toEqual([
+      {
+        stepRule: '',
+        stepCalc:
+          'Millares calculados: (2) × Precio millar sin volteo ($ 17.500 ) = $ 35.000',
+      },
+    ])
+  })
+
+  it('resume Pantone sin volteo con tamaños buenos pantone ≤ 500 sin motivo en etiqueta', () => {
+    expect(
+      buildValorImpresionFormulaSteps({
+        variant: 'pantone',
+        conVolteo: false,
+        usaPrecioConVolteoColorBasico: false,
+        usaPrecioConVolteoPantone: true,
+        usaPrecioInicial: false,
+        millaresCalculados: 1,
+        precioUnitario: 70_000,
+        valorImpresion: 70_000,
+        copy,
+        priceLabels,
+        formatPrecio: formatPrecioEsCo,
+      })
+    ).toEqual([
+      {
+        stepRule: '',
+        stepCalc:
+          'Millares calculados: (1) × Precio con volteo ($ 70.000 ) = $ 70.000',
+      },
+    ])
+  })
+
+  it('resume Pantone con volteo bajo tope sin motivo en etiqueta', () => {
+    expect(
+      buildValorImpresionFormulaSteps({
+        variant: 'pantone',
+        conVolteo: true,
+        usaPrecioConVolteoColorBasico: false,
+        usaPrecioConVolteoPantone: false,
+        usaPrecioInicial: false,
+        millaresCalculados: 1,
+        precioUnitario: 70_000,
+        valorImpresion: 70_000,
+        copy,
+        priceLabels,
+        formatPrecio: formatPrecioEsCo,
+      })
+    ).toEqual([
+      {
+        stepRule: '',
+        stepCalc:
+          'Millares calculados: (1) × Precio con volteo ($ 70.000 ) = $ 70.000',
+      },
+    ])
+  })
+
+  it('resume Pantone sin volteo con tamaños buenos pantone > 500 con precio millar sin volteo', () => {
+    expect(
+      buildValorImpresionFormulaSteps({
+        variant: 'pantone',
+        conVolteo: false,
+        usaPrecioConVolteoColorBasico: false,
+        usaPrecioConVolteoPantone: false,
+        usaPrecioInicial: true,
+        millaresCalculados: 2,
+        precioUnitario: 50_000,
+        valorImpresion: 100_000,
+        copy,
+        priceLabels,
+        formatPrecio: formatPrecioEsCo,
+      })
+    ).toEqual([
+      {
+        stepRule: '',
+        stepCalc:
+          'Millares calculados: (2) × Precio millar sin volteo ($ 50.000 ) = $ 100.000',
+      },
+    ])
+  })
+})
+
+describe('resolveValorImpresionPrecioUnitario', () => {
+  it('usa precio con volteo en Color básico con volteo bajo tope', () => {
+    expect(
+      resolveValorImpresionPrecioUnitario({
+        variant: 'colorBasico',
+        conVolteo: true,
+        usaPrecioConVolteoColorBasico: true,
+        usaPrecioConVolteoPantone: false,
+        millaresCalculados: 2,
+        topeMinimoMillarActivo: 5000,
+        precioInicial: 17_500,
+        precioPorMillar: 0,
+        precioConVolteoMillar: 20_000,
+      })
+    ).toEqual({ precioUnitario: 20_000, usaPrecioInicial: false })
+  })
+
+  it('resume Pantone con volteo y tamaños buenos pantone ≤ 500 con precio con volteo aunque supere tope', () => {
+    expect(
+      resolveValorImpresionPrecioUnitario({
+        variant: 'pantone',
+        conVolteo: true,
+        usaPrecioConVolteoColorBasico: false,
+        usaPrecioConVolteoPantone: true,
+        millaresCalculados: 2,
+        topeMinimoMillarActivo: 600,
+        precioInicial: 50_000,
+        precioPorMillar: 70_000,
+        precioConVolteoMillar: 70_000,
+      })
+    ).toEqual({ precioUnitario: 70_000, usaPrecioInicial: false })
+  })
+
+  it('usa precio inicial en Color básico con volteo sobre tope', () => {
+    expect(
+      resolveValorImpresionPrecioUnitario({
+        variant: 'colorBasico',
+        conVolteo: true,
+        usaPrecioConVolteoColorBasico: true,
+        usaPrecioConVolteoPantone: false,
+        millaresCalculados: 6,
+        topeMinimoMillarActivo: 5000,
+        precioInicial: 17_500,
+        precioPorMillar: 0,
+        precioConVolteoMillar: 20_000,
+      })
+    ).toEqual({ precioUnitario: 17_500, usaPrecioInicial: true })
   })
 })
 

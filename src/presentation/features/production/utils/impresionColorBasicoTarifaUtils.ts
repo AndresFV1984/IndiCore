@@ -34,6 +34,26 @@ const collectEntradaInkIndices = (
   ...retiro.tintas.slice(0, retiro.cantidad),
 ]
 
+const collectLadoInkIndices = (lado: ImpresionLadoTintas): number[] =>
+  lado.tintas.slice(0, lado.cantidad).map(normalizeImpresionInkIndex)
+
+export const ladoUsesPrimaryOrSecondaryInks = (lado: ImpresionLadoTintas): boolean =>
+  collectLadoInkIndices(lado).some(isImpresionPrimaryOrSecondaryInkIndex)
+
+export const ladoUsesPantoneInks = (lado: ImpresionLadoTintas): boolean =>
+  collectLadoInkIndices(lado).some(isImpresionPantoneInkIndex)
+
+export const entradaHasColorBasicoEnTiroYRetiro = (
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): boolean =>
+  ladoUsesPrimaryOrSecondaryInks(tiro) && ladoUsesPrimaryOrSecondaryInks(retiro)
+
+export const entradaHasPantoneEnTiroYRetiro = (
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): boolean => ladoUsesPantoneInks(tiro) && ladoUsesPantoneInks(retiro)
+
 export const entradaUsesPrimaryOrSecondaryInks = (
   tiro: ImpresionLadoTintas,
   retiro: ImpresionLadoTintas

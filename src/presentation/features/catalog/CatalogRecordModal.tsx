@@ -8,6 +8,8 @@ import {
   CATALOG_VALOR_CM2_HINT,
   CATALOG_VALOR_CM2_LABEL,
   DEFAULT_CATALOG_VALOR_CM_CUADRADO,
+  isReservaUvTerminado,
+  normalizeCatalogIntegerField,
   normalizeCatalogUnitCost,
   normalizeCatalogValorCmCuadrado,
 } from './catalogRecord'
@@ -18,6 +20,8 @@ const defaultValues: CatalogRecordFormValues = {
   quickAccess: false,
   cost: '',
   valorCmCuadrado: DEFAULT_CATALOG_VALOR_CM_CUADRADO,
+  positivo: '0',
+  clise: '0',
 }
 
 const COPY: Record<
@@ -63,6 +67,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
 }) => {
   const isEditing = Boolean(item)
   const copy = COPY[variant]
+  const showReservaUvFields = variant === 'terminado' && Boolean(item && isReservaUvTerminado(item))
   const [values, setValues] = useState<CatalogRecordFormValues>(defaultValues)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,6 +82,8 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
             cost:
               item.cost && item.cost !== '—' ? normalizeCatalogUnitCost(item.cost) : '',
             valorCmCuadrado: normalizeCatalogValorCmCuadrado(item.valorCmCuadrado),
+            positivo: normalizeCatalogIntegerField(item.positivo),
+            clise: normalizeCatalogIntegerField(item.clise),
           }
         : defaultValues
     )
@@ -84,7 +91,7 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
     setSubmitting(false)
   }, [isOpen, item])
 
-  const handleChange = (field: 'name' | 'cost' | 'valorCmCuadrado') => (
+  const handleChange = (field: 'name' | 'cost' | 'valorCmCuadrado' | 'positivo' | 'clise') => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setValues(prev => ({ ...prev, [field]: e.target.value }))
@@ -107,6 +114,8 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
         quickAccess: values.quickAccess,
         cost: normalizeCatalogUnitCost(values.cost),
         valorCmCuadrado: normalizeCatalogValorCmCuadrado(values.valorCmCuadrado),
+        positivo: normalizeCatalogIntegerField(values.positivo),
+        clise: normalizeCatalogIntegerField(values.clise),
       })
       onClose()
     } finally {
@@ -174,6 +183,44 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
               placeholder="Ej. 5000"
             />
           </FormField>
+          {showReservaUvFields ? (
+            <>
+              <FormField
+                id={`${variant}-positivo`}
+                label="Positivo"
+                hint="Valor por defecto al asignar Reserva UV en producción (0 si no aplica)."
+                fullWidth
+              >
+                <input
+                  id={`${variant}-positivo`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  className="record-form-input"
+                  value={values.positivo}
+                  onChange={handleChange('positivo')}
+                  placeholder="0"
+                />
+              </FormField>
+              <FormField
+                id={`${variant}-clise`}
+                label="Clise"
+                hint="Valor por defecto al asignar Reserva UV en producción (0 si no aplica)."
+                fullWidth
+              >
+                <input
+                  id={`${variant}-clise`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  className="record-form-input"
+                  value={values.clise}
+                  onChange={handleChange('clise')}
+                  placeholder="0"
+                />
+              </FormField>
+            </>
+          ) : null}
           <div
             className={`record-form-field record-form-field--full catalog-quick-access-field catalog-quick-access-field--${variant}`}
           >
