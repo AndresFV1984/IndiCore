@@ -6,6 +6,7 @@ import { deriveCutLinesFromPlacements } from './utils/cortePliegoBinPacking'
 import {
   computeCortePliegoLayout,
   derivePlacementRows,
+  formatCortePliegoAlgorithmLabel,
   formatCortePliegoDimension,
   formatCortePliegoLayoutCaption,
   formatCortePliegoVisualLayoutLabel,
@@ -13,8 +14,8 @@ import {
 
 const copy = CORTE_PAPEL_COPY.sections.papel.pliegoDiagram
 
-const MAX_DIAGRAM_WIDTH = 640
-const MAX_DIAGRAM_HEIGHT = 440
+const MAX_DIAGRAM_WIDTH = 480
+const MAX_DIAGRAM_HEIGHT = 320
 const LABEL_PADDING = 22
 const RIGHT_LABEL_PADDING = 40
 const EPS = 1e-6
@@ -120,20 +121,28 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
       aria-label={caption}
     >
       <div className="production-corte-pliego-diagram__head">
-        <span id={titleId} className="production-corte-pliego-diagram__title">
-          {copy.title}
-        </span>
-        <span className="production-corte-pliego-diagram__badge">
-          {copy.pieceSizeLabel(pieceAncho, pieceLargo, unit)}
-        </span>
-        {layout.pieceRotated ? (
-          <span className="production-corte-pliego-diagram__badge">{copy.rotatedHint}</span>
-        ) : null}
-        {layout.paperSwapped ? (
-          <span className="production-corte-pliego-diagram__badge">
-            {copy.paperSwappedHint}
+        <div className="production-corte-pliego-diagram__head-text">
+          <span id={titleId} className="production-corte-pliego-diagram__title">
+            {copy.title}
           </span>
-        ) : null}
+          <p className="production-corte-pliego-diagram__algorithm">
+            {copy.algorithmPrefix}{' '}
+            <strong>{formatCortePliegoAlgorithmLabel(layout)}</strong>
+          </p>
+        </div>
+        <div className="production-corte-pliego-diagram__badges">
+          <span className="production-corte-pliego-diagram__badge">
+            {copy.pieceSizeLabel(pieceAncho, pieceLargo, unit)}
+          </span>
+          {layout.pieceRotated ? (
+            <span className="production-corte-pliego-diagram__badge">{copy.rotatedHint}</span>
+          ) : null}
+          {layout.paperSwapped ? (
+            <span className="production-corte-pliego-diagram__badge">
+              {copy.paperSwappedHint}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <p className="production-corte-pliego-diagram__hint">{copy.readHint}</p>
@@ -144,7 +153,7 @@ const ProductionCortePliegoDiagram: React.FC<ProductionCortePliegoDiagramProps> 
           style={{
             width: displaySize.width,
             height: displaySize.height,
-            maxWidth: 'min(100%, 640px)',
+            maxWidth: 'min(100%, 480px)',
           }}
         >
         <svg

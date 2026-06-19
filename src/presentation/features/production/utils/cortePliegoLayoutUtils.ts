@@ -1,5 +1,6 @@
 import type { DespieceAsociado } from '../../../../core/domain/entities/CortePapel'
 import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
+import { CORTE_PAPEL_COPY } from '../constants/cortePapelCopy'
 import {
   solveAllCortePliegoOrientationsMm,
   type CortePliegoPackingAlgorithm,
@@ -7,6 +8,8 @@ import {
 } from './cortePliegoBinPacking'
 
 export type { PlacedPiece, CortePliegoPackingAlgorithm }
+
+const algorithmCopy = CORTE_PAPEL_COPY.sections.papel.pliegoDiagram.algorithm
 
 export interface CortePliegoOccupiedBounds {
   minX: number
@@ -217,6 +220,11 @@ export const derivePlacementRows = (
 
   return [...rowMap.values()].sort((a, b) => a.y - b.y)
 }
+
+/** Nombre técnico en inglés del algoritmo que resolvió el acomodo. */
+export const formatCortePliegoAlgorithmLabel = (
+  layout: Pick<CortePliegoLayout, 'algorithm'>
+): string => algorithmCopy[layout.algorithm]
 
 export const formatCortePliegoVisualLayoutLabel = (
   placements: PlacedPiece[],

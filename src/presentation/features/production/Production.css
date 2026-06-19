@@ -4841,9 +4841,17 @@
 
 .production-corte-pliego-diagram__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  gap: 0.45rem 0.75rem;
+}
+
+.production-corte-pliego-diagram__head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .production-corte-pliego-diagram__title {
@@ -4852,6 +4860,25 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #4a5568;
+}
+
+.production-corte-pliego-diagram__algorithm {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #5a6478;
+}
+
+.production-corte-pliego-diagram__algorithm strong {
+  font-weight: 700;
+  color: #334155;
+}
+
+.production-corte-pliego-diagram__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
 }
 
 .production-corte-pliego-diagram__hint {
@@ -4881,7 +4908,7 @@
 
 .production-corte-pliego-diagram__canvas-wrap {
   width: 100%;
-  max-width: 640px;
+  max-width: 480px;
   margin-inline: auto;
   line-height: 0;
 }

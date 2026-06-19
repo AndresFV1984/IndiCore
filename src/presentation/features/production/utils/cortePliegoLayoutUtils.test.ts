@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   computeCortePliegoLayout,
   derivePlacementRows,
+  formatCortePliegoAlgorithmLabel,
   formatCortePliegoVisualLayoutLabel,
 } from './cortePliegoLayoutUtils'
 import { solveCortePliegoBinPackingMm } from './cortePliegoBinPacking'
@@ -125,6 +126,30 @@ describe('computeCortePliegoLayout', () => {
         { ancho: '10', alto: '5', unidadMedida: 'cm', piezasPorPliego: 4 }
       )
     ).toBeNull()
+  })
+
+  it('reporta el nombre técnico del algoritmo aplicado', () => {
+    const layout = computeCortePliegoLayout(
+      { ancho: '64', alto: '90', unidadMedida: 'cm' },
+      {
+        ancho: '9',
+        alto: '5',
+        unidadMedida: 'cm',
+        piezasPorPliego: 32,
+      }
+    )
+
+    expect(layout).not.toBeNull()
+    expect(formatCortePliegoAlgorithmLabel(layout!)).toBe('Strip packing')
+    expect(layout?.algorithm).toBe('strip')
+  })
+
+  it('mapea cada algoritmo a su nombre técnico en inglés', () => {
+    expect(formatCortePliegoAlgorithmLabel({ algorithm: 'grid' })).toBe('Guillotine grid')
+    expect(formatCortePliegoAlgorithmLabel({ algorithm: 'strip' })).toBe('Strip packing')
+    expect(formatCortePliegoAlgorithmLabel({ algorithm: 'skyline' })).toBe(
+      'Skyline + Bottom-Left Fill'
+    )
   })
 
   it('agrupa piezas por fila para la visualización', () => {

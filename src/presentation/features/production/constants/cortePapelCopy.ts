@@ -133,16 +133,17 @@ export const CORTE_PAPEL_COPY = {
       gestionarDespieces: 'Gestionar despieces en catálogo',
       pliegoDiagram: {
         title: 'Distribución en el pliego',
+        algorithmPrefix: 'Algoritmo utilizado:',
         emptyDespiece: 'Seleccione un despiece para ver cómo quedan las piezas en el papel.',
         unavailable: 'No se pudo calcular la distribución con las medidas actuales.',
         rotatedHint: 'Pieza rotada 90°',
         paperSwappedHint: 'Pliego rotado 90°',
         readHint:
           'El bloque azul muestra las piezas tal como quedan en el pliego. Lo rayado es papel sobrante.',
-        algorithmLabel: (algorithm: string) => {
-          if (algorithm === 'strip') return 'Filas horizontales'
-          if (algorithm === 'skyline') return 'Acomodo optimizado'
-          return 'Cuadrícula regular'
+        algorithm: {
+          grid: 'Guillotine grid',
+          strip: 'Strip packing',
+          skyline: 'Skyline + Bottom-Left Fill',
         },
         pieceSizeLabel: (ancho: string, largo: string, unit: string) =>
           `Pieza ${ancho}×${largo} ${unit}`,
