@@ -124,6 +124,13 @@ export const ROUTES = {
     label: 'Reportes',
     purpose: 'Generación y consulta de reportes gerenciales y operativos.',
   },
+  trazabilidad: {
+    id: 'OPERATOR_TRACEABILITY',
+    path: '/trazabilidad',
+    label: 'Trazabilidad',
+    purpose:
+      'Seguimiento por operario: órdenes asignadas, tiempos de trabajo, estados y entregas parciales.',
+  },
   settings: {
     id: 'SETTINGS',
     path: '/settings',

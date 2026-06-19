@@ -6,6 +6,7 @@ import {
   computeMillaresCalculados,
   computeTarifaMillarCobro,
   computeValorImpresionColorBasicoPorReferencia,
+  computeValorImpresionColorBasicoConVolteoPorReferencia,
   computeValorImpresionPantonePorReferencia,
   computeValorImpresionPantoneConVolteoPorReferencia,
   computeValorImpresionPorMillaresReferencia,
@@ -151,13 +152,50 @@ describe('computeValorImpresionColorBasicoPorReferencia', () => {
     ).toBe(40_000)
   })
 
-  it('usa precio sin volteo cuando tamaños buenos referencia no es 500', () => {
+  it('usa precio sin volteo cuando tamaños buenos referencia es > 500', () => {
     expect(
       computeValorImpresionColorBasicoPorReferencia({
         millaresReferencia: 2,
         tamanosBuenosReferencia: 2000,
         precioConVolteo: 20_000,
         precioSinVolteo: 17_500,
+      })
+    ).toBe(35_000)
+  })
+
+  it('usa precio con volteo cuando tamaños buenos referencia es ≤ 500', () => {
+    expect(
+      computeValorImpresionColorBasicoPorReferencia({
+        millaresReferencia: 1,
+        tamanosBuenosReferencia: 300,
+        precioConVolteo: 20_000,
+        precioSinVolteo: 17_500,
+      })
+    ).toBe(20_000)
+  })
+})
+
+describe('computeValorImpresionColorBasicoConVolteoPorReferencia', () => {
+  it('usa precio con volteo cuando tamaños buenos colores básicos es ≤ 500 aunque los millares superen el tope', () => {
+    expect(
+      computeValorImpresionColorBasicoConVolteoPorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 500,
+        precioConVolteo: 20_000,
+        precioSinVolteo: 17_500,
+        topeMinimoMillar: 600,
+      })
+    ).toBe(40_000)
+  })
+
+  it('aplica tope mínimo cuando tamaños buenos colores básicos es > 500', () => {
+    expect(
+      computeValorImpresionColorBasicoConVolteoPorReferencia({
+        millaresReferencia: 2,
+        tamanosBuenosReferencia: 1000,
+        precioConVolteo: 20_000,
+        precioSinVolteo: 17_500,
+        topeMinimoMillar: 600,
       })
     ).toBe(35_000)
   })

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { PreprensaDisenoSpecs } from '../../../core/domain/entities/PreprensaDiseno'
-import ProductionWorkspaceSection from './ProductionWorkspaceSection'
+import ProductionOrdenResumenSection from './ProductionOrdenResumenSection'
 import { PREPRENSA_DISENO_COPY as copy } from './constants/preprensaDisenoCopy'
 import { computeDisenoResumenTotales } from './utils/preprensaDisenoTotales'
 
@@ -25,60 +25,34 @@ const DisenoTotalesResumen: React.FC<DisenoTotalesResumenProps> = ({ diseno }) =
 
   const filas = [
     {
+      key: 'diseno',
       label: resumenCopy.valorDiseno,
-      value: resumen.costoDiseno,
+      value: formatValor(resumen.costoDiseno),
       inactive: resumen.costoDiseno <= 0,
     },
     {
+      key: 'planchas',
       label: resumenCopy.valorPlanchas,
-      value: resumen.valorTotalPlanchas,
+      value: formatValor(resumen.valorTotalPlanchas),
       inactive: resumen.valorTotalPlanchas <= 0,
     },
     {
+      key: 'montaje',
       label: resumenCopy.valorMontaje,
-      value: resumen.precioMontaje,
+      value: formatValor(resumen.precioMontaje),
       inactive: resumen.precioMontaje <= 0,
     },
   ]
 
   return (
-    <ProductionWorkspaceSection
-      className="production-diseno-resumen production-diseno-nuevo-panel production-diseno-nuevo-panel--resumen"
-      title="Resumen"
-      tone={2}
-    >
-      <ul className="production-diseno-resumen__rows">
-        {filas.map(row => (
-          <li
-            key={row.label}
-            className={[
-              'production-diseno-resumen__row',
-              row.inactive ? 'production-diseno-resumen__row--inactive' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            <span className="production-diseno-resumen__row-label">{row.label}</span>
-            <span className="production-diseno-resumen__row-value">
-              {formatValor(row.value)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {clienteSuministraPlanchas ? (
-        <p className="production-diseno-resumen__hint production-diseno-cliente-hint production-diseno-cliente-hint--aviso">
-          {copy.planchaSuministro.resumenPlanchasCliente}
-        </p>
-      ) : null}
-      <div className="production-diseno-resumen__total" aria-live="polite">
-        <div className="production-diseno-resumen__total-info">
-          <span className="production-diseno-resumen__total-label">{resumenCopy.total}</span>
-        </div>
-        <strong className="production-diseno-resumen__total-value">
-          {formatValor(resumen.totalDiseno)}
-        </strong>
-      </div>
-    </ProductionWorkspaceSection>
+    <ProductionOrdenResumenSection
+      rows={filas}
+      totalLabel={resumenCopy.total}
+      totalValue={formatValor(resumen.totalDiseno)}
+      hint={
+        clienteSuministraPlanchas ? copy.planchaSuministro.resumenPlanchasCliente : undefined
+      }
+    />
   )
 }
 

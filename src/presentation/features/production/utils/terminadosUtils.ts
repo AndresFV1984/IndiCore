@@ -10,7 +10,7 @@ import type {
 import type { YesNoChoice } from '../../../../core/domain/entities/PreprensaDiseno'
 import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
 import type { CatalogRecord } from '../../catalog/catalogRecord'
-import { isReservaUvTerminado, parseCatalogIntegerField, parseCatalogNumeric, parseCatalogValorCmCuadrado } from '../../catalog/catalogRecord'
+import { isEstampadoTerminado, isReservaUvTerminado, parseCatalogIntegerField, parseCatalogNumeric, parseCatalogValorCmCuadrado } from '../../catalog/catalogRecord'
 import { despieceAsociadoMedida } from '../../../../core/domain/entities/CortePapel'
 import { listAllCortePaperRows } from './cortePapelFaltante'
 import { buildCorteResumenConsolidado, isCorteRegistroCompleto } from './paperRowsSync'
@@ -178,6 +178,10 @@ export const isReservaUvTerminadoLinea = (
   linea: Pick<TerminadoProduccionLinea, 'terminadoId' | 'terminadoNombre'>
 ): boolean => isReservaUvTerminado({ id: linea.terminadoId, name: linea.terminadoNombre })
 
+export const isEstampadoTerminadoLinea = (
+  linea: Pick<TerminadoProduccionLinea, 'terminadoId' | 'terminadoNombre'>
+): boolean => isEstampadoTerminado({ id: linea.terminadoId, name: linea.terminadoNombre })
+
 export const buildTerminadoProduccionLinea = (
   terminado: CatalogRecord,
   row: PaperRow,
@@ -205,6 +209,9 @@ export const buildTerminadoProduccionLinea = (
 
   if (isReservaUvTerminado(terminado)) {
     linea.positivo = parseCatalogIntegerField(terminado.positivo, 0)
+  }
+
+  if (isEstampadoTerminado(terminado)) {
     linea.clise = parseCatalogIntegerField(terminado.clise, 0)
   }
 

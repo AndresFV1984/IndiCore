@@ -1,0 +1,651 @@
+.trazabilidad-operarios {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+.trazabilidad-operarios__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 16%, var(--border));
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--corp-primary-soft) 55%, transparent), transparent 42%),
+    linear-gradient(135deg, #fff 0%, color-mix(in srgb, var(--corp-primary-soft) 18%, #fff) 100%);
+}
+
+.trazabilidad-operarios__hero-text {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.trazabilidad-operarios__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.trazabilidad-operarios__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+  max-width: 38rem;
+}
+
+.trazabilidad-operarios__search {
+  flex: 1 1 14rem;
+  max-width: 22rem;
+}
+
+.trazabilidad-operarios__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.trazabilidad-operarios__toolbar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.trazabilidad-operarios__toolbar-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__toolbar-clear {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--corp-primary-strong);
+  cursor: pointer;
+}
+
+.trazabilidad-operarios__toolbar-clear:hover {
+  border-color: color-mix(in srgb, var(--corp-primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--corp-primary-soft) 30%, #fff);
+}
+
+.trazabilidad-operarios__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.55rem;
+}
+
+.trazabilidad-operarios__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__filter select,
+.trazabilidad-operarios__filter input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__results-meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.trazabilidad-operarios__kpi {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 14%, var(--border));
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.trazabilidad-operarios__kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--corp-primary-soft) 55%, #fff);
+  color: var(--corp-primary-strong);
+  flex-shrink: 0;
+}
+
+.trazabilidad-operarios__kpi-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.trazabilidad-operarios__kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.trazabilidad-operarios__kpi-body span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__kpi-body strong {
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: var(--corp-primary-strong);
+}
+
+.trazabilidad-operarios__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: 0.85rem;
+}
+
+.trazabilidad-operarios__session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.trazabilidad-operarios__session-card:hover {
+  border-color: color-mix(in srgb, var(--corp-primary) 28%, var(--border));
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.trazabilidad-operarios__session-card--active {
+  border-color: color-mix(in srgb, #1d4ed8 30%, var(--border));
+}
+
+.trazabilidad-operarios__session-card--done {
+  border-color: color-mix(in srgb, #166534 24%, var(--border));
+}
+
+.trazabilidad-operarios__session-card--paused {
+  border-color: color-mix(in srgb, #92400e 24%, var(--border));
+}
+
+.trazabilidad-operarios__session-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.trazabilidad-operarios__session-phase {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.trazabilidad-operarios__session-phase-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--corp-primary-soft) 50%, #fff);
+  color: var(--corp-primary-strong);
+  flex-shrink: 0;
+}
+
+.trazabilidad-operarios__session-phase-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.trazabilidad-operarios__session-phase-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.trazabilidad-operarios__session-phase-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__session-order {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__session-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.trazabilidad-operarios__session-work {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__session-client {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__session-operator {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--corp-primary-soft) 22%, #f8fafc);
+}
+
+.trazabilidad-operarios__session-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--corp-primary-strong);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.trazabilidad-operarios__session-operator-name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__session-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.trazabilidad-operarios__session-metric--span {
+  grid-column: 1 / -1;
+}
+
+.trazabilidad-operarios__session-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.trazabilidad-operarios__session-metric span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__session-metric strong {
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__session-metric--highlight {
+  grid-column: 1 / -1;
+  background: color-mix(in srgb, var(--corp-primary-soft) 28%, #fff);
+  border-color: color-mix(in srgb, var(--corp-primary) 18%, var(--border));
+}
+
+.trazabilidad-operarios__operation-status {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.trazabilidad-operarios__operation-status--en-curso {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.trazabilidad-operarios__operation-status--completado {
+  color: #166534;
+  background: #ecfdf5;
+}
+
+.trazabilidad-operarios__operation-status--pausado {
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.trazabilidad-operarios__session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.trazabilidad-operarios__action-btn,
+.trazabilidad-operarios__action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.trazabilidad-operarios__action-btn {
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--corp-primary-soft) 24%, #fff);
+  color: var(--corp-primary-strong);
+}
+
+.trazabilidad-operarios__action-btn:hover {
+  background: color-mix(in srgb, var(--corp-primary-soft) 45%, #fff);
+}
+
+.trazabilidad-operarios__action-btn--primary {
+  border-color: color-mix(in srgb, var(--corp-primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--corp-primary-soft) 55%, #fff);
+}
+
+.trazabilidad-operarios__action-link {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__action-link:hover {
+  border-color: color-mix(in srgb, var(--corp-primary) 25%, var(--border));
+  color: var(--corp-primary-strong);
+}
+
+.trazabilidad-operarios__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 2.5rem 1rem;
+  border-radius: 16px;
+  border: 1px dashed var(--border);
+  background: #fff;
+  text-align: center;
+}
+
+.trazabilidad-operarios__state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--corp-primary-soft) 40%, #fff);
+  color: var(--corp-primary-strong);
+}
+
+.trazabilidad-operarios__state-icon svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.trazabilidad-operarios__state-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__state-body {
+  margin: 0;
+  max-width: 26rem;
+  font-size: 0.875rem;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.trazabilidad-operarios__modal {
+  width: min(100%, 30rem);
+  padding: 1.1rem 1.15rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.trazabilidad-operarios__modal h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.trazabilidad-operarios__modal-meta {
+  margin: 0.35rem 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__modal-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__modal-field input,
+.trazabilidad-operarios__modal-field textarea,
+.trazabilidad-operarios__modal-field select {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
+.trazabilidad-operarios__pause-panel {
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: 12px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.trazabilidad-operarios__pause-panel-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.trazabilidad-operarios__pause-panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.trazabilidad-operarios__pause-panel-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--corp-primary-soft) 55%, #fff);
+  color: var(--corp-primary-strong);
+  font-size: 0.72rem;
+}
+
+.trazabilidad-operarios__pause-empty {
+  margin: 0;
+  padding: 0 0.75rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__pause-list {
+  margin: 0;
+  padding: 0 0.75rem 0.75rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.trazabilidad-operarios__pause-item {
+  padding: 0.65rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.trazabilidad-operarios__pause-item--open {
+  border-color: color-mix(in srgb, #92400e 35%, var(--border));
+  background: #fffbeb;
+}
+
+.trazabilidad-operarios__pause-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.trazabilidad-operarios__pause-item-head strong {
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__pause-item-head span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__pause-item-times {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--txt-2);
+}
+
+.trazabilidad-operarios__pause-item-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ink);
+}
+
+.trazabilidad-operarios__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .trazabilidad-operarios__hero {
+    padding: 1rem;
+  }
+
+  .trazabilidad-operarios__search {
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .trazabilidad-operarios__action-link {
+    margin-left: 0;
+    width: 100%;
+  }
+}

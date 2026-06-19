@@ -292,6 +292,7 @@ export const resolveCompletedPlanchaIds = (registros: ImpresionTintasRegistro[])
 export type ImpresionTintasTableRow = {
   colorPlanchaId: string
   plancha: DisenoColorPlanchaItem
+  registro: ImpresionTintasRegistro
   entrada: ImpresionTiroRetiroEntrada
   maxColoresPlancha: number
 }
@@ -302,12 +303,14 @@ export const buildImpresionTintasTableRows = (
 ): ImpresionTintasTableRow[] => {
   const byId = new Map(registros.map(item => [item.colorPlanchaId, item]))
   return coloresPlanchas.flatMap(plancha => {
-    const entrada = byId.get(plancha.id)?.entradas[0]
-    if (!entrada) return []
+    const registro = byId.get(plancha.id)
+    const entrada = registro?.entradas[0]
+    if (!registro || !entrada) return []
     return [
       {
         colorPlanchaId: plancha.id,
         plancha,
+        registro,
         entrada,
         maxColoresPlancha: resolvePlanchaColoresMax(plancha),
       },

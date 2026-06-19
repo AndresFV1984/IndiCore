@@ -45,6 +45,9 @@ import { UpdateDespiecePliegoUseCase } from '../core/use-cases/despiece-pliego/U
 import { ICortePapelRepository } from '../core/ports/out/ICortePapelRepository.js';
 import { InMemoryCortePapelRepository } from '../infrastructure/repositories/InMemoryCortePapelRepository.js';
 import { CreateCortePapelUseCase } from '../core/use-cases/corte-papel/CreateCortePapelUseCase.js';
+import type { IProductionTraceUseCases } from '../core/ports/in/IProductionTraceUseCases';
+import { InMemoryProductionTraceRepository } from '../infrastructure/repositories/InMemoryProductionTraceRepository.js';
+import { ProductionTraceUseCases } from '../core/use-cases/production-trace/ProductionTraceUseCases.js';
 
 // Implement the use cases classes that implement the interfaces
 class OrderUseCases implements IOrderUseCases {
@@ -371,6 +374,7 @@ export class Container {
   private tipoPapelUseCases: ITipoPapelUseCases;
   private despiecePliegoUseCases: IDespiecePliegoUseCases;
   private cortePapelUseCases: ICortePapelUseCases;
+  private productionTraceUseCases: IProductionTraceUseCases;
 
   private constructor() {
     this.orderRepository = new InMemoryOrderRepository();
@@ -442,6 +446,10 @@ export class Container {
       new CreateCortePapelUseCase(this.cortePapelRepository),
       this.cortePapelRepository
     );
+
+    this.productionTraceUseCases = new ProductionTraceUseCases(
+      new InMemoryProductionTraceRepository()
+    );
   }
 
   static getInstance(): Container {
@@ -497,5 +505,9 @@ export class Container {
 
   getCortePapelUseCases(): ICortePapelUseCases {
     return this.cortePapelUseCases;
+  }
+
+  getProductionTraceUseCases(): IProductionTraceUseCases {
+    return this.productionTraceUseCases;
   }
 }

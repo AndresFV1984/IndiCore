@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
 import type { TerminadosProduccionRegistro } from '../../../core/domain/entities/Order'
-import ProductionWorkspaceSection from './ProductionWorkspaceSection'
-import TerminadosCobroFormulaDetails from './TerminadosCobroFormulaDetails'
+import ProductionOrdenResumenSection from './ProductionOrdenResumenSection'
 import { TERMINADOS_COPY as copy } from './constants/terminadosCopy'
 import {
   buildTerminadosCobroResumen,
@@ -30,52 +29,26 @@ const ProductionTerminadosCobroResumen: React.FC<ProductionTerminadosCobroResume
 
   if (resumen.lineas.length === 0) return null
 
-  return (
-    <ProductionWorkspaceSection
-      className="production-terminados-cobro-resumen"
-      tag={resumenCopy.tag}
-      title={resumenCopy.title}
-      tone={6}
-    >
-      <ul className="production-terminados-cobro-resumen__rows">
-        {resumen.lineas.map(linea => (
-          <li
-            key={linea.corteRowKey}
-            className={clsx(
-              'production-terminados-cobro-resumen__row',
-              linea.corteRowKey === activeCorteRowKey &&
-                'production-terminados-cobro-resumen__row--active'
-            )}
-          >
-            <span className="production-terminados-cobro-resumen__row-label" title={linea.planchaLabel}>
-              {linea.planchaLabel}
-            </span>
-            <strong className="production-terminados-cobro-resumen__row-value">
-              {formatTerminadoPrecioCop(linea.totalCobro)}
-            </strong>
-          </li>
-        ))}
-      </ul>
+  const filas = resumen.lineas.map(linea => ({
+    key: linea.corteRowKey,
+    label: resumenCopy.valorPlancha(linea.planchaLabel),
+    value: formatTerminadoPrecioCop(linea.totalCobro),
+    inactive: linea.totalCobro <= 0,
+    className: clsx(
+      linea.corteRowKey === activeCorteRowKey &&
+        'production-terminados-cobro-resumen__row--active'
+    ),
+    valueTitle: linea.planchaLabel,
+  }))
 
-      <footer className="production-terminados-cobro-resumen__total" aria-live="polite">
-        <div className="production-terminados-cobro-resumen__total-info">
-          <span className="production-terminados-cobro-resumen__total-label">
-            {resumenCopy.totalLabel}
-          </span>
-          <span className="production-terminados-cobro-resumen__total-hint">
-            {resumenCopy.totalHint}
-          </span>
-          <TerminadosCobroFormulaDetails
-            formulaCopy={copy.asignacion.asignados.formula}
-            className="production-terminados-cobro-resumen__formula"
-            showTotalStep
-          />
-        </div>
-        <strong className="production-terminados-cobro-resumen__total-value">
-          {formatTerminadoPrecioCop(resumen.totalCobro)}
-        </strong>
-      </footer>
-    </ProductionWorkspaceSection>
+  return (
+    <ProductionOrdenResumenSection
+      className="production-terminados-cobro-resumen"
+      rows={filas}
+      totalLabel={resumenCopy.total}
+      totalValue={formatTerminadoPrecioCop(resumen.totalCobro)}
+      totalHint={resumenCopy.totalHint}
+    />
   )
 }
 

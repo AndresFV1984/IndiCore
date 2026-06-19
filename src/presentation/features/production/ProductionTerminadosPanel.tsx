@@ -24,6 +24,7 @@ import {
   resolveCompletedTerminadosCorteRowKeys,
   resolveEntradaTerminadosTotal,
   resolveTerminadosEntradasForContext,
+  isEstampadoTerminadoLinea,
   isReservaUvTerminadoLinea,
 } from './utils/terminadosUtils'
 import { formatTerminadoPrecioCop } from './utils/terminadoPricingUtils'
@@ -166,8 +167,13 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
     [draftLineas]
   )
 
-  const showReservaUvColumns = useMemo(
+  const showPositivoColumn = useMemo(
     () => draftLineas.some(linea => isReservaUvTerminadoLinea(linea)),
+    [draftLineas]
+  )
+
+  const showCliseColumn = useMemo(
+    () => draftLineas.some(linea => isEstampadoTerminadoLinea(linea)),
     [draftLineas]
   )
 
@@ -244,7 +250,7 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
     setDraftLineas(draftLineas.filter(linea => linea.id !== lineaId))
   }
 
-  const handleUpdateReservaUvField = (
+  const handleUpdateTerminadoExtraField = (
     lineaId: string,
     field: 'positivo' | 'clise',
     rawValue: string
@@ -504,11 +510,11 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
                         <th>{asignacionCopy.asignados.columns.despiece}</th>
                         <th>{asignacionCopy.asignados.columns.valorCmCuadrado}</th>
                         <th>{asignacionCopy.asignados.columns.tamanosBuenos}</th>
-                        {showReservaUvColumns ? (
-                          <>
-                            <th>{asignacionCopy.asignados.columns.positivo}</th>
-                            <th>{asignacionCopy.asignados.columns.clise}</th>
-                          </>
+                        {showPositivoColumn ? (
+                          <th>{asignacionCopy.asignados.columns.positivo}</th>
+                        ) : null}
+                        {showCliseColumn ? (
+                          <th>{asignacionCopy.asignados.columns.clise}</th>
                         ) : null}
                         <th>{asignacionCopy.asignados.columns.costoMinimo}</th>
                         <th>{asignacionCopy.asignados.columns.costoCalculado}</th>
@@ -525,55 +531,55 @@ const ProductionTerminadosPanel: React.FC<ProductionTerminadosPanelProps> = ({
                           <td>{despieceLabel}</td>
                           <td>{formatCatalogValorCmCuadradoNumber(linea.valorCmCuadrado)}</td>
                           <td>{linea.tamanosBuenos.toLocaleString('es-CO')}</td>
-                          {showReservaUvColumns ? (
-                            <>
-                              <td className="production-terminados-asignados__reserva-field">
-                                {isReservaUvTerminadoLinea(linea) ? (
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    autoComplete="off"
-                                    className="production-form-input production-terminados-asignados__reserva-input"
-                                    value={String(linea.positivo ?? 0)}
-                                    onChange={e =>
-                                      handleUpdateReservaUvField(
-                                        linea.id,
-                                        'positivo',
-                                        e.target.value
-                                      )
-                                    }
-                                    onFocus={e => e.currentTarget.select()}
-                                    aria-label={`Positivo — ${linea.terminadoNombre}`}
-                                  />
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                              <td className="production-terminados-asignados__reserva-field">
-                                {isReservaUvTerminadoLinea(linea) ? (
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    autoComplete="off"
-                                    className="production-form-input production-terminados-asignados__reserva-input"
-                                    value={String(linea.clise ?? 0)}
-                                    onChange={e =>
-                                      handleUpdateReservaUvField(
-                                        linea.id,
-                                        'clise',
-                                        e.target.value
-                                      )
-                                    }
-                                    onFocus={e => e.currentTarget.select()}
-                                    aria-label={`Clise — ${linea.terminadoNombre}`}
-                                  />
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                            </>
+                          {showPositivoColumn ? (
+                            <td className="production-terminados-asignados__reserva-field">
+                              {isReservaUvTerminadoLinea(linea) ? (
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  autoComplete="off"
+                                  className="production-form-input production-terminados-asignados__reserva-input"
+                                  value={String(linea.positivo ?? 0)}
+                                  onChange={e =>
+                                    handleUpdateTerminadoExtraField(
+                                      linea.id,
+                                      'positivo',
+                                      e.target.value
+                                    )
+                                  }
+                                  onFocus={e => e.currentTarget.select()}
+                                  aria-label={`Positivo — ${linea.terminadoNombre}`}
+                                />
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          ) : null}
+                          {showCliseColumn ? (
+                            <td className="production-terminados-asignados__reserva-field">
+                              {isEstampadoTerminadoLinea(linea) ? (
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  autoComplete="off"
+                                  className="production-form-input production-terminados-asignados__reserva-input"
+                                  value={String(linea.clise ?? 0)}
+                                  onChange={e =>
+                                    handleUpdateTerminadoExtraField(
+                                      linea.id,
+                                      'clise',
+                                      e.target.value
+                                    )
+                                  }
+                                  onFocus={e => e.currentTarget.select()}
+                                  aria-label={`Clise — ${linea.terminadoNombre}`}
+                                />
+                              ) : (
+                                '—'
+                              )}
+                            </td>
                           ) : null}
                           <td>{formatTerminadoPrecioCop(linea.costoMinimo)}</td>
                           <td>{formatTerminadoPrecioCop(linea.precioCalculado)}</td>

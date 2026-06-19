@@ -35,6 +35,12 @@ export const PRODUCTION_WORKFLOW_TABS = [
     shortLabel: 'Acab.',
     description: 'Operaciones finales',
   },
+  {
+    id: 'cobro',
+    label: 'Cobro',
+    shortLabel: 'Cobro',
+    description: 'Total a cobrar por la orden',
+  },
 ] as const
 
 export type ProductionWorkflowTabId = (typeof PRODUCTION_WORKFLOW_TABS)[number]['id']

@@ -2,6 +2,12 @@ import { useEffect } from 'react'
 import { useOrdersStore } from '../stores/ordersStore.js'
 import { Container } from '../../di/container.js'
 import { dedupedFetch } from '../utils/dedupedFetch.js'
+import type { OrderStatus } from '../../core/domain/value-objects/OrderStatus'
+import { productionTraceRecorder } from '../services/productionTraceRecorder'
+import {
+  OPERADOR_ASSIGNMENT_FIELDS,
+  type ProductionAssignmentPhaseId,
+} from '../features/production/utils/productionOperatorAssignment'
 
 const container = Container.getInstance()
 
@@ -51,6 +57,20 @@ export const useOrdersHook = () => {
       const order = orders.find(o => o.id === id)
       if (order) {
         updateOrder({ ...order, status } as typeof order)
+        const nextStatus = status as OrderStatus
+        for (const phase of Object.keys(OPERADOR_ASSIGNMENT_FIELDS) as ProductionAssignmentPhaseId[]) {
+          const fields = OPERADOR_ASSIGNMENT_FIELDS[phase]
+          const userId = order.specs[fields.id] as string | undefined
+          if (userId) {
+            void productionTraceRecorder.recordOrderStatusChange({
+              orderId: order.id,
+              workName: order.workName,
+              phase,
+              userId,
+              orderStatus: nextStatus,
+            })
+          }
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error actualizando pedido'

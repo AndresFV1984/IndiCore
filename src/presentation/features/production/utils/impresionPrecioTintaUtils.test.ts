@@ -14,6 +14,7 @@ import {
   resolveEntradaRegistroResumen,
   sumDistinctNonPantoneColorsBySide,
   sumDistinctPantoneColorsBySide,
+  sumPantoneTintasBySide,
 } from './impresionPrecioTintaUtils'
 import { createImpresionTiroRetiroEntrada } from './impresionTintasUtils'
 
@@ -38,6 +39,27 @@ describe('sumDistinctPantoneColorsBySide', () => {
     const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
     const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
     expect(sumDistinctPantoneColorsBySide(tiro, retiro)).toBe(0)
+  })
+})
+
+describe('sumPantoneTintasBySide', () => {
+  it('suma cada ranura Pantone en tiro + retiro aunque repita el mismo índice', () => {
+    const tiro = updateImpresionLadoTinta(
+      updateImpresionLadoTinta(
+        applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+        0,
+        7
+      ),
+      1,
+      7
+    )
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      7
+    )
+
+    expect(sumPantoneTintasBySide(tiro, retiro)).toBe(3)
   })
 })
 
@@ -72,6 +94,28 @@ describe('computeImpresionMillaresFactor', () => {
 })
 
 describe('computeImpresionPrecioTintaBreakdown', () => {
+  it('con varias ranuras Pantone en un lado multiplica millares por cada una', () => {
+    const tiro = updateImpresionLadoTinta(
+      updateImpresionLadoTinta(
+        applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+        0,
+        7
+      ),
+      1,
+      7
+    )
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 0)
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 2500, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+    })
+
+    expect(breakdown.cantidadTintasPantone).toBe(2)
+    expect(breakdown.millaresPantone).toBe(5)
+    expect(breakdown.pantone).toBe(250_000)
+  })
+
   it('devuelve desglose separado por Color básico y Pantone', () => {
     const tiro = updateImpresionLadoTinta(
       applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
@@ -116,6 +160,26 @@ describe('computeImpresionPrecioTintaBreakdown', () => {
     expect(breakdown.millaresVolteo).toBe(0)
     expect(breakdown.volteo).toBe(0)
     expect(breakdown.grandTotal).toBe(10_000)
+  })
+
+  it('con volteo Color básico y tamaños buenos colores básicos ≤ 500 usa precio con volteo aunque supere tope', () => {
+    const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+
+    const breakdown = computeImpresionPrecioTintaBreakdown(tiro, retiro, 500, {
+      precioColorBasicoMillar: 17_500,
+      precioPantoneMillar: 50_000,
+      precioVolteoColorBasicoMillar: 20_000,
+      conVolteoColorBasico: true,
+      topeMinimoMillarVolteoColorBasico: 600,
+      millarMinimoVentaVolteoColorBasico: 500,
+    }, { tamanosBuenosReferenciaColorBasico: 500 })
+
+    expect(breakdown.millaresColorBasico).toBe(2)
+    expect(breakdown.colorBasico).toBe(40_000)
+    expect(breakdown.millaresVolteo).toBe(0)
+    expect(breakdown.volteo).toBe(0)
+    expect(breakdown.grandTotal).toBe(40_000)
   })
 
   it('con referencia distinta de 500 usa precio millar sin volteo en Color básico', () => {
@@ -430,12 +494,28 @@ describe('resolveValorImpresionPrecioUnitario', () => {
     ).toEqual({ precioUnitario: 70_000, usaPrecioInicial: false })
   })
 
-  it('usa precio inicial en Color básico con volteo sobre tope', () => {
+  it('fuerza precio con volteo en Color básico con volteo cuando tamaños buenos ≤ 500 aunque supere tope', () => {
     expect(
       resolveValorImpresionPrecioUnitario({
         variant: 'colorBasico',
         conVolteo: true,
         usaPrecioConVolteoColorBasico: true,
+        usaPrecioConVolteoPantone: false,
+        millaresCalculados: 6,
+        topeMinimoMillarActivo: 5000,
+        precioInicial: 17_500,
+        precioPorMillar: 0,
+        precioConVolteoMillar: 20_000,
+      })
+    ).toEqual({ precioUnitario: 20_000, usaPrecioInicial: false })
+  })
+
+  it('usa precio inicial en Color básico con volteo sobre tope cuando tamaños buenos > 500', () => {
+    expect(
+      resolveValorImpresionPrecioUnitario({
+        variant: 'colorBasico',
+        conVolteo: true,
+        usaPrecioConVolteoColorBasico: false,
         usaPrecioConVolteoPantone: false,
         millaresCalculados: 6,
         topeMinimoMillarActivo: 5000,
@@ -546,34 +626,38 @@ describe('resolveEntradaRegistroResumen', () => {
 })
 
 describe('computeImpresionPrecioTinta', () => {
-  it('calcula solo Pantone: Pantone distintos × tamaños buenos/1000 × Precio Pantone', () => {
-    // pantoneCount = 2 (1 Pantone en tiro + 1 Pantone en retiro)
+  it('calcula Pantone por cada ranura seleccionada × tamaños buenos/1000 × Precio Pantone', () => {
     const tiro = updateImpresionLadoTinta(
-      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
-      0,
+      updateImpresionLadoTinta(
+        applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+        0,
+        7
+      ),
+      1,
       7
     )
-    const tiroAllPantone = updateImpresionLadoTinta(tiro, 1, 7)
-    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
-    const retiroAllPantone = updateImpresionLadoTinta(retiro, 0, 7)
-    const retiroAllPantone2 = updateImpresionLadoTinta(retiroAllPantone, 1, 7)
+    const retiro = updateImpresionLadoTinta(
+      updateImpresionLadoTinta(
+        applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+        0,
+        7
+      ),
+      1,
+      7
+    )
 
     const precioColorBasico = 17500
     const precioPantone = 50000
 
-    // pantoneCount = 1 (tiro: Pantone único) + 1 (retiro: Pantone único) => 2
-    // nonPantoneCount = 0
-    // factorBasePantone = 2 * (2500/1000) = 5
-    // precioPantone = round(5 * 50000) = 250000
     expect(
       computeImpresionPrecioTinta(
-        tiroAllPantone,
-        retiroAllPantone2,
+        tiro,
+        retiro,
         2500,
         precioColorBasico,
         precioPantone
       )
-    ).toBe(250_000)
+    ).toBe(500_000)
   })
 
   it('calcula solo Color básico: NO-Pantone distintos × tamaños buenos/1000 × Precio Color básico', () => {

@@ -17,6 +17,7 @@ export type ProductionAssignmentPhaseId =
   | 'impresion'
   | 'terminados'
   | 'acabados'
+  | 'cobro'
 
 export const PRODUCTION_PHASE_LABELS: Record<ProductionAssignmentPhaseId, string> = {
   preprensa: 'Preprensa',
@@ -24,6 +25,7 @@ export const PRODUCTION_PHASE_LABELS: Record<ProductionAssignmentPhaseId, string
   impresion: 'Impresión',
   terminados: 'Terminados',
   acabados: 'Acabados',
+  cobro: 'Cobro',
 }
 
 /** Permisos sugeridos para filtrar usuarios en cada etapa de producción. */
@@ -34,20 +36,38 @@ export const PRODUCTION_PHASE_REQUIRED_PERMISSIONS: Record<
   preprensa: ['production.edit'],
   'corte-papel': ['production.edit'],
   impresion: ['production.edit'],
-  terminados: ['production.view', 'catalog.view'],
-  acabados: ['production.view', 'catalog.view'],
+  terminados: ['production.edit'],
+  acabados: ['production.edit'],
+  cobro: ['production.edit'],
 }
 
 export const getDefaultPhasePermissionFilters = (
   phase: ProductionAssignmentPhaseId
 ): UserPermission[] => [...PRODUCTION_PHASE_REQUIRED_PERMISSIONS[phase]]
 
+const LEGACY_TERMINADOS_ACABADOS_PERMISSION_FILTERS: UserPermission[] = [
+  'production.view',
+  'catalog.view',
+]
+
+const isLegacyTerminadosAcabadosPermissionFilters = (
+  phase: ProductionAssignmentPhaseId,
+  filters: readonly UserPermission[]
+): boolean =>
+  (phase === 'terminados' || phase === 'acabados') &&
+  filters.length === LEGACY_TERMINADOS_ACABADOS_PERMISSION_FILTERS.length &&
+  LEGACY_TERMINADOS_ACABADOS_PERMISSION_FILTERS.every(permission => filters.includes(permission))
+
 export const normalizeOperadorPermissionFilters = (
   phase: ProductionAssignmentPhaseId,
   filters?: UserPermission[]
 ): UserPermission[] => {
   if (filters?.length) {
-    return [...new Set(filters.filter(isValidUserPermission))]
+    const normalized = [...new Set(filters.filter(isValidUserPermission))]
+    if (isLegacyTerminadosAcabadosPermissionFilters(phase, normalized)) {
+      return getDefaultPhasePermissionFilters(phase)
+    }
+    return normalized
   }
   return getDefaultPhasePermissionFilters(phase)
 }
@@ -123,6 +143,11 @@ export const OPERADOR_ASSIGNMENT_FIELDS = {
     id: 'operadorAcabadosId',
     rol: 'operadorAcabadosRol',
     permisos: 'operadorAcabadosPermisos',
+  },
+  cobro: {
+    id: 'operadorCobroId',
+    rol: 'operadorCobroRol',
+    permisos: 'operadorCobroPermisos',
   },
 } as const satisfies Record<
   ProductionAssignmentPhaseId,

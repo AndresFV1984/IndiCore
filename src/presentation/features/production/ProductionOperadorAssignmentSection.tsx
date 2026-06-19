@@ -28,7 +28,7 @@ const ProductionOperadorAssignmentSection: React.FC<ProductionOperadorAssignment
   onSelect,
   onRoleFilterChange,
   etapa,
-  tone = 0,
+  tone = 2,
   inputId,
 }) => (
   <ProductionWorkspaceSection
@@ -38,9 +38,9 @@ const ProductionOperadorAssignmentSection: React.FC<ProductionOperadorAssignment
     tone={tone}
     className={[
       'production-operador-assignment',
-      'production-detalle-op__section',
-      'production-detalle-op__section--vendedor',
-      selectedId ? 'production-detalle-op__section--vendedor-filled' : '',
+      'production-diseno-nuevo-panel',
+      'production-diseno-nuevo-panel--resumen',
+      selectedId ? 'production-operador-assignment--filled' : '',
     ]
       .filter(Boolean)
       .join(' ')}

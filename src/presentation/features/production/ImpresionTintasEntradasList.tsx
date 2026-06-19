@@ -17,8 +17,11 @@ import {
 import {
   formatMillaresFactor,
   resolveEntradaRegistroResumen,
+  resolveRegistroConVolteoColorBasico,
+  resolveRegistroConVolteoPantone,
 } from './utils/impresionPrecioTintaUtils'
 import { formatPrecioMillar } from './utils/impresionVolteoTarifaUtils'
+import ImpresionVolteoEstadoBadge from './ImpresionVolteoEstadoBadge'
 
 const entradasCopy = copy.tintas.entradas
 const ladoCopy = copy.tintas.lado
@@ -127,7 +130,8 @@ const TintasGrupoTableCell: React.FC<{
   tintasRetiro: number
   millares: number
   precio: number
-}> = ({ variant, tintasTiro, tintasRetiro, millares, precio }) => {
+  conVolteo?: boolean
+}> = ({ variant, tintasTiro, tintasRetiro, millares, precio, conVolteo }) => {
   const tintasTotal = tintasTiro + tintasRetiro
 
   return (
@@ -138,9 +142,14 @@ const TintasGrupoTableCell: React.FC<{
         `production-impresion-tintas-grupo-cell--${variant}`
       )}
     >
-      <span className="production-impresion-tintas-grupo-cell__count">
-        {tintasTotal > 0 ? entradasCopy.tintasCountLabel(tintasTotal) : entradasCopy.millaresEmpty}
-      </span>
+      <div className="production-impresion-tintas-grupo-cell__head">
+        <span className="production-impresion-tintas-grupo-cell__count">
+          {tintasTotal > 0 ? entradasCopy.tintasCountLabel(tintasTotal) : entradasCopy.millaresEmpty}
+        </span>
+        {tintasTotal > 0 && conVolteo !== undefined ? (
+          <ImpresionVolteoEstadoBadge conVolteo={conVolteo} />
+        ) : null}
+      </div>
       <span className="production-impresion-tintas-grupo-cell__lados">
         {ladoCopy.tiro}: {entradasCopy.tintasCountLabel(tintasTiro)} · {ladoCopy.retiro}:{' '}
         {entradasCopy.tintasCountLabel(tintasRetiro)}
@@ -221,11 +230,13 @@ const ImpresionTintasEntradasList: React.FC<ImpresionTintasEntradasListProps> = 
                 </td>
               </tr>
             ) : (
-              rows.map(({ colorPlanchaId, plancha, entrada, maxColoresPlancha }) => {
+              rows.map(({ colorPlanchaId, plancha, registro, entrada, maxColoresPlancha }) => {
                 const resumen = resolveEntradaRegistroResumen(entrada)
                 const total = sumImpresionEntradaTintas(entrada)
                 const isEditing = editingEntradaId === entrada.id
                 const isActivePlancha = colorPlanchaId === activeColorPlanchaId
+                const conVolteoColorBasico = resolveRegistroConVolteoColorBasico(registro)
+                const conVolteoPantone = resolveRegistroConVolteoPantone(registro)
                 const planchaLabel = [
                   plancha.planchaNombreMedida,
                   plancha.detalle?.trim() ? plancha.detalle.trim() : '',
@@ -252,6 +263,7 @@ const ImpresionTintasEntradasList: React.FC<ImpresionTintasEntradasListProps> = 
                         tintasRetiro={countLadoInkIndicesByGrupo(entrada.retiro, 'colorBasico')}
                         millares={resumen.millaresColorBasico}
                         precio={resumen.precioTintaColorBasico}
+                        conVolteo={conVolteoColorBasico}
                       />
                     </td>
                     <td className="production-plancha-table__td production-plancha-table__td--num">
@@ -261,6 +273,7 @@ const ImpresionTintasEntradasList: React.FC<ImpresionTintasEntradasListProps> = 
                         tintasRetiro={countLadoInkIndicesByGrupo(entrada.retiro, 'pantone')}
                         millares={resumen.millaresPantone}
                         precio={resumen.precioTintaPantone}
+                        conVolteo={conVolteoPantone}
                       />
                     </td>
                     <td className="production-plancha-table__td">

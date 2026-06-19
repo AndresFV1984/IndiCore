@@ -6,9 +6,9 @@ export interface CatalogRecord {
   cost?: string
   /** Valor por centímetro cuadrado (sin símbolo $). */
   valorCmCuadrado?: string
-  /** Reserva UV: valor por defecto al asignar en producción. */
+  /** Reserva UV: valor al asignar en producción. */
   positivo?: string
-  /** Reserva UV: valor por defecto al asignar en producción. */
+  /** Estampado: clise al asignar en producción. */
   clise?: string
 }
 
@@ -22,12 +22,19 @@ export interface CatalogRecordFormValues {
 }
 
 export const RESERVA_UV_TERMINADO_ID = 't5'
+export const ESTAMPADO_TERMINADO_ID = 't4'
 
 export const isReservaUvTerminado = (
   record: Pick<CatalogRecord, 'id' | 'name'>
 ): boolean =>
   record.id === RESERVA_UV_TERMINADO_ID ||
   record.name.trim().toLowerCase() === 'reserva uv'
+
+export const isEstampadoTerminado = (
+  record: Pick<CatalogRecord, 'id' | 'name'>
+): boolean =>
+  record.id === ESTAMPADO_TERMINADO_ID ||
+  record.name.trim().toLowerCase() === 'estampado'
 
 export type CatalogRecordVariant = 'terminado' | 'operacion'
 
@@ -110,6 +117,9 @@ export function buildCatalogRecordFromFormValues(
 
   if (isReservaUvTerminado(record)) {
     record.positivo = normalizeCatalogIntegerField(values.positivo)
+  }
+
+  if (isEstampadoTerminado(record)) {
     record.clise = normalizeCatalogIntegerField(values.clise)
   }
 
@@ -124,7 +134,11 @@ export function normalizeCatalogRecordList(items: readonly CatalogRecord[]): Cat
     }
     if (isReservaUvTerminado(normalized)) {
       normalized.positivo = normalizeCatalogIntegerField(item.positivo)
+      delete normalized.clise
+    }
+    if (isEstampadoTerminado(normalized)) {
       normalized.clise = normalizeCatalogIntegerField(item.clise)
+      delete normalized.positivo
     }
     return normalized
   })

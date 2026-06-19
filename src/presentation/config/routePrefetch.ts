@@ -16,6 +16,7 @@ export const routePrefetchers: Record<string, () => Promise<unknown>> = {
   [ROUTES.catalogTamanoPlancha.path]: () => import('../features/catalog/CatalogTamanoPlancha'),
   [ROUTES.precioMontaje.path]: () => import('../features/precio-montaje/PrecioMontaje'),
   [ROUTES.tarifasMillar.path]: () => import('../features/tarifas-millar/TarifasMillar'),
+  [ROUTES.trazabilidad.path]: () => import('../features/trazabilidad/TrazabilidadOperarios'),
 }
 
 export function prefetchRoute(path: string): void {
@@ -31,6 +32,7 @@ const PREFETCH_PRIORITY: string[] = [
   ROUTES.users.path,
   ROUTES.vendedor.path,
   ROUTES.remissions.path,
+  ROUTES.trazabilidad.path,
 ]
 
 let routesPrefetchStarted = false

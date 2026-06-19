@@ -9,6 +9,7 @@ import {
   CATALOG_VALOR_CM2_LABEL,
   DEFAULT_CATALOG_VALOR_CM_CUADRADO,
   isReservaUvTerminado,
+  isEstampadoTerminado,
   normalizeCatalogIntegerField,
   normalizeCatalogUnitCost,
   normalizeCatalogValorCmCuadrado,
@@ -67,7 +68,10 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
 }) => {
   const isEditing = Boolean(item)
   const copy = COPY[variant]
-  const showReservaUvFields = variant === 'terminado' && Boolean(item && isReservaUvTerminado(item))
+  const showReservaUvPositivoField =
+    variant === 'terminado' && Boolean(item && isReservaUvTerminado(item))
+  const showEstampadoCliseField =
+    variant === 'terminado' && Boolean(item && isEstampadoTerminado(item))
   const [values, setValues] = useState<CatalogRecordFormValues>(defaultValues)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -183,43 +187,43 @@ const CatalogRecordModal: React.FC<CatalogRecordModalProps> = ({
               placeholder="Ej. 5000"
             />
           </FormField>
-          {showReservaUvFields ? (
-            <>
-              <FormField
+          {showReservaUvPositivoField ? (
+            <FormField
+              id={`${variant}-positivo`}
+              label="Positivo"
+              hint="Valor al asignar Reserva UV en producción (0 si no aplica)."
+              fullWidth
+            >
+              <input
                 id={`${variant}-positivo`}
-                label="Positivo"
-                hint="Valor por defecto al asignar Reserva UV en producción (0 si no aplica)."
-                fullWidth
-              >
-                <input
-                  id={`${variant}-positivo`}
-                  type="number"
-                  min={0}
-                  step={1}
-                  className="record-form-input"
-                  value={values.positivo}
-                  onChange={handleChange('positivo')}
-                  placeholder="0"
-                />
-              </FormField>
-              <FormField
+                type="number"
+                min={0}
+                step={1}
+                className="record-form-input"
+                value={values.positivo}
+                onChange={handleChange('positivo')}
+                placeholder="0"
+              />
+            </FormField>
+          ) : null}
+          {showEstampadoCliseField ? (
+            <FormField
+              id={`${variant}-clise`}
+              label="Clise"
+              hint="Valor al asignar Estampado en producción (0 si no aplica)."
+              fullWidth
+            >
+              <input
                 id={`${variant}-clise`}
-                label="Clise"
-                hint="Valor por defecto al asignar Reserva UV en producción (0 si no aplica)."
-                fullWidth
-              >
-                <input
-                  id={`${variant}-clise`}
-                  type="number"
-                  min={0}
-                  step={1}
-                  className="record-form-input"
-                  value={values.clise}
-                  onChange={handleChange('clise')}
-                  placeholder="0"
-                />
-              </FormField>
-            </>
+                type="number"
+                min={0}
+                step={1}
+                className="record-form-input"
+                value={values.clise}
+                onChange={handleChange('clise')}
+                placeholder="0"
+              />
+            </FormField>
           ) : null}
           <div
             className={`record-form-field record-form-field--full catalog-quick-access-field catalog-quick-access-field--${variant}`}

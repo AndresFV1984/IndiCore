@@ -186,6 +186,16 @@ const Sidebar: React.FC = () => {
               </span>
               {sidebarOpen && <span className="sidebar-label">Producción</span>}
             </NavLink>
+            <NavLink to={ROUTES.trazabilidad.path} title={ROUTES.trazabilidad.purpose} className={`sidebar-link ${location.pathname.startsWith(ROUTES.trazabilidad.path) ? 'sidebar-link-active' : ''}`}>
+              <span className="sidebar-icon-wrapper">
+                <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M9 3.5h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+              {sidebarOpen && <span className="sidebar-label">{ROUTES.trazabilidad.label}</span>}
+            </NavLink>
             <NavLink to={ROUTES.orders.path} title={ROUTES.orders.purpose} className={`sidebar-link ${location.pathname === ROUTES.orders.path ? 'sidebar-link-active' : ''}`}>
               <span className="sidebar-icon-wrapper">
                 <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>

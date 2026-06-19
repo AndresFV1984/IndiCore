@@ -22,9 +22,11 @@ import ProductionImpresionSubNav from './ProductionImpresionSubNav'
 import ProductionCortePapelSubNav from './ProductionCortePapelSubNav'
 import ProductionTerminadosSubNav from './ProductionTerminadosSubNav'
 import ProductionAcabadosSubNav from './ProductionAcabadosSubNav'
+import ProductionCobroSubNav from './ProductionCobroSubNav'
 import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
 import ProductionTerminadosPanel from './ProductionTerminadosPanel'
 import ProductionAcabadosPanel from './ProductionAcabadosPanel'
+import ProductionOrderCobroPanel from './ProductionOrderCobroPanel'
 import ProductionClientPicker from './ProductionClientPicker'
 import ProductionDetalleOpPanel from './ProductionDetalleOpPanel'
 import ProductionOperadorAssignmentSection from './ProductionOperadorAssignmentSection'
@@ -34,6 +36,7 @@ import { CortePapelSubTabId } from './productionCortePapelSubTabs'
 import { ImpresionSubTabId } from './productionImpresionSubTabs'
 import { TerminadosSubTabId } from './productionTerminadosSubTabs'
 import { AcabadosSubTabId } from './productionAcabadosSubTabs'
+import { CobroSubTabId } from './productionCobroSubTabs'
 import { useUsersHook } from '../../hooks/useUsers'
 import type { UserPermission, UserRole } from '../../../core/domain/auth/userPermissions'
 import {
@@ -42,6 +45,7 @@ import {
   resolveOperadorRoleFilter,
   type ProductionAssignmentPhaseId,
 } from './utils/productionOperatorAssignment'
+import { productionTraceRecorder } from '../../services/productionTraceRecorder'
 import { Client } from '../../../core/domain/entities/Client'
 import { Vendedor } from '../../../core/domain/entities/Vendedor'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
@@ -83,6 +87,7 @@ import {
   syncPaperRowsWithColoresPlanchas,
 } from './utils/paperRowsSync'
 import { CORTE_PAPEL_COPY as cortePapelCopy } from './constants/cortePapelCopy'
+import { PRODUCTION_COBRO_COPY } from './constants/productionCobroCopy'
 import {
   buildProductionNewOrderDraft,
   hydrateOrderSpecsFromDraft,
@@ -188,6 +193,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   const [impresionSubTab, setImpresionSubTab] = useState<ImpresionSubTabId>('tintas')
   const [terminadosSubTab, setTerminadosSubTab] = useState<TerminadosSubTabId>('asignacion')
   const [acabadosSubTab, setAcabadosSubTab] = useState<AcabadosSubTabId>('acabado')
+  const [cobroSubTab, setCobroSubTab] = useState<CobroSubTabId>('factura')
   const [activeCorteColorPlanchaId, setActiveCorteColorPlanchaId] = useState('')
   const [activeImpresionColorPlanchaId, setActiveImpresionColorPlanchaId] = useState('')
   const [activeTerminadosCorteRowKey, setActiveTerminadosCorteRowKey] = useState('')
@@ -546,6 +552,7 @@ const ProductionOrderWorkspace: React.FC = () => {
       patch: { userId?: string; role?: UserRole; permissions?: UserPermission[] }
     ) => {
       const fields = OPERADOR_ASSIGNMENT_FIELDS[phase]
+      const prevUserId = (specs[fields.id] as string | undefined) ?? ''
       setSpecs(prev => ({
         ...prev,
         [fields.id]:
@@ -562,14 +569,30 @@ const ProductionOrderWorkspace: React.FC = () => {
                 prev[fields.permisos] as UserPermission[] | undefined
               ),
       }))
+
+      const nextUserId = patch.userId ?? prevUserId
+      if (
+        patch.userId &&
+        patch.userId !== prevUserId &&
+        !isNew &&
+        orderId &&
+        workName.trim()
+      ) {
+        void productionTraceRecorder.recordAssignment({
+          orderId,
+          workName: workName.trim(),
+          phase,
+          userId: nextUserId,
+          orderStatus: existingOrder?.status,
+        })
+      }
     },
-    []
+    [specs, isNew, orderId, workName, existingOrder?.status]
   )
 
   const renderOperadorSection = (
     phase: ProductionAssignmentPhaseId,
     etapa: string,
-    tone: 0 | 1 | 2,
     inputId: string
   ) => {
     const fields = OPERADOR_ASSIGNMENT_FIELDS[phase]
@@ -589,7 +612,6 @@ const ProductionOrderWorkspace: React.FC = () => {
           patchOperadorAssignment(phase, { permissions })
         }
         etapa={etapa}
-        tone={tone}
         inputId={inputId}
       />
     )
@@ -772,6 +794,9 @@ const ProductionOrderWorkspace: React.FC = () => {
     if (id === 'corte-papel') {
       setCortePapelSubTab('corte')
     }
+    if (id === 'cobro') {
+      setCobroSubTab('factura')
+    }
   }
 
   const goToAdjacentTab = (direction: -1 | 1) => {
@@ -829,6 +854,19 @@ const ProductionOrderWorkspace: React.FC = () => {
         vendedorId: vendedorId.trim() || undefined,
       }
       const order = await createOrder(dto)
+      for (const phase of Object.keys(OPERADOR_ASSIGNMENT_FIELDS) as ProductionAssignmentPhaseId[]) {
+        const fields = OPERADOR_ASSIGNMENT_FIELDS[phase]
+        const userId = dto.specs[fields.id] as string | undefined
+        if (userId) {
+          void productionTraceRecorder.recordAssignment({
+            orderId: order.id,
+            workName: order.workName,
+            phase,
+            userId,
+            orderStatus: order.status,
+          })
+        }
+      }
       clearDraft()
       navigate(`${ROUTES.production.path}/${order.id}`, { replace: true })
     } catch {
@@ -994,7 +1032,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-preprensa-panel-responsable"
                       aria-labelledby="production-preprensa-subtab-responsable"
                     >
-                      {renderOperadorSection('preprensa', 'Preprensa', 0, 'preprensa-operador')}
+                      {renderOperadorSection('preprensa', 'Preprensa', 'preprensa-operador')}
                     </div>
                   )}
                   {preprensaSubTab === 'diseno' && (
@@ -1065,7 +1103,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-corte-papel-panel-responsable"
                       aria-labelledby="production-corte-papel-subtab-responsable"
                     >
-                      {renderOperadorSection('corte-papel', 'Corte de papel', 1, 'corte-operador')}
+                      {renderOperadorSection('corte-papel', 'Corte de papel', 'corte-operador')}
                     </div>
                   )}
                   {cortePapelSubTab === 'corte' && (
@@ -1122,7 +1160,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-impresion-panel-responsable"
                       aria-labelledby="production-impresion-subtab-responsable"
                     >
-                      {renderOperadorSection('impresion', 'Impresión', 2, 'impresion-operador')}
+                      {renderOperadorSection('impresion', 'Impresión', 'impresion-operador')}
                     </div>
                   )}
                   {impresionSubTab === 'tintas' && (
@@ -1165,7 +1203,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-terminados-panel-responsable"
                       aria-labelledby="production-terminados-subtab-responsable"
                     >
-                      {renderOperadorSection('terminados', 'Terminados', 1, 'terminados-operador')}
+                      {renderOperadorSection('terminados', 'Terminados', 'terminados-operador')}
                     </div>
                   )}
                   {terminadosSubTab === 'asignacion' && (
@@ -1210,7 +1248,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-acabados-panel-responsable"
                       aria-labelledby="production-acabados-subtab-responsable"
                     >
-                      {renderOperadorSection('acabados', 'Acabados', 2, 'acabados-operador')}
+                      {renderOperadorSection('acabados', 'Acabados', 'acabados-operador')}
                     </div>
                   )}
                   {acabadosSubTab === 'acabado' && (
@@ -1232,6 +1270,45 @@ const ProductionOrderWorkspace: React.FC = () => {
                         activeCorteRowKey={activeAcabadosCorteRowKey}
                         onActiveCorteRowKeyChange={setActiveAcabadosCorteRowKey}
                         onRegistrosChange={handleAcabadosRegistrosChange}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'cobro' && (
+            <>
+              <h2 className="production-workspace-panel-title">{PRODUCTION_COBRO_COPY.title}</h2>
+
+              <div className="production-specs-layout">
+                <ProductionCobroSubNav active={cobroSubTab} onChange={setCobroSubTab} />
+
+                <div className="production-specs-content">
+                  {cobroSubTab === 'responsable' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-cobro-panel-responsable"
+                      aria-labelledby="production-cobro-subtab-responsable"
+                    >
+                      {renderOperadorSection('cobro', 'Cobro', 'cobro-operador')}
+                    </div>
+                  )}
+                  {cobroSubTab === 'factura' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-cobro-panel-factura"
+                      aria-labelledby="production-cobro-subtab-factura"
+                    >
+                      <ProductionOrderCobroPanel
+                        clientName={clientName}
+                        workName={workName}
+                        quantity={specs.quantity}
+                        specs={specs}
+                        tiposPapel={tiposPapel}
                       />
                     </div>
                   )}

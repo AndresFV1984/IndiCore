@@ -8,8 +8,8 @@ import ImpresionVolteoSelector from './ImpresionVolteoSelector'
 import ImpresionTarifaMetricsStrip from './ImpresionTarifaMetricsStrip'
 import ImpresionTintasMillaresCalculadosField from './ImpresionTintasMillaresCalculadosField'
 import {
-  computeValorImpresionPorMillaresReferencia,
   computeValorImpresionColorBasicoPorReferencia,
+  computeValorImpresionColorBasicoConVolteoPorReferencia,
   computeValorImpresionPantonePorReferencia,
   computeValorImpresionPantoneConVolteoPorReferencia,
   shouldUsarPrecioConVolteoColorBasico,
@@ -119,11 +119,11 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
 
     if (variant === 'colorBasico') {
       if (conVolteo) {
-        return computeValorImpresionPorMillaresReferencia({
+        return computeValorImpresionColorBasicoConVolteoPorReferencia({
           millaresReferencia,
-          precioInicial,
-          precioPorMillar: precioPorMillarVolteo,
-          conVolteo: true,
+          tamanosBuenosReferencia: referenciaParaPrecio,
+          precioConVolteo: precioPorMillarVolteo,
+          precioSinVolteo: precioInicial,
           topeMinimoMillar: topeActivo,
         })
       }

@@ -47,6 +47,9 @@ export interface OrderSpecs {
   operadorAcabadosId?: string;
   operadorAcabadosRol?: UserRole;
   operadorAcabadosPermisos?: UserPermission[];
+  operadorCobroId?: string;
+  operadorCobroRol?: UserRole;
+  operadorCobroPermisos?: UserPermission[];
 }
 
 export interface PaperRow {
@@ -113,7 +116,7 @@ export interface TerminadoProduccionLinea {
   origen?: TerminadoProduccionOrigen;
   /** Reserva UV: positivo editable por orden. */
   positivo?: number;
-  /** Reserva UV: clise editable por orden. */
+  /** Estampado: clise editable por orden. */
   clise?: number;
 }
 

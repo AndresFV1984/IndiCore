@@ -100,13 +100,12 @@ export const ACABADOS_COPY = {
       sinAcabados: 'Sin acabados en este registro',
     },
     resumen: {
-      tag: 'Resumen',
-      title: 'Resumen de acabado',
-      totalLabel: 'Total a cobrar',
+      valorPlancha: (planchaLabel: string) => `Valor ${planchaLabel}`,
+      total: 'Total',
       totalHint: 'Suma de todos los acabados confirmados por plancha.',
       columns: {
         plancha: 'Plancha',
-        cobro: 'A cobrar',
+        cobro: 'Valor',
       },
     },
   },

@@ -1311,12 +1311,6 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
   }, [usePlanchaPricing, orderQuantity, onChange])
 
   useEffect(() => {
-    if (!detalleOpCantidadLista || draftCantidad.trim()) return
-    const fromOp = defaultCantidadFromOp()
-    if (fromOp) setDraftCantidad(fromOp)
-  }, [detalleOpCantidadLista, orderQuantity, draftCantidad])
-
-  useEffect(() => {
     if (!historialMode) return
     const current = itemsRef.current
     const needsSync = current.some(
@@ -2080,10 +2074,7 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
             labelId="diseno-colores-add-label"
             placeholder={coloresCopy.colorPickerPlaceholder}
             value={draftColor}
-            onChange={value => {
-              setDraftColor(value)
-              setDraftError(null)
-            }}
+            onChange={handleDraftColorChange}
           />
         </div>
 

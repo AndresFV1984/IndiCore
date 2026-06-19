@@ -14,7 +14,7 @@ interface ProductionSubNavProps<T extends string> {
   idPrefix: string
 }
 
-const TabIcon: React.FC<{ id: string }> = ({ id }) => {
+export const ProductionSubNavIcon: React.FC<{ id: string }> = ({ id }) => {
   const props = {
     viewBox: '0 0 24 24',
     fill: 'none',
@@ -117,6 +117,32 @@ const TabIcon: React.FC<{ id: string }> = ({ id }) => {
     )
   }
 
+  /** Cobro — factura consolidada */
+  if (id === 'factura') {
+    return (
+      <svg {...props}>
+        <path
+          d="M8 4.5h8a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H8a1.5 1.5 0 0 1-1.5-1.5V6a1.5 1.5 0 0 1 1.5-1.5z"
+          {...s}
+        />
+        <path d="M9.25 4.5V3.25A1.25 1.25 0 0 1 10.5 2h3a1.25 1.25 0 0 1 1.25 1.25V4.5" {...s} />
+        <path d="M9 10h6M9 13.5h4.5" {...s} strokeWidth={1.5} />
+        <path d="M14.75 9.25h1.5v1.5h-1.5z" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+
+  /** Terminados / Acabados — asignación por plancha */
+  if (id === 'asignacion' || id === 'acabado') {
+    return (
+      <svg {...props}>
+        <path d="M5.5 7.5h13M5.5 12h13M5.5 16.5h8.5" {...s} />
+        <path d="M7.25 5.5v13" {...s} strokeWidth={1.5} opacity={0.45} />
+        <circle cx="16.75" cy="16.5" r="2.25" {...s} />
+      </svg>
+    )
+  }
+
   return (
     <svg {...props}>
       <rect x="6" y="4" width="12" height="16" rx="2" {...s} />
@@ -151,7 +177,7 @@ function ProductionSubNav<T extends string>({
           >
             <span className="production-specs-nav__marker" aria-hidden />
             <span className="production-specs-nav__icon-wrap">
-              <TabIcon id={tab.id} />
+              <ProductionSubNavIcon id={tab.id} />
             </span>
             <span className="production-specs-nav__label">{tab.label}</span>
           </button>

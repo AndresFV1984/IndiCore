@@ -24,7 +24,7 @@ import {
   buildImpresionGrupoMillaresPreview,
   computeImpresionPrecioTintaBreakdown,
   countDistinctNonPantoneInLado,
-  countDistinctPantoneInLado,
+  countPantoneTintasInLado,
   resolveImpresionTarifaMillarPricing,
   type ImpresionPrecioTintaBreakdownInput,
 } from './utils/impresionPrecioTintaUtils'
@@ -245,8 +245,8 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   const millaresPreviewPantone = useMemo(() => {
     if (!activePlancha || !showPantoneTarifa || !tamanosBuenosMillaresPantone) return null
-    const tintasTiro = countDistinctPantoneInLado(draftTiro)
-    const tintasRetiro = countDistinctPantoneInLado(draftRetiro)
+    const tintasTiro = countPantoneTintasInLado(draftTiro)
+    const tintasRetiro = countPantoneTintasInLado(draftRetiro)
     if (tintasTiro + tintasRetiro <= 0) return null
     const conVolteo = isImpresionConVolteo(draftTarifa.tipoBifrontePantone)
     const pricing = conVolteo

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import type { PaperRow } from '../../../core/domain/entities/Order'
 import type { YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
-import ProductionWorkspaceSection from './ProductionWorkspaceSection'
+import ProductionOrdenResumenSection from './ProductionOrdenResumenSection'
 import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
 import { formatValorHojaDisplay, despiecePliegoSelectOptionLabel } from './utils/tipoPapelDisplay'
 
@@ -34,6 +34,7 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
   const filas = useMemo(
     () => [
       {
+        key: 'tipo-papel',
         label: 'Tipo de papel',
         value: clienteSuministra
           ? copy.suministro.opciones.cliente.title
@@ -41,6 +42,7 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
         inactive: !clienteSuministra && !row.tipoPapelId,
       },
       {
+        key: 'despiece',
         label: 'Despiece por pliego',
         value: row.despiece
           ? despiecePliegoSelectOptionLabel(row.despiece)
@@ -48,6 +50,7 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
         inactive: !row.despiece,
       },
       {
+        key: 'valor-hoja',
         label: 'Valor hoja (catálogo)',
         value:
           row.valorHoja && row.valorHoja > 0
@@ -56,11 +59,13 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
         inactive: !row.tipoPapelId,
       },
       {
+        key: 'cantidad-hojas',
         label: 'Cantidad hojas',
         value: cantidadHojas > 0 ? cantidadHojas.toLocaleString('es-CO') : copy.resumen.empty,
         inactive: cantidadHojas <= 0,
       },
       {
+        key: 'valor-papel',
         label: copy.resumen.valorPapelLabel,
         value: clienteSuministra
           ? copy.resumen.valorPapelClienteSuministra
@@ -68,55 +73,33 @@ const ProductionCorteResumen: React.FC<ProductionCorteResumenProps> = ({
             ? formatValor(valorPapel)
             : copy.resumen.empty,
         inactive: !clienteSuministra && valorPapel <= 0,
-        hint: clienteSuministra ? undefined : copy.resumen.valorPapelHint,
+        valueTitle: clienteSuministra ? undefined : copy.resumen.valorPapelHint,
+      },
+      {
+        key: 'valor-corte',
+        label: copy.resumen.valorCorte,
+        value: valorCorte > 0 ? formatValor(valorCorte) : copy.resumen.empty,
+        inactive: valorCorte <= 0,
       },
     ],
-    [row, cantidadHojas, valorPapel, clienteSuministra]
+    [row, cantidadHojas, valorPapel, valorCorte, clienteSuministra]
   )
 
+  const totalCobro = (clienteSuministra ? 0 : valorPapel) + valorCorte
+
   return (
-    <ProductionWorkspaceSection
-      className="production-diseno-resumen"
-      tag={copy.sectionTags.resumen}
-      title={copy.resumen.title}
+    <ProductionOrdenResumenSection
+      className="production-corte-resumen"
+      rows={filas}
+      totalLabel={copy.resumen.total}
+      totalValue={totalCobro > 0 ? formatValor(totalCobro) : copy.resumen.empty}
+      totalHint={copy.resumen.totalHint}
       subtitle={
         registroLabel
           ? `${copy.resumen.subtitle} · ${registroLabel}`
           : copy.resumen.subtitle
       }
-      tone={0}
-    >
-      <ul className="production-diseno-resumen__rows">
-        {filas.map(rowItem => (
-          <li
-            key={rowItem.label}
-            className={[
-              'production-diseno-resumen__row',
-              rowItem.inactive ? 'production-diseno-resumen__row--inactive' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            <span className="production-diseno-resumen__row-label">{rowItem.label}</span>
-            <span
-              className="production-diseno-resumen__row-value"
-              title={'hint' in rowItem ? rowItem.hint : undefined}
-            >
-              {rowItem.value}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="production-diseno-resumen__total" aria-live="polite">
-        <div className="production-diseno-resumen__total-info">
-          <span className="production-diseno-resumen__total-label">{copy.resumen.totalLabel}</span>
-          <span className="production-diseno-resumen__total-hint">{copy.resumen.totalHint}</span>
-        </div>
-        <strong className="production-diseno-resumen__total-value">
-          {valorCorte > 0 ? formatValor(valorCorte) : copy.resumen.empty}
-        </strong>
-      </div>
-    </ProductionWorkspaceSection>
+    />
   )
 }
 

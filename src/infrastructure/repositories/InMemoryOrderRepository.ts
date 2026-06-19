@@ -3,6 +3,7 @@ import { emptyPreprensaDiseno } from '../../core/domain/entities/PreprensaDiseno
 import { IOrderRepository } from '../../core/ports/out/IOrderRepository.js';
 import { Money } from '../../core/domain/value-objects/Money.js';
 import { PURCHASE_ORDER_PREFIX } from '../../core/domain/value-objects/PurchaseOrderId.js';
+import { applyProductionTraceDemoAssignments } from '../seeds/productionTraceSeeds.js';
 
 export class InMemoryOrderRepository implements IOrderRepository {
   private orders: Order[] = [];
@@ -212,5 +213,7 @@ export class InMemoryOrderRepository implements IOrderRepository {
       );
       this.orders.push(order);
     }
+
+    applyProductionTraceDemoAssignments(this.orders);
   }
 }

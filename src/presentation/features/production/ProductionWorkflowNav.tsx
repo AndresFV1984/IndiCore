@@ -75,6 +75,14 @@ const StepIcon: React.FC<{ id: ProductionWorkflowTabId }> = ({ id }) => {
           <path d="M12 4v2M12 18v2M4 12h2M18 12h2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
         </svg>
       )
+    case 'cobro':
+      return (
+        <svg {...props}>
+          <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.75" />
+          <path d="M8 9h8M8 13h5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+          <circle cx="16" cy="15" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+        </svg>
+      )
     default:
       return null
   }

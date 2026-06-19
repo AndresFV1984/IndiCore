@@ -18,6 +18,7 @@ import {
   computeMillaresCalculados,
   computeValorImpresionPorMillaresReferencia,
   computeValorImpresionColorBasicoPorReferencia,
+  computeValorImpresionColorBasicoConVolteoPorReferencia,
   computeValorImpresionPantonePorReferencia,
   computeValorImpresionPantoneConVolteoPorReferencia,
   resolveMillaresParaCobro,
@@ -83,14 +84,14 @@ export interface ImpresionTintasResumenConsolidado {
   }
 }
 
-const resolveRegistroConVolteoColorBasico = (registro: ImpresionTintasRegistro): boolean => {
+export const resolveRegistroConVolteoColorBasico = (registro: ImpresionTintasRegistro): boolean => {
   const tipo =
     normalizeImpresionTipoBifronte(registro.tipoBifronteColorBasico) ||
     normalizeImpresionTipoBifronte(registro.tipoBifronte)
   return isImpresionConVolteo(tipo)
 }
 
-const resolveRegistroConVolteoPantone = (registro: ImpresionTintasRegistro): boolean => {
+export const resolveRegistroConVolteoPantone = (registro: ImpresionTintasRegistro): boolean => {
   const tipo =
     normalizeImpresionTipoBifronte(registro.tipoBifrontePantone) ||
     normalizeImpresionTipoBifronte(registro.tipoBifronte)
@@ -144,6 +145,17 @@ export const countDistinctPantoneInLado = (lado: ImpresionLadoTintas): number =>
   return pantones.size
 }
 
+/** Cuenta cada ranura Pantone seleccionada (tiro/retiro pueden repetir el mismo índice). */
+export const countPantoneTintasInLado = (lado: ImpresionLadoTintas): number => {
+  let count = 0
+  for (const ink of lado.tintas.slice(0, lado.cantidad)) {
+    const normalized = normalizeImpresionInkIndex(ink)
+    if (!isValidImpresionTintaIndex(normalized)) continue
+    if (isImpresionPantoneInkIndex(normalized)) count += 1
+  }
+  return count
+}
+
 export const countDistinctNonPantoneInLado = (lado: ImpresionLadoTintas): number => {
   const inks = new Set<number>()
   for (const ink of lado.tintas.slice(0, lado.cantidad)) {
@@ -163,6 +175,11 @@ export const sumDistinctPantoneColorsBySide = (
   tiro: ImpresionLadoTintas,
   retiro: ImpresionLadoTintas
 ): number => countDistinctPantoneInLado(tiro) + countDistinctPantoneInLado(retiro)
+
+export const sumPantoneTintasBySide = (
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): number => countPantoneTintasInLado(tiro) + countPantoneTintasInLado(retiro)
 
 export const formatMillaresFactor = (value: number): string =>
   value > 0
@@ -272,6 +289,12 @@ export const resolveValorImpresionPrecioUnitario = ({
 
   if (variant === 'colorBasico') {
     if (conVolteo) {
+      if (usaPrecioConVolteoColorBasico) {
+        return {
+          usaPrecioInicial: false,
+          precioUnitario: precioConVolteoMillar,
+        }
+      }
       return {
         usaPrecioInicial: sobreTope,
         precioUnitario: sobreTope ? precioInicial : precioConVolteoMillar,
@@ -436,11 +459,11 @@ const resolveGrupoMillaresReferencia = (
   const tintasTiro =
     variant === 'colorBasico'
       ? countDistinctNonPantoneInLado(tiro)
-      : countDistinctPantoneInLado(tiro)
+      : countPantoneTintasInLado(tiro)
   const tintasRetiro =
     variant === 'colorBasico'
       ? countDistinctNonPantoneInLado(retiro)
-      : countDistinctPantoneInLado(retiro)
+      : countPantoneTintasInLado(retiro)
   const pricing = conVolteo ? volteoPricing : basePricing
   const preview = buildImpresionGrupoMillaresPreview(
     variant,
@@ -476,12 +499,20 @@ const computeGrupoImpresionCobro = (
   const precioConVolteo = precioPorMillar > 0 ? precioPorMillar : volteoPricing.precio
   const precio =
     variant === 'colorBasico'
-      ? computeValorImpresionColorBasicoPorReferencia({
-          millaresReferencia: millares,
-          tamanosBuenosReferencia,
-          precioConVolteo,
-          precioSinVolteo: precioInicial,
-        })
+      ? conVolteo
+        ? computeValorImpresionColorBasicoConVolteoPorReferencia({
+            millaresReferencia: millares,
+            tamanosBuenosReferencia,
+            precioConVolteo,
+            precioSinVolteo: precioInicial,
+            topeMinimoMillar: volteoPricing.topeMinimoMillar,
+          })
+        : computeValorImpresionColorBasicoPorReferencia({
+            millaresReferencia: millares,
+            tamanosBuenosReferencia,
+            precioConVolteo,
+            precioSinVolteo: precioInicial,
+          })
       : conVolteo
         ? computeValorImpresionPantoneConVolteoPorReferencia({
             millaresReferencia: millares,
@@ -543,7 +574,7 @@ export const computeImpresionPrecioTintaBreakdown = (
   const referenciaPantone =
     options.tamanosBuenosReferenciaPantone ?? options.tamanosBuenosReferencia ?? null
   const cantidadTintasColorBasico = sumDistinctNonPantoneColorsBySide(tiro, retiro)
-  const cantidadTintasPantone = sumDistinctPantoneColorsBySide(tiro, retiro)
+  const cantidadTintasPantone = sumPantoneTintasBySide(tiro, retiro)
 
   const pricingColorBasico = resolveImpresionTarifaMillarPricing(
     input.precioColorBasicoMillar,
@@ -640,7 +671,7 @@ export const resolveEntradaRegistroResumen = (
   const cantidadTintasPantone =
     typeof entrada.cantidadTintasPantone === 'number' && entrada.cantidadTintasPantone >= 0
       ? entrada.cantidadTintasPantone
-      : sumDistinctPantoneColorsBySide(entrada.tiro, entrada.retiro)
+      : sumPantoneTintasBySide(entrada.tiro, entrada.retiro)
 
   const precioTintaTotal = entrada.precioTinta ?? 0
   const precioVolteo = entrada.precioVolteo ?? 0

@@ -102,13 +102,12 @@ export const TERMINADOS_COPY = {
       sinTerminados: 'Sin terminados en este registro',
     },
     resumen: {
-      tag: 'Resumen',
-      title: 'Resumen de terminado',
-      totalLabel: 'Total a cobrar',
+      valorPlancha: (planchaLabel: string) => `Valor ${planchaLabel}`,
+      total: 'Total',
       totalHint: 'Suma de todos los terminados confirmados por plancha.',
       columns: {
         plancha: 'Plancha',
-        cobro: 'A cobrar',
+        cobro: 'Valor',
       },
     },
   },

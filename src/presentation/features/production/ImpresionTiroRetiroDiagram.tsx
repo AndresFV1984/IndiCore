@@ -65,6 +65,22 @@ const SHEET_H = 128
 const PINZA_W = 13
 const ESCUADRA_H = 13
 const SHEET_VIEWBOX = '-4 -14 152 198'
+const RESULTADO_PASADA_RING_RADIUS = 38
+const RESULTADO_INK_ORBIT_RADIUS = 18
+
+const resolveResultadoFaceRingRadius = (faceW: number, faceH: number): number => {
+  const isFullFace = faceW >= SHEET_W - 1 && faceH >= SHEET_H - 1
+  if (isFullFace) return RESULTADO_PASADA_RING_RADIUS
+
+  const isWideShortFace = faceW > faceH * 1.2
+  const labelReserve = isWideShortFace ? 8 : 10
+  const edgePadding = 5
+  const maxByHeight = faceH / 2 - labelReserve - edgePadding
+  const maxByWidth = faceW / 2 - edgePadding
+  const geometricMax = Math.min(maxByHeight, maxByWidth)
+
+  return Math.max(22, Math.round(Math.min(geometricMax, RESULTADO_PASADA_RING_RADIUS + 4)))
+}
 
 type GuideRect = { x: number; y: number; w: number; h: number }
 
@@ -610,10 +626,11 @@ const resolveResultadoInkCirclePositions = (
   count: number,
   cx: number,
   cy: number,
-  outerRingRadius: number
+  outerRingRadius: number,
+  inkOrbitRadius = RESULTADO_INK_ORBIT_RADIUS
 ) => {
-  const innerLimit = outerRingRadius - 7.5
-  const positions = resolveInkCirclePositions(count, cx, cy, 15)
+  const innerLimit = outerRingRadius - 8
+  const positions = resolveInkCirclePositions(count, cx, cy, inkOrbitRadius)
   if (count <= 0) return positions
 
   const maxReach = Math.max(
@@ -635,12 +652,19 @@ const InkCirclesSvg: React.FC<{
   cy: number
   idPrefix: string
   outerRingRadius?: number
-}> = ({ bars, cx, cy, idPrefix, outerRingRadius }) => {
+  inkOrbitRadius?: number
+}> = ({ bars, cx, cy, idPrefix, outerRingRadius, inkOrbitRadius }) => {
   if (bars.length === 0) return null
 
   const positions =
     outerRingRadius != null
-      ? resolveResultadoInkCirclePositions(bars.length, cx, cy, outerRingRadius)
+      ? resolveResultadoInkCirclePositions(
+          bars.length,
+          cx,
+          cy,
+          outerRingRadius,
+          inkOrbitRadius ?? RESULTADO_INK_ORBIT_RADIUS
+        )
       : resolveInkCirclePositions(bars.length, cx, cy, 16)
 
   return (
@@ -772,7 +796,10 @@ const ResultadoPasadaRingsSvg: React.FC<{
   hasTiro: boolean
   hasRetiro: boolean
 }> = ({ cx, cy, ringRadius, hasTiro, hasRetiro }) => {
-  const retiroRadius = hasTiro && hasRetiro ? ringRadius - 5 : ringRadius
+  const retiroRadius = hasTiro && hasRetiro ? ringRadius - 6 : ringRadius
+  const isCompactFace = ringRadius >= 34
+  const tiroStrokeWidth = isCompactFace ? 4 : 3.5
+  const retiroStrokeWidth = isCompactFace ? 3.5 : 3
 
   return (
     <>
@@ -783,8 +810,8 @@ const ResultadoPasadaRingsSvg: React.FC<{
           r={ringRadius}
           fill="none"
           stroke={TIRO_RING_COLOR}
-          strokeWidth={3}
-          className="production-impresion-tiro-retiro-diagram__svg-pasada-ring"
+          strokeWidth={tiroStrokeWidth}
+          className="production-impresion-tiro-retiro-diagram__svg-pasada-ring production-impresion-tiro-retiro-diagram__svg-pasada-ring--resultado"
         />
       ) : null}
       {hasRetiro ? (
@@ -794,9 +821,9 @@ const ResultadoPasadaRingsSvg: React.FC<{
           r={retiroRadius}
           fill="none"
           stroke={RETIRO_RING_COLOR}
-          strokeWidth={2.5}
+          strokeWidth={retiroStrokeWidth}
           strokeDasharray="5 4"
-          className="production-impresion-tiro-retiro-diagram__svg-pasada-ring production-impresion-tiro-retiro-diagram__svg-pasada-ring--retiro"
+          className="production-impresion-tiro-retiro-diagram__svg-pasada-ring production-impresion-tiro-retiro-diagram__svg-pasada-ring--retiro production-impresion-tiro-retiro-diagram__svg-pasada-ring--resultado"
         />
       ) : null}
     </>
@@ -822,7 +849,6 @@ type ResultadoBifrontalLayout = {
   tiroFace: ResultadoBifrontalFaceLayout
   retiroFace: ResultadoBifrontalFaceLayout
   seam: { x1: number; y1: number; x2: number; y2: number }
-  ringRadius: number
 }
 
 const resolveResultadoBifrontalLayout = (flipMode: FlipMode): ResultadoBifrontalLayout => {
@@ -838,7 +864,6 @@ const resolveResultadoBifrontalLayout = (flipMode: FlipMode): ResultadoBifrontal
       tiroFace: { x: leftX, y: topY, w: faceW, h: faceH },
       retiroFace: { x: leftX, y: seamY, w: faceW, h: faceH },
       seam: { x1: leftX + 2, y1: seamY, x2: leftX + faceW - 2, y2: seamY },
-      ringRadius: Math.min(22, Math.max(12, Math.round(30 * (faceH / SHEET_H)))),
     }
   }
 
@@ -853,7 +878,6 @@ const resolveResultadoBifrontalLayout = (flipMode: FlipMode): ResultadoBifrontal
     tiroFace: { x: leftX, y: topY, w: faceW, h: faceH },
     retiroFace: { x: seamX, y: topY, w: faceW, h: faceH },
     seam: { x1: seamX, y1: topY + 2, x2: seamX, y2: topY + faceH - 2 },
-    ringRadius: Math.min(28, Math.max(15, Math.round(30 * (faceW / SHEET_W)))),
   }
 }
 
@@ -865,12 +889,12 @@ const resolveResultadoFaceLabel = (
   placement: ResultadoFaceLabelPlacement
 ) => {
   if (placement === 'bottom-start') {
-    return { labelX: x + 2, labelY: y + sheetH - 3, textAnchor: 'start' as const }
+    return { labelX: x + 4, labelY: y + sheetH - 1.5, textAnchor: 'start' as const }
   }
   if (placement === 'bottom-end') {
     return {
-      labelX: x + sheetW - 2,
-      labelY: y + sheetH - 3,
+      labelX: x + sheetW - 4,
+      labelY: y + sheetH - 1.5,
       textAnchor: 'end' as const,
     }
   }
@@ -889,7 +913,6 @@ const ResultadoSheetFaceSvg: React.FC<{
   faceLabel: string
   faceLabelPlacement?: ResultadoFaceLabelPlacement
   faceClassName: string
-  ringRadius: number
   hasTiro: boolean
   hasRetiro: boolean
   inkIdPrefix: string
@@ -904,14 +927,16 @@ const ResultadoSheetFaceSvg: React.FC<{
   faceLabel,
   faceLabelPlacement = 'top-center',
   faceClassName,
-  ringRadius,
   hasTiro,
   hasRetiro,
   inkIdPrefix,
 }) => {
   const centerX = x + sheetW / 2
   const labelAtBottom = faceLabelPlacement !== 'top-center'
-  const centerY = y + sheetH / 2 - (labelAtBottom ? 5 : 0)
+  const centerYOffset = labelAtBottom ? Math.min(10, Math.max(6, sheetH * 0.075)) : 0
+  const centerY = y + sheetH / 2 - centerYOffset
+  const ringRadius = resolveResultadoFaceRingRadius(sheetW, sheetH)
+  const inkOrbitRadius = Math.max(14, Math.round(ringRadius * 0.48))
   const isCompactFace = sheetW < SHEET_W
   const cornerRadius = isCompactFace ? 3 : 5
   const innerCornerRadius = isCompactFace ? 2.5 : 4
@@ -947,6 +972,7 @@ const ResultadoSheetFaceSvg: React.FC<{
         x={labelX}
         y={labelY}
         textAnchor={textAnchor}
+        dominantBaseline={labelAtBottom ? 'alphabetic' : 'middle'}
         className={clsx(
           'production-impresion-tiro-retiro-diagram__svg-resultado-face-label',
           faceLabelPlacement === 'bottom-start' &&
@@ -963,6 +989,7 @@ const ResultadoSheetFaceSvg: React.FC<{
         cy={centerY}
         idPrefix={inkIdPrefix}
         outerRingRadius={ringRadius}
+        inkOrbitRadius={inkOrbitRadius}
       />
       <ResultadoPasadaRingsSvg
         cx={centerX}
@@ -1002,7 +1029,7 @@ const ResultadoSheetSvg: React.FC<{
 }> = ({ tiroBars, retiroBars, patternId, idPrefix, hasTiro, hasRetiro, conVolteo, flipMode }) => {
   const sheetCenterX = SHEET_X + SHEET_W / 2
   const sheetCenterY = SHEET_Y + SHEET_H / 2
-  const ringRadius = 30
+  const ringRadius = RESULTADO_PASADA_RING_RADIUS
   const showBothSides = conVolteo
   const showTiroRing = hasTiro || conVolteo
   const showRetiroRing = hasRetiro || conVolteo
@@ -1044,7 +1071,6 @@ const ResultadoSheetSvg: React.FC<{
               faceLabel={diagramCopy.faceATiro}
               faceLabelPlacement={tiroFaceLabelPlacement}
               faceClassName="production-impresion-tiro-retiro-diagram__svg-resultado-face production-impresion-tiro-retiro-diagram__svg-resultado-face--tiro"
-              ringRadius={bifrontalLayout.ringRadius}
               hasTiro={showTiroRing}
               hasRetiro={false}
               inkIdPrefix="ink-resultado-tiro"
@@ -1061,7 +1087,6 @@ const ResultadoSheetSvg: React.FC<{
               faceLabel={diagramCopy.faceBRetiro}
               faceLabelPlacement={retiroFaceLabelPlacement}
               faceClassName="production-impresion-tiro-retiro-diagram__svg-resultado-face production-impresion-tiro-retiro-diagram__svg-resultado-face--retiro"
-              ringRadius={bifrontalLayout.ringRadius}
               hasTiro={false}
               hasRetiro={showRetiroRing}
               inkIdPrefix="ink-resultado-retiro"
@@ -1257,13 +1282,138 @@ const ResultadoColumn: React.FC<{
   </div>
 )
 
+const BridgeVolteoFigureSvg: React.FC<{ kind: 'pinza' | 'escuadra' }> = ({ kind }) => {
+  const bridgeId = useId().replace(/:/g, '')
+  const markerStartId = `${bridgeId}-arrow-start`
+  const markerEndId = `${bridgeId}-arrow-end`
+  const isPinza = kind === 'pinza'
+  const arrowMarkers = {
+    markerStart: `url(#${markerStartId})`,
+    markerEnd: `url(#${markerEndId})`,
+  }
+
+  return (
+    <svg
+      viewBox={isPinza ? '0 0 54 72' : '0 0 72 54'}
+      className={clsx(
+        'production-impresion-tiro-retiro-diagram__bridge-arrow-svg',
+        isPinza
+          ? 'production-impresion-tiro-retiro-diagram__bridge-arrow-svg--vertical'
+          : 'production-impresion-tiro-retiro-diagram__bridge-arrow-svg--horizontal'
+      )}
+      aria-hidden
+    >
+      <defs>
+        <marker
+          id={markerEndId}
+          markerWidth="7"
+          markerHeight="7"
+          refX="5.5"
+          refY="3.5"
+          orient="auto"
+        >
+          <path
+            d="M0.5,0.5 L6.5,3.5 L0.5,6.5 Z"
+            className="production-impresion-tiro-retiro-diagram__bridge-arrow-head"
+          />
+        </marker>
+        <marker
+          id={markerStartId}
+          markerWidth="7"
+          markerHeight="7"
+          refX="1.5"
+          refY="3.5"
+          orient="auto-start-reverse"
+        >
+          <path
+            d="M0.5,0.5 L6.5,3.5 L0.5,6.5 Z"
+            className="production-impresion-tiro-retiro-diagram__bridge-arrow-head"
+          />
+        </marker>
+      </defs>
+      {isPinza ? (
+        <>
+          <text
+            x="11"
+            y="9"
+            textAnchor="middle"
+            className="production-impresion-tiro-retiro-diagram__bridge-axis-label"
+          >
+            {diagramCopy.pinzaBarLabel}
+          </text>
+          <line
+            x1="11"
+            y1="14"
+            x2="11"
+            y2="62"
+            className="production-impresion-tiro-retiro-diagram__bridge-axis"
+          />
+          <circle
+            cx="11"
+            cy="38"
+            r="2.75"
+            className="production-impresion-tiro-retiro-diagram__bridge-axis-node"
+          />
+          <line
+            x1="39"
+            y1="12"
+            x2="39"
+            y2="60"
+            className="production-impresion-tiro-retiro-diagram__bridge-arrow-line"
+            {...arrowMarkers}
+          />
+        </>
+      ) : (
+        <>
+          <line
+            x1="12"
+            y1="14"
+            x2="60"
+            y2="14"
+            className="production-impresion-tiro-retiro-diagram__bridge-arrow-line"
+            {...arrowMarkers}
+          />
+          <text
+            x="36"
+            y="50"
+            textAnchor="middle"
+            className="production-impresion-tiro-retiro-diagram__bridge-axis-label"
+          >
+            {diagramCopy.escuadraBarLabel}
+          </text>
+          <line
+            x1="12"
+            y1="38"
+            x2="60"
+            y2="38"
+            className="production-impresion-tiro-retiro-diagram__bridge-axis"
+          />
+          <circle
+            cx="36"
+            cy="38"
+            r="2.75"
+            className="production-impresion-tiro-retiro-diagram__bridge-axis-node"
+          />
+        </>
+      )}
+    </svg>
+  )
+}
+
 const FlipBridge: React.FC<{ flipMode: FlipMode }> = ({ flipMode }) => {
+  const isPinza = flipMode === 'volteo-pinza'
+  const isEscuadra = flipMode === 'volteo-escuadra'
   const label =
     flipMode === 'volteo-pinza'
       ? diagramCopy.volteoPinzaLabel
       : flipMode === 'volteo-escuadra'
         ? diagramCopy.volteoEscuadraLabel
         : diagramCopy.sinVolteoLabel
+  const rotationHint = isPinza
+    ? diagramCopy.volteoPinzaRotationHint
+    : isEscuadra
+      ? diagramCopy.volteoEscuadraRotationHint
+      : undefined
 
   return (
     <div
@@ -1271,23 +1421,51 @@ const FlipBridge: React.FC<{ flipMode: FlipMode }> = ({ flipMode }) => {
         'production-impresion-tiro-retiro-diagram__bridge',
         `production-impresion-tiro-retiro-diagram__bridge--${flipMode}`
       )}
-      aria-hidden
+      role={rotationHint ? 'img' : undefined}
+      aria-label={rotationHint}
     >
-      <svg viewBox="0 0 80 24" className="production-impresion-tiro-retiro-diagram__bridge-arrow-svg">
-        <defs>
-          <marker id="bridge-arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#64748b" />
-          </marker>
-        </defs>
-        <line
-          x1="4"
-          y1="12"
-          x2="68"
-          y2="12"
-          className="production-impresion-tiro-retiro-diagram__bridge-line"
-          markerEnd="url(#bridge-arrowhead)"
-        />
-      </svg>
+      {isPinza ? (
+        <div className="production-impresion-tiro-retiro-diagram__bridge-arrow-stack">
+          <span
+            className={clsx(
+              'production-impresion-tiro-retiro-diagram__bridge-side-label',
+              'production-impresion-tiro-retiro-diagram__bridge-side-label--tiro'
+            )}
+          >
+            {diagramCopy.resultadoTiro}
+          </span>
+          <BridgeVolteoFigureSvg kind="pinza" />
+          <span
+            className={clsx(
+              'production-impresion-tiro-retiro-diagram__bridge-side-label',
+              'production-impresion-tiro-retiro-diagram__bridge-side-label--retiro'
+            )}
+          >
+            {diagramCopy.resultadoRetiro}
+          </span>
+        </div>
+      ) : null}
+      {isEscuadra ? (
+        <div className="production-impresion-tiro-retiro-diagram__bridge-arrow-row">
+          <span
+            className={clsx(
+              'production-impresion-tiro-retiro-diagram__bridge-side-label',
+              'production-impresion-tiro-retiro-diagram__bridge-side-label--tiro'
+            )}
+          >
+            {diagramCopy.resultadoTiro}
+          </span>
+          <BridgeVolteoFigureSvg kind="escuadra" />
+          <span
+            className={clsx(
+              'production-impresion-tiro-retiro-diagram__bridge-side-label',
+              'production-impresion-tiro-retiro-diagram__bridge-side-label--retiro'
+            )}
+          >
+            {diagramCopy.resultadoRetiro}
+          </span>
+        </div>
+      ) : null}
       <span className="production-impresion-tiro-retiro-diagram__bridge-label">{label}</span>
     </div>
   )

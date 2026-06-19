@@ -112,7 +112,9 @@ export interface ValorImpresionPorMillaresReferenciaInput {
 export const shouldUsarPrecioConVolteoColorBasico = (
   tamanosBuenosReferencia: number | null | undefined
 ): boolean =>
-  tamanosBuenosReferencia === TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO
+  typeof tamanosBuenosReferencia === 'number' &&
+  tamanosBuenosReferencia > 0 &&
+  tamanosBuenosReferencia <= TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_COLOR_BASICO
 
 export const shouldUsarPrecioConVolteoPantone = (
   tamanosBuenosReferencia: number | null | undefined
@@ -121,7 +123,7 @@ export const shouldUsarPrecioConVolteoPantone = (
   tamanosBuenosReferencia > 0 &&
   tamanosBuenosReferencia <= TAMANOS_BUENOS_REFERENCIA_PRECIO_VOLTEO_PANTONE
 
-/** Precio impresión Color básico según tamaños buenos referencia (500 → con volteo). */
+/** Precio impresión Color básico sin volteo según tamaños buenos colores básicos (≤ 500 → con volteo). */
 export const computeValorImpresionColorBasicoPorReferencia = ({
   millaresReferencia,
   tamanosBuenosReferencia,
@@ -139,6 +141,34 @@ export const computeValorImpresionColorBasicoPorReferencia = ({
     : precioSinVolteo
   if (precioUnitario <= 0) return 0
   return Math.round(millaresReferencia * precioUnitario)
+}
+
+/** Color básico con volteo: ≤ 500 fuerza precio con volteo; si no, aplica tope mínimo. */
+export const computeValorImpresionColorBasicoConVolteoPorReferencia = ({
+  millaresReferencia,
+  tamanosBuenosReferencia,
+  precioConVolteo,
+  precioSinVolteo,
+  topeMinimoMillar,
+}: {
+  millaresReferencia: number
+  tamanosBuenosReferencia: number | null | undefined
+  precioConVolteo: number
+  precioSinVolteo: number
+  topeMinimoMillar: number
+}): number => {
+  if (shouldUsarPrecioConVolteoColorBasico(tamanosBuenosReferencia)) {
+    if (millaresReferencia <= 0 || precioConVolteo <= 0) return 0
+    return Math.round(millaresReferencia * precioConVolteo)
+  }
+
+  return computeValorImpresionPorMillaresReferencia({
+    millaresReferencia,
+    precioInicial: precioSinVolteo,
+    precioPorMillar: precioConVolteo,
+    conVolteo: true,
+    topeMinimoMillar,
+  })
 }
 
 /** Precio impresión Pantone sin volteo según tamaños buenos pantone (≤ 500 → con volteo). */

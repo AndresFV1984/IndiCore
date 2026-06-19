@@ -9,6 +9,7 @@ import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
 import ProductionCortePreprensaRegistroPicker from './ProductionCortePreprensaRegistroPicker'
 import ProductionCorteTipoPapelFields from './ProductionCorteTipoPapelFields'
 import CortePapelEstadoCorteShell from './CortePapelEstadoCorteShell'
+import ProductionCorteRegistrosSection from './ProductionCorteRegistrosSection'
 import ProductionCorteResumenConsolidado from './ProductionCorteResumenConsolidado'
 import CortePapelFaltantePanel from './CortePapelFaltantePanel'
 import CortePapelFaltanteLitografiaBar from './CortePapelFaltanteLitografiaBar'
@@ -214,6 +215,7 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
         label: copy.faltante.registroPickerLabel(parentLabel),
         completo: processedRegistroIds.has(id),
         esFaltanteLitografia: true,
+        plancha: parent,
       }
     })
   }, [paperRows, coloresPlanchas, processedRegistroIds])
@@ -430,6 +432,15 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
         processedIds={processedRegistroIds}
         extraOptions={pickerExtraOptions}
         onChange={onActiveColorPlanchaIdChange}
+        datosPlancha={
+          showRegistroForm
+            ? {
+                row: draftRow,
+                coloresPlanchas,
+                clienteSuministraPapel,
+              }
+            : null
+        }
       />
 
       <div className="production-diseno-form">
@@ -520,9 +531,11 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
               </footer>
             ) : null}
           </div>
+        </section>
 
-          {processedRegistroIds.size > 0 ? (
-            <ProductionCorteResumenConsolidado
+        {processedRegistroIds.size > 0 ? (
+          <div className="production-ws-sections-stack">
+            <ProductionCorteRegistrosSection
               coloresPlanchas={coloresPlanchas}
               paperRows={paperRows}
               tiposPapel={catalogTipos}
@@ -532,8 +545,15 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
               onSelectRegistro={onActiveColorPlanchaIdChange}
               onDeleteRegistro={onPaperRowDelete}
             />
-          ) : null}
-        </section>
+            <ProductionCorteResumenConsolidado
+              coloresPlanchas={coloresPlanchas}
+              paperRows={paperRows}
+              tiposPapel={catalogTipos}
+              margenRedondeo={margenRedondeo}
+              clienteSuministraPapel={clienteSuministraPapel}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   )
