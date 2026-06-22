@@ -13,6 +13,7 @@ import {
   isValidImpresionTintaIndex,
   normalizeImpresionInkIndex,
 } from './impresionTintasUtils'
+import { resolvePrecioPruebaSherpaCobro } from './impresionPruebaSherpaUtils'
 import { isImpresionConVolteo, normalizeImpresionTipoBifronte } from '../constants/impresionTipoBifronte'
 import {
   computeMillaresCalculados,
@@ -66,7 +67,9 @@ export interface ImpresionTintasResumenLine {
   completo: boolean
   precioTintaColorBasico: number
   precioTintaPantone: number
+  precioCobroTintaPantone: number
   precioVolteo: number
+  precioPruebaSherpa: number
   totalCobrar: number
 }
 
@@ -77,7 +80,9 @@ export interface ImpresionTintasResumenConsolidado {
   totales: {
     precioTintaColorBasico: number
     precioTintaPantone: number
+    precioCobroTintaPantone: number
     precioVolteo: number
+    precioPruebaSherpa: number
     totalCobrar: number
     volteoColorBasico: ImpresionTintasResumenVolteoEstado
     volteoPantone: ImpresionTintasResumenVolteoEstado
@@ -129,6 +134,7 @@ export interface ImpresionEntradaRegistroResumen {
   millaresPantone: number
   precioTintaColorBasico: number
   precioTintaPantone: number
+  precioCobroTintaPantone: number
   precioTintaTotal: number
   millaresVolteo: number
   precioVolteo: number
@@ -675,6 +681,10 @@ export const resolveEntradaRegistroResumen = (
 
   const precioTintaTotal = entrada.precioTinta ?? 0
   const precioVolteo = entrada.precioVolteo ?? 0
+  const precioCobroTintaPantone =
+    typeof entrada.precioCobroTintaPantone === 'number' && entrada.precioCobroTintaPantone >= 0
+      ? entrada.precioCobroTintaPantone
+      : 0
 
   return {
     cantidadTintasColorBasico,
@@ -683,6 +693,7 @@ export const resolveEntradaRegistroResumen = (
     millaresPantone: entrada.millaresPantone ?? 0,
     precioTintaColorBasico: entrada.precioTintaColorBasico ?? 0,
     precioTintaPantone: entrada.precioTintaPantone ?? 0,
+    precioCobroTintaPantone,
     precioTintaTotal,
     millaresVolteo: entrada.millaresVolteo ?? 0,
     precioVolteo,
@@ -697,9 +708,11 @@ export const buildImpresionTintasResumenConsolidado = (
   const byId = new Map(registros.map(registro => [registro.colorPlanchaId, registro]))
 
   const lines = coloresPlanchas.map(plancha => {
-    const entrada = byId.get(plancha.id)?.entradas[0]
+    const registro = byId.get(plancha.id)
+    const entrada = registro?.entradas[0]
     const resumen = entrada ? resolveEntradaRegistroResumen(entrada) : null
     const meta = getColoresOptionMeta(plancha.colores)
+    const precioPruebaSherpa = registro ? resolvePrecioPruebaSherpaCobro(registro) : 0
 
     return {
       colorPlanchaId: plancha.id,
@@ -708,8 +721,10 @@ export const buildImpresionTintasResumenConsolidado = (
       completo: Boolean(entrada),
       precioTintaColorBasico: resumen?.precioTintaColorBasico ?? 0,
       precioTintaPantone: resumen?.precioTintaPantone ?? 0,
+      precioCobroTintaPantone: resumen?.precioCobroTintaPantone ?? 0,
       precioVolteo: resumen?.precioVolteo ?? 0,
-      totalCobrar: resumen?.grandTotal ?? 0,
+      precioPruebaSherpa,
+      totalCobrar: (resumen?.grandTotal ?? 0) + precioPruebaSherpa,
     }
   })
 
@@ -717,13 +732,17 @@ export const buildImpresionTintasResumenConsolidado = (
     (acc, line) => ({
       precioTintaColorBasico: acc.precioTintaColorBasico + line.precioTintaColorBasico,
       precioTintaPantone: acc.precioTintaPantone + line.precioTintaPantone,
+      precioCobroTintaPantone: acc.precioCobroTintaPantone + line.precioCobroTintaPantone,
       precioVolteo: acc.precioVolteo + line.precioVolteo,
+      precioPruebaSherpa: acc.precioPruebaSherpa + line.precioPruebaSherpa,
       totalCobrar: acc.totalCobrar + line.totalCobrar,
     }),
     {
       precioTintaColorBasico: 0,
       precioTintaPantone: 0,
+      precioCobroTintaPantone: 0,
       precioVolteo: 0,
+      precioPruebaSherpa: 0,
       totalCobrar: 0,
     }
   )

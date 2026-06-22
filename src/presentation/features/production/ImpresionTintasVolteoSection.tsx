@@ -17,11 +17,14 @@ import {
 } from './utils/tarifaMillarPricingUtils'
 import type { ImpresionGrupoMillaresPreview } from './utils/impresionPrecioTintaUtils'
 import { formatPrecioMillar, resolveImpresionPrecioConVolteoMillar } from './utils/impresionVolteoTarifaUtils'
+import ImpresionPantoneTintaSuministroInline from './ImpresionPantoneTintaSuministroInline'
+import type { YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 
 const colorBasicoCopy = copy.tintas.colorBasico
 const pantoneCopy = copy.tintas.pantone
 const volteoCopy = copy.tintas.tintasVolteo
 const millaresCopy = copy.tintas.millaresCalculados
+const tintaPantoneSuministroCopy = copy.tintas.tintaPantoneSuministro
 type VolteoVariant = 'colorBasico' | 'pantone'
 
 interface VolteoTarifaBlockProps {
@@ -41,6 +44,10 @@ interface VolteoTarifaBlockProps {
   millaresPreview?: ImpresionGrupoMillaresPreview | null
   conVolteoPermitido?: boolean
   conVolteoBloqueadoHint?: string | null
+  clienteSuministraTintaPantone?: YesNoChoice
+  precioCobroTintaPantone?: number
+  onClienteSuministraTintaPantoneChange?: (value: YesNoChoice) => void
+  onPrecioCobroTintaPantoneChange?: (value: number) => void
   onTipoBifronteChange: (value: ImpresionTipoBifronte | '') => void
   onPrecioMillarChange: (value: number) => void
   onPrecioVolteoMillarChange: (value: number) => void
@@ -86,6 +93,10 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
   millaresPreview = null,
   conVolteoPermitido = true,
   conVolteoBloqueadoHint = null,
+  clienteSuministraTintaPantone = 'si',
+  precioCobroTintaPantone = 0,
+  onClienteSuministraTintaPantoneChange,
+  onPrecioCobroTintaPantoneChange,
   onTipoBifronteChange,
   onPrecioMillarChange,
   onPrecioVolteoMillarChange,
@@ -162,8 +173,15 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
     variant,
   ])
 
+  const cobroTintaPantone =
+    variant === 'pantone' && clienteSuministraTintaPantone !== 'si'
+      ? Math.max(0, precioCobroTintaPantone)
+      : 0
+
   const valorImpresionDisplay =
     valorImpresion > 0 ? formatPrecioMillar(valorImpresion) : millaresCopy.empty
+  const precioTintaPantoneDisplay =
+    cobroTintaPantone > 0 ? formatPrecioMillar(cobroTintaPantone) : millaresCopy.empty
 
   const tarifaStripProps = conVolteo
     ? {
@@ -242,17 +260,43 @@ const ImpresionTintasVolteoTarifaBlock: React.FC<VolteoTarifaBlockProps> = ({
             {volteoSeleccionLabel}
           </span>
         </div>
-        <div className="production-impresion-grupo-card__total" role="status">
-          <span className="production-impresion-grupo-card__total-label">
-            {millaresCopy.valorImpresionLabel}
-          </span>
-          <span className="production-impresion-grupo-card__total-value">
-            {valorImpresionDisplay}
-          </span>
+        <div className="production-impresion-grupo-card__totals">
+          <div className="production-impresion-grupo-card__total" role="status">
+            <span className="production-impresion-grupo-card__total-label">
+              {millaresCopy.valorImpresionLabel}
+            </span>
+            <span className="production-impresion-grupo-card__total-value">
+              {valorImpresionDisplay}
+            </span>
+          </div>
+          {variant === 'pantone' ? (
+            <div
+              className="production-impresion-grupo-card__total production-impresion-grupo-card__total--secondary"
+              role="status"
+            >
+              <span className="production-impresion-grupo-card__total-label">
+                {tintaPantoneSuministroCopy.precioDisplayLabel}
+              </span>
+              <span className="production-impresion-grupo-card__total-value">
+                {precioTintaPantoneDisplay}
+              </span>
+            </div>
+          ) : null}
         </div>
       </header>
 
       <div className="production-impresion-grupo-card__body">
+        {variant === 'pantone' &&
+        onClienteSuministraTintaPantoneChange &&
+        onPrecioCobroTintaPantoneChange ? (
+          <ImpresionPantoneTintaSuministroInline
+            clienteSuministraTintaPantone={clienteSuministraTintaPantone}
+            precioCobroTintaPantone={precioCobroTintaPantone}
+            onSuministroChange={onClienteSuministraTintaPantoneChange}
+            onPrecioChange={onPrecioCobroTintaPantoneChange}
+          />
+        ) : null}
+
         <ImpresionVolteoSelector
           value={tipoBifronte}
           onChange={onTipoBifronteChange}
@@ -312,6 +356,10 @@ interface ImpresionTintasVolteoSectionProps {
   conVolteoPermitidoPantone?: boolean
   conVolteoBloqueadoHintColorBasico?: string | null
   conVolteoBloqueadoHintPantone?: string | null
+  clienteSuministraTintaPantone?: YesNoChoice
+  precioCobroTintaPantone?: number
+  onClienteSuministraTintaPantoneChange?: (value: YesNoChoice) => void
+  onPrecioCobroTintaPantoneChange?: (value: number) => void
   onTipoBifronteColorBasicoChange: (value: ImpresionTipoBifronte | '') => void
   onTipoBifrontePantoneChange: (value: ImpresionTipoBifronte | '') => void
   onPrecioColorBasicoMillarChange: (value: number) => void
@@ -352,6 +400,10 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
   conVolteoPermitidoPantone = true,
   conVolteoBloqueadoHintColorBasico = null,
   conVolteoBloqueadoHintPantone = null,
+  clienteSuministraTintaPantone = 'si',
+  precioCobroTintaPantone = 0,
+  onClienteSuministraTintaPantoneChange,
+  onPrecioCobroTintaPantoneChange,
   onTipoBifronteColorBasicoChange,
   onTipoBifrontePantoneChange,
   onPrecioColorBasicoMillarChange,
@@ -406,6 +458,10 @@ const ImpresionTintasVolteoSection: React.FC<ImpresionTintasVolteoSectionProps> 
         tamanosBuenosReferencia={tamanosBuenosReferenciaPantone}
         conVolteoPermitido={conVolteoPermitidoPantone}
         conVolteoBloqueadoHint={conVolteoBloqueadoHintPantone}
+        clienteSuministraTintaPantone={clienteSuministraTintaPantone}
+        precioCobroTintaPantone={precioCobroTintaPantone}
+        onClienteSuministraTintaPantoneChange={onClienteSuministraTintaPantoneChange}
+        onPrecioCobroTintaPantoneChange={onPrecioCobroTintaPantoneChange}
         onTipoBifronteChange={onTipoBifrontePantoneChange}
         onPrecioMillarChange={onPrecioPantoneMillarChange}
         onPrecioVolteoMillarChange={onPrecioVolteoPantoneMillarChange}

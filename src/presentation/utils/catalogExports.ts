@@ -75,6 +75,7 @@ const tipoPapelFields: ExportField<TipoPapel>[] = [
   },
   { label: 'Valor hoja', value: r => formatCop(r.valorHoja) },
   { label: 'Unidad empaque', value: r => formatUnidadEmpaqueDisplay(r.unidadEmpaque) },
+  { label: 'Esmaltado', value: r => (r.esmaltado ? 'Sí' : 'No') },
   { label: 'Estado', value: r => estadoLabel(r.active) },
 ]
 

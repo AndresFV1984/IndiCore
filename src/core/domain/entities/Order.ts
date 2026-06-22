@@ -24,6 +24,8 @@ export interface OrderSpecs {
   inks: string;
   /** Tintas por plancha (tiro / retiro) en Impresión. */
   impresionTintasRegistros: ImpresionTintasRegistro[];
+  /** Estimaciones de consumo CMYK por plancha (Estimar tintas). */
+  impresionEstimarTintasRegistros: ImpresionEstimarTintasRegistro[];
   /** Terminados asignados por fila de corte de papel. */
   terminadosRegistros: TerminadosProduccionRegistro[];
   /** Acabados asignados por fila de corte de papel. */
@@ -201,6 +203,8 @@ export interface ImpresionTiroRetiroEntrada {
   precioTintaColorBasico?: number;
   /** Cobro por millares de colores Pantone. */
   precioTintaPantone?: number;
+  /** Cobro por suministro de tinta Pantone cuando la litografía la provee. */
+  precioCobroTintaPantone?: number;
   /** Total de cobro por millares (Color básico + Pantone). */
   precioTinta?: number;
   /** Millares del registro tiro/retiro usados para el cobro de volteo. */
@@ -242,6 +246,51 @@ export interface ImpresionTintasRegistro {
   tarifaPantoneMillarId?: string;
   /** Precio por millar (COP) de Pantone al completar la asignación de tintas. */
   precioPantoneMillar?: number;
+  /** Si es «sí», el cliente aporta la Prueba Sherpa y no se cobra. */
+  clienteSuministraPruebaSherpa?: YesNoChoice;
+  /** Cobro por Prueba Sherpa cuando la litografía la suministra. */
+  precioPruebaSherpa?: number;
+  /** Si es «sí», el cliente entrega la tinta Pantone y no se cobra suministro. */
+  clienteSuministraTintaPantone?: YesNoChoice;
+  /** Cobro por suministro de tinta Pantone cuando la litografía la provee. */
+  precioCobroTintaPantone?: number;
+}
+
+export interface EstimarTintasCmykValues {
+  c: number;
+  m: number;
+  y: number;
+  k: number;
+}
+
+/** Línea de estimación CMYK guardada para una plancha. */
+export interface ImpresionEstimarTintasEntrada {
+  id: string;
+  fileName: string;
+  sourceKind: 'image' | 'pdf';
+  widthCm: number;
+  heightCm: number;
+  dpi: number;
+  conversionFactorG: number;
+  coverage: EstimarTintasCmykValues;
+  inkG: EstimarTintasCmykValues;
+  /** Consumo CMYK total estimado por pliego (g). */
+  totalInkG: number;
+  /** Consumo CMYK total para el tiraje: totalInkG × totalPliegos (g). */
+  totalInkPedidoG: number;
+  totalPliegos: number;
+  averageTac: number;
+  calculatedAt: string;
+  /** Snapshot del tipo de papel al guardar el registro. */
+  tipoPapelDisplay?: string;
+  /** Snapshot del despiece al guardar el registro. */
+  despieceDisplay?: string;
+}
+
+/** Estimación de tinta CMYK por registro de preprensa (plancha). */
+export interface ImpresionEstimarTintasRegistro {
+  colorPlanchaId: string;
+  entradas: ImpresionEstimarTintasEntrada[];
 }
 
 export class Order {

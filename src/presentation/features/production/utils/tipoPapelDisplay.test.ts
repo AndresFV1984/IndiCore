@@ -17,6 +17,7 @@ const tipoPapel = new TipoPapel(
   250,
   420,
   true,
+  true,
   [
     {
       despieceId: 'dp-1',
@@ -42,7 +43,7 @@ describe('resolveDespieceForTipoPapel', () => {
       valorCorte: 50,
     }
 
-    const emptyTipo = new TipoPapel('tp-1', 'Couché', '70', '100', 'cm', 1000, 250, 420, true, [])
+    const emptyTipo = new TipoPapel('tp-1', 'Couché', '70', '100', 'cm', 1000, 250, 420, false, true, [])
 
     expect(resolveDespieceForTipoPapel(saved, emptyTipo)).toEqual(saved)
   })

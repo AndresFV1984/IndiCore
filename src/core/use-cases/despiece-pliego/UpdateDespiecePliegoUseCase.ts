@@ -30,6 +30,7 @@ export class UpdateDespiecePliegoUseCase {
           tipoPapel.valorHoja,
           tipoPapel.unidadEmpaque,
           tipoPapel.valorCorte,
+          tipoPapel.esmaltado,
           tipoPapel.active,
           syncDespieceAsociadoList(tipoPapel.despiecesPliego, item)
         )

@@ -13,6 +13,7 @@ import ImpresionTiroRetiroDiagram from './ImpresionTiroRetiroDiagram'
 import ImpresionTintasVolteoSection from './ImpresionTintasVolteoSection'
 import ImpresionLadoTintasFields from './ImpresionLadoTintasFields'
 import ImpresionPlanchaDetalleFields from './ImpresionPlanchaDetalleFields'
+import ImpresionPruebaContratoSection from './ImpresionPruebaContratoSection'
 import ImpresionPlanchaSelect from './ImpresionPlanchaSelect'
 import ImpresionTintasEntradasList from './ImpresionTintasEntradasList'
 import ProductionImpresionTintasResumen from './ProductionImpresionTintasResumen'
@@ -54,6 +55,13 @@ import {
   syncImpresionTintasDraftTarifa,
   type ImpresionTintasDraftTarifa,
 } from './utils/impresionTintasDraftTarifa'
+import {
+  resolveClienteSuministraPruebaSherpa,
+} from './utils/impresionPruebaSherpaUtils'
+import {
+  resolveClienteSuministraTintaPantone,
+  resolvePrecioCobroTintaPantone,
+} from './utils/impresionTintaPantoneSuministroUtils'
 
 const tintasCopy = copy.tintas
 const registroCopy = tintasCopy.registro
@@ -92,6 +100,9 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   const [draftTarifa, setDraftTarifa] = useState<ImpresionTintasDraftTarifa>(
     emptyImpresionTintasDraftTarifa()
   )
+  const [draftClienteSuministraTintaPantone, setDraftClienteSuministraTintaPantone] =
+    useState<'si' | 'no'>('si')
+  const [draftPrecioCobroTintaPantone, setDraftPrecioCobroTintaPantone] = useState(0)
   const [editingEntradaId, setEditingEntradaId] = useState<string | null>(null)
   const [draftError, setDraftError] = useState<string | null>(null)
   const { items: tarifasMillar, loading: tarifasMillarLoading } = useTarifaMillarHook()
@@ -295,8 +306,15 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     setDraftTiro(emptyImpresionLadoTintas())
     setDraftRetiro(emptyImpresionLadoTintas())
     setDraftTarifa(emptyImpresionTintasDraftTarifa())
+    setDraftClienteSuministraTintaPantone('si')
+    setDraftPrecioCobroTintaPantone(0)
     setEditingEntradaId(null)
     setDraftError(null)
+  }
+
+  const loadPantoneSuministroDraft = (registro: ImpresionTintasRegistro) => {
+    setDraftClienteSuministraTintaPantone(resolveClienteSuministraTintaPantone(registro))
+    setDraftPrecioCobroTintaPantone(Math.max(0, registro.precioCobroTintaPantone ?? 0))
   }
 
   const loadDraftFromEntrada = (entrada: ImpresionTiroRetiroEntrada, registro: ImpresionTintasRegistro) => {
@@ -330,6 +348,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
         entrada.retiro
       ),
     })
+    loadPantoneSuministroDraft(registro)
     setDraftError(null)
   }
 
@@ -345,6 +364,11 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     if (!hasDraftContent) return
     clearDraft()
   }, [activeColorPlanchaId, activeEntrada?.id])
+
+  useEffect(() => {
+    if (editingEntradaId || hasDraftContent || !activeRegistro) return
+    loadPantoneSuministroDraft(activeRegistro)
+  }, [activeColorPlanchaId, activeRegistro, editingEntradaId, hasDraftContent])
 
   useEffect(() => {
     if (tarifasMillarLoading || !showComposerForm) return
@@ -417,6 +441,12 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
           tamanosBuenosMillaresPantone?.tamanosBuenosReferencia ?? null,
       }
     )
+    const cobroTintaPantone = showPantoneTarifa
+      ? resolvePrecioCobroTintaPantone({
+          clienteSuministraTintaPantone: draftClienteSuministraTintaPantone,
+          precioCobroTintaPantone: draftPrecioCobroTintaPantone,
+        })
+      : 0
     const entrada = clampImpresionEntradaToPlanchaColores(
       {
         ...createImpresionTiroRetiroEntrada(
@@ -430,7 +460,8 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
         millaresPantone: precioTintaBreakdown.millaresPantone,
         precioTintaColorBasico: precioTintaBreakdown.colorBasico,
         precioTintaPantone: precioTintaBreakdown.pantone,
-        precioTinta: precioTintaBreakdown.total,
+        precioCobroTintaPantone: cobroTintaPantone,
+        precioTinta: precioTintaBreakdown.total + cobroTintaPantone,
         millaresVolteo: precioTintaBreakdown.millaresVolteo,
         precioVolteo: precioTintaBreakdown.volteo,
       },
@@ -440,6 +471,8 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     persistRegistro({
       ...activeRegistro,
       ...draftTarifa,
+      clienteSuministraTintaPantone: showPantoneTarifa ? draftClienteSuministraTintaPantone : 'si',
+      precioCobroTintaPantone: showPantoneTarifa ? draftPrecioCobroTintaPantone : 0,
       entradas: [entrada],
     })
     skipReloadAfterSaveRef.current = true
@@ -490,6 +523,15 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     setDraftTarifa(prev => ({ ...prev, precioPantoneMillar: precio }))
   }
 
+  const handleClienteSuministraTintaPantoneChange = (value: 'si' | 'no') => {
+    setDraftClienteSuministraTintaPantone(value)
+    if (value === 'si') setDraftPrecioCobroTintaPantone(0)
+  }
+
+  const handlePrecioCobroTintaPantoneChange = (precio: number) => {
+    setDraftPrecioCobroTintaPantone(precio)
+  }
+
   const handleEditEntrada = (colorPlanchaId: string, entradaId: string) => {
     const registro = registros.find(item => item.colorPlanchaId === colorPlanchaId)
     const entrada = registro?.entradas.find(item => item.id === entradaId)
@@ -518,6 +560,23 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   const handleCancelEdit = () => {
     clearDraft()
+  }
+
+  const handlePruebaSherpaSuministroChange = (value: 'si' | 'no') => {
+    if (!activeRegistro) return
+    persistRegistro({
+      ...activeRegistro,
+      clienteSuministraPruebaSherpa: value,
+      precioPruebaSherpa: value === 'si' ? 0 : activeRegistro.precioPruebaSherpa ?? 0,
+    })
+  }
+
+  const handlePruebaSherpaPrecioChange = (precio: number) => {
+    if (!activeRegistro) return
+    persistRegistro({
+      ...activeRegistro,
+      precioPruebaSherpa: precio,
+    })
   }
 
   return (
@@ -558,12 +617,20 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
               </section>
 
               {activePlancha && activeRegistro ? (
-                <ImpresionPlanchaDetalleFields
-                  cantidad={activePlancha.cantidad}
-                  numeroCavidades={activePlancha.numeroCavidades}
-                  tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
-                  tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
-                />
+                <>
+                  <ImpresionPlanchaDetalleFields
+                    cantidad={activePlancha.cantidad}
+                    numeroCavidades={activePlancha.numeroCavidades}
+                    tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
+                    tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
+                  />
+                  <ImpresionPruebaContratoSection
+                    clienteSuministraPruebaSherpa={resolveClienteSuministraPruebaSherpa(activeRegistro)}
+                    precioPruebaSherpa={Math.max(0, activeRegistro.precioPruebaSherpa ?? 0)}
+                    onSuministroChange={handlePruebaSherpaSuministroChange}
+                    onPrecioChange={handlePruebaSherpaPrecioChange}
+                  />
+                </>
               ) : null}
 
               {activePlancha && activeRegistro ? (
@@ -686,6 +753,12 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                             conVolteoPermitidoPantone={volteoPermitidoPantone}
                             conVolteoBloqueadoHintColorBasico={volteoBloqueadoHintColorBasico}
                             conVolteoBloqueadoHintPantone={volteoBloqueadoHintPantone}
+                            clienteSuministraTintaPantone={draftClienteSuministraTintaPantone}
+                            precioCobroTintaPantone={draftPrecioCobroTintaPantone}
+                            onClienteSuministraTintaPantoneChange={
+                              handleClienteSuministraTintaPantoneChange
+                            }
+                            onPrecioCobroTintaPantoneChange={handlePrecioCobroTintaPantoneChange}
                             onTipoBifronteColorBasicoChange={handleTipoBifronteColorBasicoChange}
                             onTipoBifrontePantoneChange={handleTipoBifrontePantoneChange}
                             onPrecioColorBasicoMillarChange={handlePrecioColorBasicoMillarChange}

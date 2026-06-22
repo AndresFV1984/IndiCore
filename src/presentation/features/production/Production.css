@@ -7377,6 +7377,10 @@
   color: #dc2626;
 }
 
+.production-preprensa-message--success {
+  color: #15803d;
+}
+
 .production-preprensa-message--error strong {
   display: inline-block;
   margin-bottom: 0.15rem;
@@ -10502,7 +10506,7 @@
 }
 
 .production-plancha-table--impresion-tintas {
-  min-width: 52rem;
+  min-width: 58rem;
 }
 
 .production-plancha-table--impresion-tintas .production-plancha-table__row:not(.production-plancha-table__row--empty) {
@@ -10802,6 +10806,2636 @@
   color: var(--corp-primary-strong, var(--corp-primary));
   background: color-mix(in srgb, var(--corp-primary) 8%, #fff);
   border-color: color-mix(in srgb, var(--corp-primary) 20%, transparent);
+}
+
+.production-impresion-prueba-contrato-shell {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-modo-shell__head {
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.45rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-modo-shell__tag {
+  padding: 0.12rem 0.38rem;
+  font-size: 0.5rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-modo-shell__title {
+  font-size: 0.875rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-modo-shell__sub {
+  margin-top: 0.12rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-costo {
+  gap: 0.5rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-modo__grid {
+  gap: 0.45rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-costo__modo .production-diseno-modo__card {
+  gap: 0.15rem;
+  padding: 0.5rem 0.65rem 0.52rem 0.72rem;
+  border-width: 1px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border-color: #e8edf2;
+  box-shadow: none;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-costo__modo .production-diseno-modo__title {
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-costo__modo .production-diseno-modo__desc {
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+.production-impresion-prueba-contrato-shell
+  .production-diseno-costo__modo
+  .production-diseno-modo__card--selected {
+  background: color-mix(in srgb, var(--corp-primary) 8%, #fff);
+  border-color: color-mix(in srgb, var(--corp-primary) 42%, #e8edf2);
+  border-left: 3px solid var(--corp-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--corp-primary) 14%, transparent);
+}
+
+.production-impresion-prueba-contrato-shell
+  .production-diseno-costo__modo
+  .production-diseno-modo__card--selected::before {
+  top: 0.32rem;
+  bottom: 0.32rem;
+  width: 3px;
+  background: var(--corp-primary);
+}
+
+.production-impresion-prueba-contrato-shell
+  .production-diseno-costo__modo
+  .production-diseno-modo__card--selected
+  .production-diseno-modo__title {
+  color: var(--corp-primary-strong, var(--corp-primary));
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-costo__valor {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #fff;
+  border-color: color-mix(in srgb, var(--corp-primary) 22%, #e8edf2);
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-costo__label {
+  margin-bottom: 0.3rem;
+  font-size: 0.6875rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-cost-input-wrap {
+  min-height: 2rem;
+}
+
+.production-impresion-prueba-contrato-shell .production-diseno-cost-input-wrap__input {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  font-size: 0.8125rem;
+}
+
+.production-impresion-pantone-tinta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.55rem;
+  padding: 0.42rem 0.55rem;
+  border: 1px solid color-mix(in srgb, #7c3aed 16%, #e8edf2);
+  border-radius: 8px;
+  background: color-mix(in srgb, #7c3aed 4%, #fff);
+}
+
+.production-impresion-pantone-tinta-row__label {
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #6d28d9;
+}
+
+.production-impresion-pantone-tinta-row__sino.production-diseno-sino--compact {
+  padding: 2px;
+}
+
+.production-impresion-pantone-tinta-row__sino .production-diseno-sino__btn {
+  min-width: 4.5rem;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+.production-impresion-pantone-tinta-row__cobro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.production-impresion-pantone-tinta-row__cobro-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--txt-2);
+  white-space: nowrap;
+}
+
+.production-impresion-pantone-tinta-row__cobro-input {
+  width: min(7.5rem, 100%);
+  min-height: 1.75rem;
+}
+
+.production-impresion-pantone-tinta-row__cobro-input .production-diseno-cost-input-wrap__prefix,
+.production-impresion-pantone-tinta-row__cobro-input .production-diseno-cost-input-wrap__input {
+  font-size: 0.75rem;
+}
+
+.production-impresion-pantone-tinta-row__cobro-input .production-diseno-cost-input-wrap__input {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .production-impresion-pantone-tinta-row__cobro {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+.production-impresion-estimar-tintas {
+  --estimar-accent: var(--corp-primary);
+  --estimar-accent-strong: var(--corp-primary-strong);
+  --estimar-accent-soft: var(--corp-primary-soft);
+  --estimar-accent-muted: #f8fafc;
+  --estimar-accent-border: color-mix(in srgb, var(--corp-primary) 18%, #e2e8f0);
+  --estimar-surface: #fff;
+  --estimar-surface-muted: #f8fafc;
+  --estimar-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.production-impresion-estimar-tintas-lead {
+  margin: 0 0 0.65rem;
+  max-width: 42rem;
+}
+
+.production-impresion-estimar-tintas-flow {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #e8edf3;
+  background: #fafbfc;
+}
+
+.production-impresion-estimar-tintas-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--estimar-accent-border);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--estimar-accent) 8%, transparent), transparent 55%),
+    linear-gradient(165deg, #fff 0%, var(--estimar-accent-muted) 100%);
+  box-shadow: var(--estimar-shadow);
+}
+
+.production-impresion-estimar-tintas-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-hero__desc {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.production-impresion-estimar-tintas-hero__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hero__hint {
+  margin: 0;
+  max-width: 46rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-flow__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.production-impresion-estimar-tintas-flow__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-flow__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.production-impresion-estimar-tintas-flow__marker svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.production-impresion-estimar-tintas-flow__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-flow__connector {
+  width: 1.15rem;
+  height: 1px;
+  margin: 0 0.12rem;
+  background: linear-gradient(90deg, #cbd5e1, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas-flow__item--active .production-impresion-estimar-tintas-flow__marker {
+  color: var(--estimar-accent-strong);
+  border-color: color-mix(in srgb, var(--estimar-accent) 35%, #dbe3ee);
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--estimar-accent) 10%, transparent);
+}
+
+.production-impresion-estimar-tintas-flow__item--active .production-impresion-estimar-tintas-flow__label {
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas-flow__item--complete .production-impresion-estimar-tintas-flow__marker {
+  color: #fff;
+  border-color: #16a34a;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+}
+
+.production-impresion-estimar-tintas-flow__item--complete .production-impresion-estimar-tintas-flow__label {
+  color: #15803d;
+}
+
+.production-impresion-estimar-tintas-flow__item--locked .production-impresion-estimar-tintas-flow__marker,
+.production-impresion-estimar-tintas-flow__item--locked .production-impresion-estimar-tintas-flow__label {
+  opacity: 0.55;
+}
+
+.production-impresion-estimar-tintas-step {
+  border-radius: 10px;
+  border: 1px solid #e8edf3;
+  background: var(--estimar-surface);
+  box-shadow: var(--estimar-shadow);
+  overflow: hidden;
+}
+
+.production-impresion-estimar-tintas-step--locked {
+  opacity: 0.72;
+}
+
+.production-impresion-estimar-tintas-step--complete {
+  border-color: color-mix(in srgb, #16a34a 22%, var(--border));
+}
+
+.production-impresion-estimar-tintas-step--active {
+  border-color: color-mix(in srgb, var(--estimar-accent) 28%, var(--border));
+}
+
+.production-impresion-estimar-tintas-step__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.72rem 0.82rem 0.62rem;
+  border-bottom: 1px solid #eef2f7;
+  background: #fafbfc;
+}
+
+.production-impresion-estimar-tintas-step__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 22%, #e2e8f0);
+  flex-shrink: 0;
+}
+
+.production-impresion-estimar-tintas-step__index svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.production-impresion-estimar-tintas-step--complete .production-impresion-estimar-tintas-step__index {
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border-color: #16a34a;
+}
+
+.production-impresion-estimar-tintas-step__titles {
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-step__tag {
+  display: inline-flex;
+  margin-bottom: 0.18rem;
+  padding: 0.1rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--estimar-accent-strong);
+  background: var(--estimar-accent-soft);
+  border: 1px solid var(--estimar-accent-border);
+}
+
+.production-impresion-estimar-tintas-step__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-step__sub {
+  margin: 0.18rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-step__body {
+  padding: 0.78rem 0.82rem 0.85rem;
+}
+
+.production-impresion-estimar-tintas-callout {
+  margin: 0;
+  padding: 0.62rem 0.72rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.production-impresion-estimar-tintas-callout--info {
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.production-impresion-estimar-tintas-callout--warning {
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.production-impresion-estimar-tintas-reveal {
+  animation: production-estimar-tintas-reveal 0.28s ease-out both;
+}
+
+@keyframes production-estimar-tintas-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.production-impresion-estimar-tintas-summary {
+  display: grid;
+  gap: 0.35rem 0.75rem;
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #e8edf3;
+  background: #fafbfc;
+}
+
+.production-impresion-estimar-tintas-summary__row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 38%) 1fr;
+  gap: 0.35rem 0.65rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.production-impresion-estimar-tintas-summary__row dt {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas-summary__row dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.production-impresion-estimar-tintas-next-hint {
+  margin: 0.55rem 0 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #dbe3ee;
+}
+
+.production-impresion-estimar-tintas-draft__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.production-plancha-table--estimar-tintas {
+  min-width: 52rem;
+}
+
+.production-plancha-table--estimar-tintas .production-plancha-table__row:not(.production-plancha-table__row--empty) {
+  height: auto;
+}
+
+.production-plancha-table--estimar-tintas .production-plancha-table__td--num {
+  min-width: 7.25rem;
+  width: auto;
+}
+
+.production-plancha-table--estimar-tintas .production-plancha-table__td:nth-child(2) {
+  min-width: 9.5rem;
+  max-width: 12rem;
+}
+
+.production-plancha-table--estimar-tintas .production-plancha-table__td:nth-child(6) {
+  min-width: 16.5rem;
+  width: auto;
+}
+
+.production-impresion-estimar-tintas-cmyk-grupo {
+  background: #f8fafc;
+  border-color: #e8edf3;
+  padding: 0.4rem 0.45rem;
+}
+
+.production-impresion-estimar-tintas-cmyk-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+}
+
+.production-impresion-estimar-tintas-cmyk-inline .production-colores-swatch-icon {
+  filter: saturate(0.62);
+  opacity: 0.86;
+  border-width: 1.5px;
+  box-shadow: inset 0 -1px 1px rgba(15, 23, 42, 0.05);
+}
+
+.production-impresion-estimar-tintas-cmyk-inline__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 3.35rem;
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.production-impresion-estimar-tintas-cmyk-inline__name {
+  font-size: 0.64rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-cmyk-inline__coverage {
+  font-size: 0.64rem;
+  font-weight: 500;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-cmyk-inline__grams {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.62rem 0.68rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e8edf3;
+}
+
+.production-impresion-estimar-tintas-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.production-impresion-estimar-tintas-fact--highlight {
+  border-color: color-mix(in srgb, var(--estimar-accent) 28%, #e8edf3);
+  background: color-mix(in srgb, var(--estimar-accent) 4%, #fff);
+}
+
+.production-impresion-estimar-tintas-fact__label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-fact__value {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  white-space: normal;
+}
+
+.production-impresion-estimar-tintas-fact--highlight .production-impresion-estimar-tintas-fact__value {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas-fact__hint {
+  font-size: 0.625rem;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.72rem;
+  border-radius: 10px;
+  background: var(--estimar-surface-muted);
+  border: 1px solid #e8edf3;
+}
+
+.production-impresion-estimar-tintas-step--area .production-impresion-estimar-tintas-step__head {
+  padding: 0.48rem 0.62rem 0.45rem;
+  gap: 0.5rem;
+}
+
+.production-impresion-estimar-tintas-step--area .production-impresion-estimar-tintas-step__index {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.production-impresion-estimar-tintas-step--area .production-impresion-estimar-tintas-step__tag {
+  margin-bottom: 0.1rem;
+  padding: 0.06rem 0.34rem;
+  font-size: 0.5rem;
+}
+
+.production-impresion-estimar-tintas-step--area .production-impresion-estimar-tintas-step__title {
+  font-size: 0.8125rem;
+}
+
+.production-impresion-estimar-tintas-step--area .production-impresion-estimar-tintas-step__sub {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-step--area .production-impresion-estimar-tintas-step__body {
+  padding: 0.65rem 0.75rem 0.75rem;
+}
+
+.production-impresion-estimar-tintas-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.production-impresion-estimar-tintas-area__question {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-area__size-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.production-impresion-estimar-tintas-area__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-area__times {
+  flex-shrink: 0;
+  padding-bottom: 0.48rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  line-height: 1;
+}
+
+.production-impresion-estimar-tintas-area__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.production-impresion-estimar-tintas-area__input-wrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.production-impresion-estimar-tintas-area__input-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--estimar-accent) 45%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--estimar-accent) 12%, transparent);
+}
+
+.production-impresion-estimar-tintas-area__input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-area__input:focus {
+  outline: none;
+}
+
+.production-impresion-estimar-tintas-area__suffix {
+  flex-shrink: 0;
+  padding: 0 0.5rem 0 0.1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-area__advanced {
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.production-impresion-estimar-tintas-area__advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.production-impresion-estimar-tintas-area__advanced-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.production-impresion-estimar-tintas-area__advanced-toggle::before {
+  content: '▸';
+  font-size: 0.75rem;
+  color: #94a3b8;
+  transition: transform 0.15s ease;
+}
+
+.production-impresion-estimar-tintas-area__advanced[open] .production-impresion-estimar-tintas-area__advanced-toggle::before {
+  transform: rotate(90deg);
+}
+
+.production-impresion-estimar-tintas-area__advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0 0.65rem 0.65rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.production-impresion-estimar-tintas-area__field-hint {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas-area__restore {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--estimar-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  cursor: pointer;
+}
+
+.production-impresion-estimar-tintas-area__restore:hover:not(:disabled) {
+  color: var(--estimar-accent);
+}
+
+.production-impresion-estimar-tintas-area__restore:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.production-impresion-estimar-tintas-area__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.production-impresion-estimar-tintas-area__actions .production-impresion-estimar-tintas-hud__btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.production-impresion-estimar-tintas-area__message {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.production-impresion-estimar-tintas-area__message--success {
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.production-impresion-estimar-tintas-area__message--error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.production-impresion-estimar-tintas__save-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  padding: 0.65rem 0.72rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--estimar-accent) 6%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas__save-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.production-impresion-estimar-tintas__save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.production-impresion-estimar-tintas__save-actions .production-plancha-draft__btn--primary {
+  flex: 1 1 auto;
+}
+
+.production-impresion-estimar-tintas-step--result {
+  border-color: color-mix(in srgb, var(--estimar-accent) 28%, var(--border));
+  box-shadow: var(--estimar-shadow);
+}
+
+.production-impresion-estimar-tintas-hud {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e8edf3;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__fx {
+  display: none;
+}
+
+.production-impresion-estimar-tintas-hud__badge {
+  align-self: flex-start;
+  padding: 0.1rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--estimar-accent-strong);
+  background: var(--estimar-accent-soft);
+  border: 1px solid var(--estimar-accent-border);
+}
+
+.production-impresion-estimar-tintas-hud__rings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-bottom: 0.15rem;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card {
+  --ring-ink: #64748b;
+  --ring-ink-strong: #334155;
+  --ring-border: #94a3b8;
+  --ring-surface: #f8fafc;
+  --ring-track: #e8edf3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.62rem 0.55rem 0.55rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  border-top-width: 5px;
+  border-top-color: var(--ring-border);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ring-ink) 10%, #fff) 0%,
+    var(--ring-surface) 100%
+  );
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card:hover {
+  transform: translateY(-1px);
+  border-color: #d5dee8;
+  border-top-color: color-mix(in srgb, var(--ring-border) 88%, #0f172a);
+  box-shadow:
+    0 4px 10px color-mix(in srgb, var(--ring-ink) 12%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--c {
+  --ring-ink: #00a9e0;
+  --ring-ink-strong: #0e7490;
+  --ring-border: #0084b0;
+  --ring-surface: #f0fbff;
+  --ring-track: color-mix(in srgb, #00a9e0 18%, #eef6fb);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--m {
+  --ring-ink: #d6007a;
+  --ring-ink-strong: #be185d;
+  --ring-border: #b80067;
+  --ring-surface: #fff5fa;
+  --ring-track: color-mix(in srgb, #d6007a 16%, #fdf2f8);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--y {
+  --ring-ink: #d4a500;
+  --ring-ink-strong: #a16207;
+  --ring-border: #b88600;
+  --ring-surface: #fffbeb;
+  --ring-track: color-mix(in srgb, #ffd400 22%, #fff8e1);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--k {
+  --ring-ink: #334155;
+  --ring-ink-strong: #0f172a;
+  --ring-border: #1a1a1a;
+  --ring-surface: #f8fafc;
+  --ring-track: color-mix(in srgb, #334155 14%, #eef2f6);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 0.42rem;
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--y .production-impresion-estimar-tintas-hud__ring-card-badge {
+  color: #422006;
+  border-color: #9a7200;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ring-ink-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-viz {
+  position: relative;
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-track {
+  stroke: var(--ring-track);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-progress {
+  transition: stroke-dashoffset 0.45s ease;
+  stroke: var(--ring-ink);
+  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--ring-ink) 35%, transparent));
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ring-ink-strong);
+  pointer-events: none;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  width: 100%;
+  padding-top: 0.1rem;
+  border-top: 2px solid color-mix(in srgb, var(--ring-border) 55%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-foot-label {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ring-ink-strong) 72%, #64748b);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card-grams {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ring-ink-strong);
+  text-shadow: none;
+}
+
+@media (min-width: 860px) {
+  .production-impresion-estimar-tintas-hud__rings {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.production-impresion-estimar-tintas-hud__total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.55rem 0.62rem;
+  border-radius: 9px;
+  text-align: left;
+  background: var(--estimar-surface-muted);
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #cbd5e1;
+  box-shadow: var(--estimar-shadow);
+}
+
+.production-impresion-estimar-tintas-hud__totals-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #eef2f6;
+}
+
+.production-impresion-estimar-tintas-hud__total--sample {
+  border-left-color: color-mix(in srgb, #64748b 55%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas-hud__total--pedido {
+  background: color-mix(in srgb, var(--estimar-accent) 4%, #fff);
+  border-color: var(--estimar-accent-border);
+  border-left-color: color-mix(in srgb, var(--estimar-accent) 48%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas-hud__total-hint {
+  font-size: 0.5625rem;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__total-formula {
+  width: 100%;
+  margin-top: 0.08rem;
+  font-size: 0.5625rem;
+}
+
+.production-impresion-estimar-tintas-hud__total-value--pedido {
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas-hud__total-meta {
+  margin: 0;
+  max-width: 36rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eef2f6;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__total-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__total-value {
+  font-size: clamp(0.95rem, 2.6vw, 1.1rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__calibration {
+  margin-top: 0.15rem;
+  border-radius: 10px;
+  border: 1px solid #e8edf3;
+  background: #fff;
+  overflow: hidden;
+}
+
+.production-impresion-estimar-tintas-hud__total-meta {
+  max-width: 36rem;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__save {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.72rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--estimar-accent) 6%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas-hud__save-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.production-impresion-estimar-tintas-hud__save-hint {
+  margin: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.production-impresion-estimar-tintas-hud__save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.production-impresion-estimar-tintas-hud__btn {
+  min-height: 2.1rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.production-impresion-estimar-tintas-hud__btn--ghost {
+  color: var(--txt-2);
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.production-impresion-estimar-tintas-hud__btn--primary {
+  flex: 0 1 auto;
+  color: #fff;
+  background: var(--estimar-accent-strong);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent-strong) 88%, #000);
+}
+
+.production-impresion-estimar-tintas-hud__btn--primary:hover:not(:disabled) {
+  background: var(--estimar-accent);
+}
+
+.production-impresion-estimar-tintas-hud__btn--primary:disabled,
+.production-impresion-estimar-tintas-hud__btn--calibrate:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.production-impresion-estimar-tintas-hud__btn--calibrate {
+  width: auto;
+  color: #fff;
+  background: var(--estimar-accent-strong);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent-strong) 88%, #000);
+}
+
+.production-impresion-estimar-tintas-hud__btn--calibrate:hover:not(:disabled) {
+  background: var(--estimar-accent);
+}
+
+.production-impresion-estimar-tintas-hud__note {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__alert {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.production-impresion-estimar-tintas-hud__alert--error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.production-impresion-estimar-tintas-hud__calibration {
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 14%, var(--border));
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--estimar-accent) 3%, #fff) 0%,
+    #fff 100%
+  );
+  overflow: hidden;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.65rem 0.65rem 0.45rem;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-tag {
+  flex-shrink: 0;
+  padding: 0.12rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 22%, transparent);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem 0.65rem;
+  border-top: 1px solid color-mix(in srgb, var(--estimar-accent) 12%, var(--border));
+}
+
+.production-impresion-estimar-tintas-hud__calibration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-measured {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: stretch;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #fff);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-measured-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-measured-control {
+  min-width: 0;
+  width: 100%;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-measured-control .production-impresion-estimar-tintas-area__input-wrap {
+  width: 100%;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-measured-input {
+  min-height: 2.25rem;
+  font-size: 0.9375rem;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-sub {
+  margin: 0.12rem 0 0;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-metric,
+.production-impresion-estimar-tintas-hud__calibration-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  min-height: 100%;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #fff);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-metric span,
+.production-impresion-estimar-tintas-hud__calibration-field .production-form-label {
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-metric strong {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-field .production-form-input,
+.production-impresion-estimar-tintas-hud__calibration-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-field .production-form-input::placeholder,
+.production-impresion-estimar-tintas-hud__calibration-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-field .production-form-input:focus,
+.production-impresion-estimar-tintas-hud__calibration-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--estimar-accent) 45%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--estimar-accent) 12%, transparent);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-input-wrap {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-input-wrap .production-impresion-estimar-tintas-hud__calibration-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-suffix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: #f8fafc;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--txt-2);
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-field-hint {
+  margin: -0.15rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__input {
+  background: #fff !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
+}
+
+.production-impresion-estimar-tintas-hud__field-hint {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-preview h6,
+.production-impresion-estimar-tintas-hud__calibration-applied h6 {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin: 0;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-compare > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+  font-size: 0.6875rem;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-compare dt {
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-compare dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-compare--highlight dd {
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-delta {
+  margin-left: 0.25rem;
+  font-size: 0.625rem;
+  color: #b45309;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-preview,
+.production-impresion-estimar-tintas-hud__calibration-applied {
+  padding: 0.55rem 0.62rem;
+  border-radius: 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, var(--border));
+  background: #fff;
+}
+
+.production-impresion-estimar-tintas-hud__calibration-applied {
+  border-color: color-mix(in srgb, #15803d 28%, var(--border));
+  background: color-mix(in srgb, #15803d 4%, #fff);
+}
+
+.production-impresion-estimar-tintas-hud__calibration-applied p {
+  margin: 0.35rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+@media (max-width: 720px) {
+  .production-impresion-estimar-tintas-hud__rings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .production-impresion-estimar-tintas-hud__ring-card-viz {
+    width: 3.1rem;
+    height: 3.1rem;
+  }
+
+  .production-impresion-estimar-tintas-hud__calibration-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .production-impresion-estimar-tintas-hud__calibration-measured {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    align-items: stretch;
+  }
+
+  .production-impresion-estimar-tintas-hud__save-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .production-impresion-estimar-tintas-hud__save-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 520px) {
+  .production-impresion-estimar-tintas-area__size-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .production-impresion-estimar-tintas-area__times {
+    display: none;
+  }
+}
+
+.production-impresion-estimar-tintas__param-group + .production-impresion-estimar-tintas__param-group {
+  margin-top: 0.55rem;
+}
+
+.production-impresion-estimar-tintas__param-group-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__measure-grid {
+  margin-top: 0.15rem;
+}
+
+.production-impresion-estimar-tintas__cta-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.production-impresion-estimar-tintas__drop--modern {
+  min-height: 11rem;
+  border-style: dashed;
+  border-width: 1.5px;
+  border-radius: 12px;
+}
+
+.production-impresion-estimar-tintas__empty-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.production-impresion-estimar-tintas__empty-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.production-impresion-estimar-tintas__empty-dot--c {
+  background: #00a9e0;
+}
+
+.production-impresion-estimar-tintas__empty-dot--m {
+  background: #d6007a;
+}
+
+.production-impresion-estimar-tintas__empty-dot--y {
+  background: #ffd400;
+}
+
+.production-impresion-estimar-tintas__empty-dot--k {
+  background: #1a1a1a;
+}
+
+.production-impresion-estimar-tintas__empty-step {
+  display: inline-flex;
+  margin-bottom: 0.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--estimar-accent-strong);
+  background: var(--estimar-accent-soft);
+}
+
+.production-impresion-estimar-tintas__aside--ready {
+  position: sticky;
+  top: 0.75rem;
+}
+
+.production-impresion-estimar-tintas .production-impresion-estimar-tintas-shell .production-diseno-modo-shell__tag {
+  color: var(--estimar-accent-strong);
+  background: var(--estimar-accent-soft);
+  border-color: var(--estimar-accent-border);
+}
+
+.production-impresion-estimar-tintas .production-diseno-pdf-upload__drop:hover {
+  border-color: color-mix(in srgb, var(--estimar-accent) 28%, #cbd5e1);
+  background: var(--estimar-accent-muted);
+}
+
+.production-impresion-estimar-tintas .production-diseno-pdf-upload__drop--active {
+  border-color: color-mix(in srgb, var(--estimar-accent) 45%, #cbd5e1);
+  background: color-mix(in srgb, var(--estimar-accent) 5%, #fff);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 2px color-mix(in srgb, var(--estimar-accent) 12%, transparent);
+}
+
+.production-impresion-estimar-tintas .production-diseno-pdf-upload__drop--active .production-diseno-pdf-upload__drop-icon {
+  color: var(--estimar-accent);
+  border-color: color-mix(in srgb, var(--estimar-accent) 28%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas .production-diseno-pdf-upload__select-btn {
+  background: linear-gradient(
+    180deg,
+    var(--corp-primary-hover, var(--corp-primary)) 0%,
+    var(--estimar-accent) 100%
+  );
+  border-color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas .production-diseno-pdf-upload__select-btn:hover {
+  background: var(--estimar-accent-strong);
+  border-color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.95fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.production-impresion-estimar-tintas__grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.production-impresion-estimar-tintas__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas-shell {
+  padding: 0.72rem 0.82rem 0.82rem;
+}
+
+.production-impresion-estimar-tintas-shell .production-diseno-modo-shell__head {
+  gap: 0.45rem;
+  margin-bottom: 0.62rem;
+  padding-bottom: 0.48rem;
+}
+
+.production-impresion-estimar-tintas-shell .production-diseno-modo-shell__tag {
+  padding: 0.12rem 0.38rem;
+  font-size: 0.5rem;
+}
+
+.production-impresion-estimar-tintas-shell .production-diseno-modo-shell__title {
+  font-size: 0.875rem;
+}
+
+.production-impresion-estimar-tintas-shell .production-diseno-modo-shell__sub {
+  margin-top: 0.12rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+}
+
+.production-impresion-estimar-tintas__upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.production-impresion-estimar-tintas__drop {
+  min-height: 10rem;
+  background: linear-gradient(165deg, #fff 0%, var(--estimar-accent-muted) 55%, var(--estimar-accent-soft) 100%);
+}
+
+.production-impresion-estimar-tintas__drop--locked {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: #d8e0ea;
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
+  opacity: 0.92;
+}
+
+.production-impresion-estimar-tintas__drop--locked .production-diseno-pdf-upload__drop-icon {
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+.production-impresion-estimar-tintas__drop--locked .production-diseno-pdf-upload__drop-title {
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas__drop--locked .production-diseno-pdf-upload__drop-hint {
+  color: #94a3b8;
+}
+
+.production-impresion-estimar-tintas .production-impresion-estimar-tintas__drop--locked:hover {
+  border-color: #d8e0ea;
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.production-impresion-estimar-tintas__asset {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.72rem;
+  border-radius: 10px;
+  border: 1px solid var(--estimar-accent-border);
+  background: linear-gradient(
+    160deg,
+    #fff 0%,
+    color-mix(in srgb, var(--estimar-accent) 4%, #fff) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.production-impresion-estimar-tintas__asset-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background:
+    linear-gradient(45deg, #eef2f7 25%, transparent 25%, transparent 75%, #eef2f7 75%, #eef2f7),
+    linear-gradient(45deg, #eef2f7 25%, transparent 25%, transparent 75%, #eef2f7 75%, #eef2f7);
+  background-size: 12px 12px;
+  background-position:
+    0 0,
+    6px 6px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.production-impresion-estimar-tintas__asset-preview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.production-impresion-estimar-tintas__asset-preview-spinner {
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 2px solid color-mix(in srgb, var(--estimar-accent) 18%, #e2e8f0);
+  border-top-color: var(--estimar-accent);
+  border-radius: 50%;
+  animation: production-impresion-estimar-tintas-spin 0.75s linear infinite;
+}
+
+.production-impresion-estimar-tintas__asset-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.production-impresion-estimar-tintas__asset-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas__asset-name {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.production-impresion-estimar-tintas__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 22%, transparent);
+}
+
+.production-impresion-estimar-tintas__asset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: auto;
+}
+
+.production-impresion-estimar-tintas__plancha {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.production-impresion-estimar-tintas__plancha-select {
+  margin: 0;
+}
+
+.production-impresion-estimar-tintas__plancha-metrics,
+.production-impresion-estimar-tintas__plancha-corte-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.production-impresion-estimar-tintas__plancha-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+  padding: 0.55rem 0.62rem;
+  border-radius: 0.45rem;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #fff);
+}
+
+.production-impresion-estimar-tintas__plancha-metric--total {
+  border-color: color-mix(in srgb, var(--estimar-accent) 24%, var(--border));
+  background: color-mix(in srgb, var(--estimar-accent) 4%, #fff);
+}
+
+.production-impresion-estimar-tintas__plancha-metric-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__plancha-metric-value {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__plancha-metric--total .production-impresion-estimar-tintas__plancha-metric-value {
+  font-size: 1.0625rem;
+}
+
+.production-impresion-estimar-tintas__plancha-corte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.65rem 0.72rem;
+  border-radius: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 16%, var(--border));
+  background: color-mix(in srgb, var(--estimar-accent) 3%, #fff);
+}
+
+.production-impresion-estimar-tintas__plancha-corte-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.production-impresion-estimar-tintas__plancha-corte-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__plancha-corte-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__plancha-corte-metrics {
+  margin-top: 0.15rem;
+}
+
+@media (min-width: 720px) {
+  .production-impresion-estimar-tintas-hero {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .production-impresion-estimar-tintas__plancha-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .production-impresion-estimar-tintas__plancha-corte-metrics,
+  .production-impresion-estimar-tintas__plancha-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.production-impresion-estimar-tintas__params {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.production-impresion-estimar-tintas__defaults-hint {
+  margin: 0 0 0.15rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 7%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, #e8edf2);
+  border-radius: 8px;
+}
+
+.production-impresion-estimar-tintas__params .production-form-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.03em;
+}
+
+.production-impresion-estimar-tintas__params .production-form-input {
+  min-height: 2.2rem;
+  font-weight: 600;
+}
+
+.production-impresion-estimar-tintas__params .production-form-input:focus {
+  border-color: color-mix(in srgb, var(--estimar-accent) 45%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--estimar-accent) 12%, transparent);
+}
+
+.production-impresion-estimar-tintas__restore-factor {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--estimar-accent-strong);
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 28%, var(--border));
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.production-impresion-estimar-tintas__restore-factor:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--estimar-accent) 6%, #fff);
+  border-color: color-mix(in srgb, var(--estimar-accent) 45%, var(--border));
+}
+
+.production-impresion-estimar-tintas__restore-factor:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.production-impresion-estimar-tintas__params .production-preprensa-message {
+  margin: 0.35rem 0 0;
+  font-size: 0.625rem;
+}
+
+.production-impresion-estimar-tintas__auto-size {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 7%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, #e8edf2);
+  border-radius: 8px;
+}
+
+.production-impresion-estimar-tintas__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  margin-top: 0.15rem;
+  padding: 0.62rem 1rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    var(--corp-primary-hover, var(--corp-primary)) 0%,
+    var(--estimar-accent) 100%
+  );
+  border: 1px solid var(--estimar-accent-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--estimar-accent-strong) 28%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.12s ease,
+    opacity 0.12s ease,
+    background 0.12s ease;
+}
+
+.production-impresion-estimar-tintas__cta:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--estimar-accent) 0%, var(--estimar-accent-strong) 100%);
+  box-shadow:
+    0 4px 12px color-mix(in srgb, var(--estimar-accent) 24%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.production-impresion-estimar-tintas__cta:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.production-impresion-estimar-tintas__cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.production-impresion-estimar-tintas__cta-spinner {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: production-impresion-estimar-tintas-spin 0.75s linear infinite;
+}
+
+@keyframes production-impresion-estimar-tintas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.production-impresion-estimar-tintas__aside {
+  position: sticky;
+  top: 0.75rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 14rem;
+  padding: 1.1rem 1rem;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--estimar-accent) 24%, #dbe3ee);
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--estimar-accent) 6%, transparent), transparent 60%),
+    linear-gradient(180deg, #fff 0%, var(--estimar-accent-muted) 100%);
+}
+
+.production-impresion-estimar-tintas__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--estimar-accent);
+  background: color-mix(in srgb, var(--estimar-accent) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 20%, #e2e8f0);
+  border-radius: 12px;
+}
+
+.production-impresion-estimar-tintas__empty-icon svg {
+  display: block;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.production-impresion-estimar-tintas__empty-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas__empty-text {
+  margin: 0;
+  max-width: 16rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__result {
+  min-height: 100%;
+  border-radius: 12px;
+  box-shadow: var(--estimar-shadow);
+  border-color: color-mix(in srgb, var(--estimar-accent) 18%, var(--border));
+}
+
+.production-impresion-estimar-tintas__result .production-impresion-datos__head {
+  background: color-mix(in srgb, var(--estimar-accent) 4%, #fff);
+}
+
+.production-impresion-estimar-tintas__result .production-impresion-datos__source {
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #fff);
+  border-color: color-mix(in srgb, var(--estimar-accent) 22%, transparent);
+}
+
+.production-impresion-estimar-tintas__tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.55rem;
+}
+
+.production-impresion-estimar-tintas__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.55rem 0.62rem;
+  border-radius: 0.45rem;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #fff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.production-impresion-estimar-tintas__tile--c {
+  border-left: 3px solid #00a9e0;
+  background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, #00a9e0 5%, #fff) 100%);
+}
+
+.production-impresion-estimar-tintas__tile--m {
+  border-left: 3px solid #d6007a;
+  background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, #d6007a 5%, #fff) 100%);
+}
+
+.production-impresion-estimar-tintas__tile--y {
+  border-left: 3px solid #ffd400;
+  background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, #ffd400 8%, #fff) 100%);
+}
+
+.production-impresion-estimar-tintas__tile--k {
+  border-left: 3px solid #1a1a1a;
+  background: linear-gradient(160deg, #fff 0%, color-mix(in srgb, #1a1a1a 4%, #fff) 100%);
+}
+
+.production-impresion-estimar-tintas__tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.production-impresion-estimar-tintas__tile-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__tile-swatch {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  flex-shrink: 0;
+}
+
+.production-impresion-estimar-tintas__tile-value {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas__tile--c .production-impresion-estimar-tintas__tile-value {
+  color: #0284c7;
+}
+
+.production-impresion-estimar-tintas__tile--m .production-impresion-estimar-tintas__tile-value {
+  color: #be185d;
+}
+
+.production-impresion-estimar-tintas__tile--y .production-impresion-estimar-tintas__tile-value {
+  color: #a16207;
+}
+
+.production-impresion-estimar-tintas__tile--k .production-impresion-estimar-tintas__tile-value {
+  color: #111827;
+}
+
+.production-impresion-estimar-tintas__meter {
+  height: 0.28rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.production-impresion-estimar-tintas__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+  transition: width 0.25s ease;
+}
+
+.production-impresion-estimar-tintas__tile--c .production-impresion-estimar-tintas__meter-fill {
+  color: #00a9e0;
+}
+
+.production-impresion-estimar-tintas__tile--m .production-impresion-estimar-tintas__meter-fill {
+  color: #d6007a;
+}
+
+.production-impresion-estimar-tintas__tile--y .production-impresion-estimar-tintas__meter-fill {
+  color: #eab308;
+}
+
+.production-impresion-estimar-tintas__tile--k .production-impresion-estimar-tintas__meter-fill {
+  color: #1a1a1a;
+}
+
+.production-impresion-estimar-tintas__tile-hint {
+  font-size: 0.58rem;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--txt-3);
+}
+
+.production-impresion-estimar-tintas__total {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.72rem 0.82rem;
+  border-top: 1px solid color-mix(in srgb, var(--estimar-accent) 14%, var(--border));
+  background: color-mix(in srgb, var(--estimar-accent) 4%, #fff);
+}
+
+.production-impresion-estimar-tintas__total-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas__total-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__total-value {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__estimation-note {
+  margin: 0;
+  padding: 0.55rem 0.82rem 0.72rem;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  font-weight: 500;
+  color: var(--txt-2);
+  border-top: 1px dashed color-mix(in srgb, var(--border) 80%, #fff);
+  background: #fafbfd;
+}
+
+.production-impresion-estimar-tintas__calibration {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.72rem 0.82rem 0.82rem;
+  border-top: 1px solid color-mix(in srgb, var(--estimar-accent) 14%, var(--border));
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--estimar-accent) 3%, #fff) 0%,
+    #fff 100%
+  );
+}
+
+.production-impresion-estimar-tintas__calibration-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.production-impresion-estimar-tintas__calibration-tag {
+  flex-shrink: 0;
+  padding: 0.12rem 0.38rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--estimar-accent-strong);
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 22%, transparent);
+  border-radius: 999px;
+}
+
+.production-impresion-estimar-tintas__calibration-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas__calibration-sub {
+  margin: 0.12rem 0 0;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__calibration-current {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.production-impresion-estimar-tintas__calibration-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.4rem;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, #fff);
+}
+
+.production-impresion-estimar-tintas__calibration-current-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__calibration-current-value {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__calibration-field {
+  margin: 0;
+}
+
+.production-impresion-estimar-tintas__calibration-field .production-form-label {
+  font-size: 0.625rem;
+}
+
+.production-impresion-estimar-tintas__calibration-btn {
+  align-self: flex-start;
+  padding: 0.42rem 0.72rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #fff;
+  background: var(--estimar-accent-strong);
+  border: 1px solid color-mix(in srgb, var(--estimar-accent-strong) 88%, #000);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.production-impresion-estimar-tintas__calibration-btn:hover:not(:disabled) {
+  background: var(--estimar-accent);
+}
+
+.production-impresion-estimar-tintas__calibration-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.production-impresion-estimar-tintas__calibration-preview,
+.production-impresion-estimar-tintas__calibration-applied {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.62rem;
+  border-radius: 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, var(--border));
+  background: #fff;
+}
+
+.production-impresion-estimar-tintas__calibration-applied {
+  border-color: color-mix(in srgb, #15803d 28%, var(--border));
+  background: color-mix(in srgb, #15803d 4%, #fff);
+}
+
+.production-impresion-estimar-tintas__calibration-preview-title,
+.production-impresion-estimar-tintas__calibration-applied-title {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas__calibration-applied-hint {
+  margin: 0;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__calibration-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.production-impresion-estimar-tintas__calibration-compare-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.production-impresion-estimar-tintas__calibration-compare-row dt {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__calibration-compare-row dd {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+}
+
+.production-impresion-estimar-tintas__calibration-compare-row--highlight dd {
+  color: var(--estimar-accent-strong);
+}
+
+.production-impresion-estimar-tintas__calibration-delta {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas__calibration .production-preprensa-message {
+  margin: 0;
+  font-size: 0.625rem;
+}
+
+.production-impresion-conversion-imagen__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 14rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border-radius: 0.55rem;
+  border: 1.5px dashed color-mix(in srgb, var(--corp-primary) 24%, #cbd5e1);
+  background: linear-gradient(165deg, #fff 0%, color-mix(in srgb, var(--corp-primary) 4%, #fff) 100%);
+}
+
+.production-impresion-conversion-imagen__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--corp-primary);
+  background: color-mix(in srgb, var(--corp-primary) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 20%, #e2e8f0);
+  border-radius: 12px;
+}
+
+.production-impresion-conversion-imagen__empty-icon svg {
+  display: block;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.production-impresion-conversion-imagen__empty-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__empty-text {
+  margin: 0;
+  max-width: 18rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+@media (max-width: 1080px) {
+  .production-impresion-estimar-tintas__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .production-impresion-estimar-tintas__aside {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .production-impresion-estimar-tintas__asset {
+    grid-template-columns: 1fr;
+  }
+
+  .production-impresion-estimar-tintas__asset-preview {
+    width: 100%;
+    height: 10rem;
+  }
+
+  .production-impresion-estimar-tintas__tiles {
+    grid-template-columns: 1fr;
+  }
 }
 
 .production-impresion-datos__tile--pantone
@@ -11187,6 +13821,25 @@
   gap: 0.1rem;
   flex-shrink: 0;
   text-align: right;
+}
+
+.production-impresion-grupo-card__totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.production-impresion-grupo-card__total--secondary .production-impresion-grupo-card__total-label {
+  font-size: 0.625rem;
+  color: var(--txt-3);
+}
+
+.production-impresion-grupo-card__total--secondary .production-impresion-grupo-card__total-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #6d28d9;
 }
 
 .production-impresion-grupo-card__total-label {

@@ -5,7 +5,7 @@ import StatusBadge from '../../components/ui/StatusBadge'
 import { useOrdersHook } from '../../hooks/useOrders'
 import { Container } from '../../../di/container'
 import { Money } from '../../../core/domain/value-objects/Money'
-import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro, type TerminadosProduccionRegistro, type AcabadosProduccionRegistro } from '../../../core/domain/entities/Order'
+import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro, type ImpresionEstimarTintasRegistro, type TerminadosProduccionRegistro, type AcabadosProduccionRegistro } from '../../../core/domain/entities/Order'
 import { ROUTES } from '../../../config/appRoutes'
 import { formatProductionOrderId } from '../../../core/domain/value-objects/ProductionOrderId'
 import {
@@ -24,6 +24,8 @@ import ProductionTerminadosSubNav from './ProductionTerminadosSubNav'
 import ProductionAcabadosSubNav from './ProductionAcabadosSubNav'
 import ProductionCobroSubNav from './ProductionCobroSubNav'
 import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
+import ProductionImpresionMuestraPanel from './ProductionImpresionMuestraPanel'
+import ProductionImpresionConversionImagenPanel from './ProductionImpresionConversionImagenPanel'
 import ProductionTerminadosPanel from './ProductionTerminadosPanel'
 import ProductionAcabadosPanel from './ProductionAcabadosPanel'
 import ProductionOrderCobroPanel from './ProductionOrderCobroPanel'
@@ -100,8 +102,15 @@ import {
 import {
   impresionTintasRegistrosEqual,
   patchImpresionTintasRegistro,
+  resolveCompletedPlanchaIds,
   syncImpresionTintasRegistros,
 } from './utils/impresionTintasUtils'
+import {
+  impresionEstimarTintasRegistrosEqual,
+  patchImpresionEstimarTintasRegistro,
+  resolveEstimarTintasCompletedPlanchaIds,
+  syncImpresionEstimarTintasRegistros,
+} from './utils/estimarTintasRegistrosUtils'
 import {
   hasPersistedProductionNewOrderDraft,
   useProductionNewOrderDraftStore,
@@ -159,6 +168,7 @@ const emptySpecs = (): OrderSpecs => ({
   thousands: 0,
   inks: '',
   impresionTintasRegistros: [],
+  impresionEstimarTintasRegistros: [],
   terminadosRegistros: [],
   acabadosRegistros: [],
   machineOutputValue: new Money(0),
@@ -375,6 +385,16 @@ const ProductionOrderWorkspace: React.FC = () => {
     [specs.preprensaDiseno]
   )
 
+  const completedImpresionPlanchaIds = useMemo(
+    () => resolveCompletedPlanchaIds(specs.impresionTintasRegistros ?? []),
+    [specs.impresionTintasRegistros]
+  )
+
+  const completedEstimarTintasPlanchaIds = useMemo(
+    () => resolveEstimarTintasCompletedPlanchaIds(specs.impresionEstimarTintasRegistros ?? []),
+    [specs.impresionEstimarTintasRegistros]
+  )
+
   useEffect(() => {
     const preprensaIds = specs.preprensaDiseno.coloresPlanchas.map(item => item.id)
     const faltanteCorteIds = specs.paperRows
@@ -406,6 +426,19 @@ const ProductionOrderWorkspace: React.FC = () => {
         return prev
       }
       return { ...prev, impresionTintasRegistros: next }
+    })
+  }, [impresionColoresPlanchas])
+
+  useEffect(() => {
+    setSpecs(prev => {
+      const next = syncImpresionEstimarTintasRegistros(
+        impresionColoresPlanchas,
+        prev.impresionEstimarTintasRegistros ?? []
+      )
+      if (impresionEstimarTintasRegistrosEqual(next, prev.impresionEstimarTintasRegistros ?? [])) {
+        return prev
+      }
+      return { ...prev, impresionEstimarTintasRegistros: next }
     })
   }, [impresionColoresPlanchas])
 
@@ -500,6 +533,10 @@ const ProductionOrderWorkspace: React.FC = () => {
           impresionTintasRegistros: syncImpresionTintasRegistros(
             preprensaDiseno.coloresPlanchas,
             existingOrder.specs.impresionTintasRegistros ?? []
+          ),
+          impresionEstimarTintasRegistros: syncImpresionEstimarTintasRegistros(
+            preprensaDiseno.coloresPlanchas,
+            existingOrder.specs.impresionEstimarTintasRegistros ?? []
           ),
           terminadosRegistros: syncTerminadosRegistros(
             preprensaDiseno.coloresPlanchas,
@@ -626,6 +663,19 @@ const ProductionOrderWorkspace: React.FC = () => {
       ),
     }))
   }, [])
+
+  const handleEstimarTintasRegistroChange = useCallback(
+    (registro: ImpresionEstimarTintasRegistro) => {
+      setSpecs(prev => ({
+        ...prev,
+        impresionEstimarTintasRegistros: patchImpresionEstimarTintasRegistro(
+          prev.impresionEstimarTintasRegistros ?? [],
+          registro
+        ),
+      }))
+    },
+    []
+  )
 
   const handleTerminadosRegistrosChange = useCallback(
     (
@@ -1177,6 +1227,35 @@ const ProductionOrderWorkspace: React.FC = () => {
                         onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
                         onRegistroChange={handleImpresionTintasRegistroChange}
                       />
+                    </div>
+                  )}
+                  {impresionSubTab === 'muestra' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-impresion-panel-muestra"
+                      aria-labelledby="production-impresion-subtab-muestra"
+                    >
+                      <ProductionImpresionMuestraPanel
+                        coloresPlanchas={impresionColoresPlanchas}
+                        paperRows={specs.paperRows}
+                        tiposPapel={tiposPapel}
+                        activeColorPlanchaId={activeImpresionColorPlanchaId}
+                        onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
+                        completedPlanchaIds={completedEstimarTintasPlanchaIds}
+                        registros={specs.impresionEstimarTintasRegistros ?? []}
+                        onRegistroChange={handleEstimarTintasRegistroChange}
+                      />
+                    </div>
+                  )}
+                  {impresionSubTab === 'conversionImagen' && (
+                    <div
+                      className="production-specs-panel production-specs-panel--sections"
+                      role="tabpanel"
+                      id="production-impresion-panel-conversion-imagen"
+                      aria-labelledby="production-impresion-subtab-conversionImagen"
+                    >
+                      <ProductionImpresionConversionImagenPanel />
                     </div>
                   )}
                 </div>

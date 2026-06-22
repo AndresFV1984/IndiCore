@@ -95,8 +95,12 @@ const ImpresionTintasRegistroGuardadoCard: React.FC<ImpresionTintasRegistroGuard
           <dd>{resumen.precioTintaColorBasico > 0 ? formatPrecioMillar(resumen.precioTintaColorBasico) : entradasCopy.millaresEmpty}</dd>
         </div>
         <div>
-          <dt>{entradasCopy.tablePrecioPantone}</dt>
+          <dt>{entradasCopy.tablePrecioImpresionPantone}</dt>
           <dd>{resumen.precioTintaPantone > 0 ? formatPrecioMillar(resumen.precioTintaPantone) : entradasCopy.millaresEmpty}</dd>
+        </div>
+        <div>
+          <dt>{entradasCopy.tablePrecioPantone}</dt>
+          <dd>{resumen.precioCobroTintaPantone > 0 ? formatPrecioMillar(resumen.precioCobroTintaPantone) : entradasCopy.millaresEmpty}</dd>
         </div>
         <div>
           <dt>{entradasCopy.tablePrecioVolteo}</dt>

@@ -5,6 +5,7 @@ import { normalizePreprensaSnapshot } from './applyPreprensaFromHistorial'
 import { normalizeMargenRedondeo, DEFAULT_MARGEN_REDONDEO } from './cortePapelCalculations'
 import { emptyPaperRow } from './tipoPapelDisplay'
 import { syncImpresionTintasRegistros } from './impresionTintasUtils'
+import { syncImpresionEstimarTintasRegistros } from './estimarTintasRegistrosUtils'
 import type { ProductionWorkflowTabId } from '../productionTabs'
 import type { SpecsSubTabId } from '../productionSpecsSubTabs'
 import type { PreprensaSubTabId } from '../productionPreprensaSubTabs'
@@ -112,6 +113,13 @@ export const hydrateOrderSpecsFromDraft = (raw: SerializedOrderSpecs): OrderSpec
       ...raw.preprensaDiseno,
     }).coloresPlanchas,
     raw.impresionTintasRegistros ?? []
+  ),
+  impresionEstimarTintasRegistros: syncImpresionEstimarTintasRegistros(
+    normalizePreprensaSnapshot({
+      ...emptyPreprensaDiseno(),
+      ...raw.preprensaDiseno,
+    }).coloresPlanchas,
+    raw.impresionEstimarTintasRegistros ?? []
   ),
   terminadosRegistros: raw.terminadosRegistros ?? [],
   acabadosRegistros: raw.acabadosRegistros ?? [],

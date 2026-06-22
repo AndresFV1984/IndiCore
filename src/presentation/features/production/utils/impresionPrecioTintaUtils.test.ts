@@ -585,7 +585,9 @@ describe('buildImpresionTintasResumenConsolidado', () => {
     expect(resumen.totales).toEqual({
       precioTintaColorBasico: 100_000,
       precioTintaPantone: 50_000,
+      precioCobroTintaPantone: 0,
       precioVolteo: 200_000,
+      precioPruebaSherpa: 0,
       totalCobrar: 350_000,
       volteoColorBasico: 'con',
       volteoPantone: 'con',

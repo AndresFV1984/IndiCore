@@ -17,6 +17,7 @@ export class TipoPapel {
     /** Cantidad de hojas por unidad de empaque. */
     public readonly unidadEmpaque: number,
     public readonly valorCorte: number = 0,
+    public readonly esmaltado: boolean = false,
     public readonly active: boolean = true,
     public readonly despiecesPliego: DespieceAsociado[] = []
   ) {}
@@ -40,6 +41,7 @@ export class TipoPapel {
       dto.valorHoja ?? 0,
       normalizeUnidadEmpaque(dto.unidadEmpaque),
       dto.valorCorte ?? 0,
+      dto.esmaltado ?? false,
       dto.active ?? true,
       dto.despiecesPliego ?? []
     )
@@ -57,6 +59,7 @@ export interface CreateTipoPapelDTO {
   valorHoja?: number
   unidadEmpaque: number
   valorCorte?: number
+  esmaltado?: boolean
   active?: boolean
   despiecesPliego?: DespieceAsociado[]
 }

@@ -216,6 +216,10 @@ export const emptyImpresionTintasRegistro = (
   colorPlanchaId,
   entradas: [],
   tipoBifronte: 'diferente-plancha',
+  clienteSuministraPruebaSherpa: 'si',
+  precioPruebaSherpa: 0,
+  clienteSuministraTintaPantone: 'si',
+  precioCobroTintaPantone: 0,
 })
 
 export const isImpresionTipoBifronteComplete = (
@@ -265,11 +269,16 @@ export const normalizeImpresionEntrada = (
     typeof entrada.precioTintaPantone === 'number' && entrada.precioTintaPantone >= 0
       ? entrada.precioTintaPantone
       : 0,
+  precioCobroTintaPantone:
+    typeof entrada.precioCobroTintaPantone === 'number' && entrada.precioCobroTintaPantone >= 0
+      ? entrada.precioCobroTintaPantone
+      : 0,
   precioTinta:
     typeof entrada.precioTinta === 'number' && entrada.precioTinta >= 0
       ? entrada.precioTinta
       : (typeof entrada.precioTintaColorBasico === 'number' ? entrada.precioTintaColorBasico : 0) +
-        (typeof entrada.precioTintaPantone === 'number' ? entrada.precioTintaPantone : 0),
+        (typeof entrada.precioTintaPantone === 'number' ? entrada.precioTintaPantone : 0) +
+        (typeof entrada.precioCobroTintaPantone === 'number' ? entrada.precioCobroTintaPantone : 0),
   millaresVolteo:
     typeof entrada.millaresVolteo === 'number' && entrada.millaresVolteo >= 0
       ? entrada.millaresVolteo
@@ -386,6 +395,22 @@ const normalizeImpresionTintasRegistro = (
       precioColorBasicoMillar,
       tarifaPantoneMillarId,
       precioPantoneMillar,
+      clienteSuministraPruebaSherpa:
+        raw.clienteSuministraPruebaSherpa === 'si' || raw.clienteSuministraPruebaSherpa === 'no'
+          ? raw.clienteSuministraPruebaSherpa
+          : 'si',
+      precioPruebaSherpa:
+        typeof raw.precioPruebaSherpa === 'number' && raw.precioPruebaSherpa >= 0
+          ? raw.precioPruebaSherpa
+          : 0,
+      clienteSuministraTintaPantone:
+        raw.clienteSuministraTintaPantone === 'si' || raw.clienteSuministraTintaPantone === 'no'
+          ? raw.clienteSuministraTintaPantone
+          : 'si',
+      precioCobroTintaPantone:
+        typeof raw.precioCobroTintaPantone === 'number' && raw.precioCobroTintaPantone >= 0
+          ? raw.precioCobroTintaPantone
+          : 0,
       entradas: clampEntradasPorPlancha(
         raw.entradas
           .map(normalizeImpresionEntrada)
@@ -413,6 +438,10 @@ const normalizeImpresionTintasRegistro = (
     precioColorBasicoMillar,
     tarifaPantoneMillarId,
     precioPantoneMillar,
+    clienteSuministraPruebaSherpa: 'si',
+    precioPruebaSherpa: 0,
+    clienteSuministraTintaPantone: 'si',
+    precioCobroTintaPantone: 0,
     entradas: hasData
       ? [
           clampImpresionEntradaToPlanchaColores(

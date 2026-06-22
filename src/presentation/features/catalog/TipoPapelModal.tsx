@@ -19,6 +19,7 @@ export interface TipoPapelFormValues {
   medida: MedidaFormValues
   valorHoja: string
   unidadEmpaque: string
+  esmaltado: boolean
   active: boolean
 }
 
@@ -27,6 +28,7 @@ const defaultValues: TipoPapelFormValues = {
   medida: defaultMedidaFormValues,
   valorHoja: '',
   unidadEmpaque: '',
+  esmaltado: false,
   active: true,
 }
 
@@ -77,6 +79,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
             medida: medidaDimensionToForm(item.medidaDimension),
             valorHoja: String(item.valorHoja),
             unidadEmpaque: String(item.unidadEmpaque),
+            esmaltado: item.esmaltado,
             active: item.active,
           }
         : defaultValues
@@ -164,6 +167,7 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
         unidadMedida: values.medida.unidadMedida,
         valorHoja,
         unidadEmpaque,
+        esmaltado: values.esmaltado,
         active: values.active,
         despiecesPliego: selectedDespieces.map(d => ({
           ...d,
@@ -243,6 +247,30 @@ const TipoPapelModal: React.FC<TipoPapelModalProps> = ({
               onChange={handleChange('unidadEmpaque')}
               placeholder="Ej. 250"
             />
+          </FormField>
+          <FormField
+            id="papel-esmaltado"
+            label="Esmaltado"
+            fullWidth
+            hint="Indica si el papel tiene acabado esmaltado."
+          >
+            <label className="catalog-quick-access-option" htmlFor="papel-esmaltado">
+              <input
+                id="papel-esmaltado"
+                type="checkbox"
+                className="catalog-quick-access-option__checkbox"
+                checked={values.esmaltado}
+                onChange={e =>
+                  setValues(prev => ({ ...prev, esmaltado: e.target.checked }))
+                }
+              />
+              <span className="catalog-quick-access-option__content">
+                <span className="catalog-quick-access-option__title">Papel esmaltado</span>
+                <span className="catalog-quick-access-option__description">
+                  Marque esta opción cuando el tipo de papel tenga recubrimiento esmaltado.
+                </span>
+              </span>
+            </label>
           </FormField>
           <FormField id="papel-estado" label="Estado" required fullWidth>
             <select

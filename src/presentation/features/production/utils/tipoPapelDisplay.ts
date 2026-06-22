@@ -44,6 +44,7 @@ export const tipoPapelSelectOptionLabel = (
 export const normalizeTipoPapelList = (items: TipoPapel[]): TipoPapel[] =>
   items.map(item => {
     const despieces = Array.isArray(item.despiecesPliego) ? [...item.despiecesPliego] : []
+    const esmaltado = item.esmaltado === true
     const active = item.active !== false
     return new TipoPapel(
       item.id,
@@ -54,6 +55,7 @@ export const normalizeTipoPapelList = (items: TipoPapel[]): TipoPapel[] =>
       item.valorHoja ?? 0,
       normalizeUnidadEmpaque(item.unidadEmpaque),
       item.valorCorte ?? 0,
+      esmaltado,
       active,
       despieces
     )

@@ -62,6 +62,7 @@ const CatalogTipoPapel: React.FC = () => {
           p.medida.toLowerCase().includes(q) ||
           String(p.unidadEmpaque).includes(q) ||
           String(p.valorHoja).includes(q) ||
+          (p.esmaltado ? 'esmaltado' : 'no esmaltado').includes(q) ||
           p.despiecesPliego.some(
             d =>
               d.name.toLowerCase().includes(q) ||
@@ -140,6 +141,7 @@ const CatalogTipoPapel: React.FC = () => {
           unidadMedida: item.unidadMedida,
           valorHoja: item.valorHoja,
           unidadEmpaque: item.unidadEmpaque,
+          esmaltado: item.esmaltado,
           active: false,
           despiecesPliego: item.despiecesPliego,
         }),
@@ -199,6 +201,7 @@ const CatalogTipoPapel: React.FC = () => {
                 <th>MEDIDA</th>
                 <th>VALOR HOJA</th>
                 <th>UNIDAD EMPAQUE</th>
+                <th>ESMALTADO</th>
                 <th>DESPIECE PLIEGO</th>
                 <th className="remissions-th-acciones">ACCIONES</th>
               </tr>
@@ -215,6 +218,7 @@ const CatalogTipoPapel: React.FC = () => {
                     <td data-label="Unidad empaque">
                       {formatUnidadEmpaqueDisplay(item.unidadEmpaque)}
                     </td>
+                    <td data-label="Esmaltado">{item.esmaltado ? 'Sí' : 'No'}</td>
                     <td data-label="Despiece pliego">
                       <DespieceAsociadoDirectoryList despieces={item.despiecesPliego} />
                     </td>

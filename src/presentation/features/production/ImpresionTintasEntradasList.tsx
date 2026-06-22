@@ -28,7 +28,7 @@ const ladoCopy = copy.tintas.lado
 const volteoCopy = copy.tintas.tintasVolteo
 const millaresCopy = copy.tintas.millaresCalculados
 
-const TABLE_COL_COUNT = 10
+const TABLE_COL_COUNT = 11
 
 interface ImpresionTintasEntradasListProps {
   rows: ImpresionTintasTableRow[]
@@ -131,7 +131,8 @@ const TintasGrupoTableCell: React.FC<{
   millares: number
   precio: number
   conVolteo?: boolean
-}> = ({ variant, tintasTiro, tintasRetiro, millares, precio, conVolteo }) => {
+  hidePrecioImpresion?: boolean
+}> = ({ variant, tintasTiro, tintasRetiro, millares, precio, conVolteo, hidePrecioImpresion = false }) => {
   const tintasTotal = tintasTiro + tintasRetiro
 
   return (
@@ -159,9 +160,11 @@ const TintasGrupoTableCell: React.FC<{
           <span className="production-impresion-tintas-grupo-cell__millares">
             {entradasCopy.millaresValueLabel}: {formatMillaresFactor(millares)}
           </span>
-          <span className="production-impresion-tintas-grupo-cell__precio">
-            {millaresCopy.valorImpresionLabel}: {formatPrecio(precio)}
-          </span>
+          {!hidePrecioImpresion ? (
+            <span className="production-impresion-tintas-grupo-cell__precio">
+              {millaresCopy.valorImpresionLabel}: {formatPrecio(precio)}
+            </span>
+          ) : null}
         </>
       ) : null}
     </div>
@@ -173,6 +176,12 @@ const PrecioTintaCell: React.FC<{ millares: number; value: number }> = ({ millar
     <span className="production-impresion-tintas-precio-cell__millares">
       {entradasCopy.millaresValueLabel}: {formatMillaresFactor(millares)}
     </span>
+    <span className="production-impresion-tintas-precio-cell__valor">{formatPrecio(value)}</span>
+  </div>
+)
+
+const PrecioCobroTintaPantoneCell: React.FC<{ value: number }> = ({ value }) => (
+  <div className="production-impresion-tintas-precio-cell production-impresion-tintas-precio-cell--cobro">
     <span className="production-impresion-tintas-precio-cell__valor">{formatPrecio(value)}</span>
   </div>
 )
@@ -209,6 +218,9 @@ const ImpresionTintasEntradasList: React.FC<ImpresionTintasEntradasListProps> = 
               </th>
               <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
                 {entradasCopy.tablePrecioColorBasico}
+              </th>
+              <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+                {entradasCopy.tablePrecioImpresionPantone}
               </th>
               <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
                 {entradasCopy.tablePrecioPantone}
@@ -274,6 +286,7 @@ const ImpresionTintasEntradasList: React.FC<ImpresionTintasEntradasListProps> = 
                         millares={resumen.millaresPantone}
                         precio={resumen.precioTintaPantone}
                         conVolteo={conVolteoPantone}
+                        hidePrecioImpresion
                       />
                     </td>
                     <td className="production-plancha-table__td">
@@ -295,6 +308,9 @@ const ImpresionTintasEntradasList: React.FC<ImpresionTintasEntradasListProps> = 
                     </td>
                     <td className="production-plancha-table__td production-plancha-table__td--num">
                       <PrecioTintaCell millares={resumen.millaresPantone} value={resumen.precioTintaPantone} />
+                    </td>
+                    <td className="production-plancha-table__td production-plancha-table__td--num">
+                      <PrecioCobroTintaPantoneCell value={resumen.precioCobroTintaPantone} />
                     </td>
                     <td className="production-plancha-table__td production-plancha-table__td--num production-plancha-table__td--total">
                       <span className="production-impresion-tintas-total-cell production-impresion-tintas-total-cell--precio">

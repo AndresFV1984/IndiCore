@@ -47,10 +47,25 @@ const ProductionImpresionTintasResumen: React.FC<ProductionImpresionTintasResume
       value: formatValor(resumen.totales.precioTintaPantone),
       inactive: resumen.totales.precioTintaPantone <= 0,
     },
+    {
+      key: 'cobroTintaPantone',
+      label: resumenCopy.valorCobroTintaPantone,
+      value: formatValor(resumen.totales.precioCobroTintaPantone),
+      inactive: resumen.totales.precioCobroTintaPantone <= 0,
+    },
+    {
+      key: 'pruebaSherpa',
+      label: resumenCopy.valorPruebaSherpa,
+      value: formatValor(resumen.totales.precioPruebaSherpa),
+      inactive: resumen.totales.precioPruebaSherpa <= 0,
+    },
   ]
 
   const totalTintas =
-    resumen.totales.precioTintaColorBasico + resumen.totales.precioTintaPantone
+    resumen.totales.precioTintaColorBasico +
+    resumen.totales.precioTintaPantone +
+    resumen.totales.precioCobroTintaPantone +
+    resumen.totales.precioPruebaSherpa
 
   return (
     <ProductionOrdenResumenSection

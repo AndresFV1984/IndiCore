@@ -141,13 +141,27 @@ const buildImpresionSection = (
       label: impresionCopy.valorPantone,
       value: resumen.totales.precioTintaPantone,
     },
+    {
+      key: 'cobro-tinta-pantone',
+      label: impresionCopy.valorCobroTintaPantone,
+      value: resumen.totales.precioCobroTintaPantone,
+    },
+    {
+      key: 'prueba-sherpa',
+      label: impresionCopy.valorPruebaSherpa,
+      value: resumen.totales.precioPruebaSherpa,
+    },
   ].filter(line => line.value > 0)
 
   return {
     id: 'impresion',
     title: sectionCopy.impresion,
     lines,
-    subtotal: resumen.totales.precioTintaColorBasico + resumen.totales.precioTintaPantone,
+    subtotal:
+      resumen.totales.precioTintaColorBasico +
+      resumen.totales.precioTintaPantone +
+      resumen.totales.precioCobroTintaPantone +
+      resumen.totales.precioPruebaSherpa,
   }
 }
 

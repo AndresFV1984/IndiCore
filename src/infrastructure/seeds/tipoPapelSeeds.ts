@@ -11,6 +11,7 @@ export interface TipoPapelSeed {
   valorHoja: number
   unidadEmpaque: number
   valorCorte: number
+  esmaltado: boolean
   active: boolean
   despiecesPliego: DespieceAsociadoSeed[]
 }
@@ -26,6 +27,7 @@ export const TIPO_PAPEL_SEED: TipoPapelSeed[] = [
     valorHoja: 1250,
     unidadEmpaque: 250,
     valorCorte: 420,
+    esmaltado: true,
     active: true,
     despiecesPliego: [
       {
@@ -55,6 +57,7 @@ export const TIPO_PAPEL_SEED: TipoPapelSeed[] = [
     valorHoja: 890,
     unidadEmpaque: 500,
     valorCorte: 380,
+    esmaltado: false,
     active: true,
     despiecesPliego: [
       {
@@ -76,6 +79,7 @@ export const TIPO_PAPEL_SEED: TipoPapelSeed[] = [
     valorHoja: 2100,
     unidadEmpaque: 100,
     valorCorte: 550,
+    esmaltado: true,
     active: true,
     despiecesPliego: [
       {
@@ -97,6 +101,7 @@ export const TIPO_PAPEL_SEED: TipoPapelSeed[] = [
     valorHoja: 650,
     unidadEmpaque: 200,
     valorCorte: 290,
+    esmaltado: false,
     active: false,
     despiecesPliego: [
       {
@@ -128,6 +133,7 @@ export const createTipoPapelSeeds = (): TipoPapel[] =>
         s.valorHoja,
         s.unidadEmpaque,
         s.valorCorte,
+        s.esmaltado,
         s.active,
         s.despiecesPliego.map(d => toDespieceAsociado(d, s.valorCorte))
       )
