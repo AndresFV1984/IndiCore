@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applySimpleGcr,
   averageCmykCoverageFromImageData,
+  countVisibleInkedPixelsFromImageData,
   computeCalibrationPreview,
   computeConversionFactorFromTiraje,
   computeInkGFromCoverage,
@@ -14,6 +15,8 @@ import {
   formatCalibrationDeltaPercent,
   formatConversionFactorForInput,
   formatEstimarTintasEntero,
+  computeEstimarTintasInkTotalsSnapshot,
+  computeEstimarTintasTotalInkGPerPliego,
   formatEstimarTintasWeightG,
   buildEstimarTintasEstimateOptions,
   ESTIMAR_TINTAS_ALGORITHM_DEFAULTS,
@@ -71,7 +74,11 @@ describe('estimarTintasUtils', () => {
       conversionFactorG: ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G,
       referenceDpi: 300,
       maxSampleEdge: ESTIMAR_TINTAS_MAX_SAMPLE_EDGE,
-      alphaMin: 128,
+      alphaMin: 64,
+      sourceColorSpace: 'rgb',
+      spotReferenceRgbs: undefined,
+      pantoneSpotNames: undefined,
+      cmykOperatorSamples: undefined,
     })
   })
 
@@ -149,6 +156,75 @@ describe('estimarTintasUtils', () => {
     expect(formatEstimarTintasWeightG(1.234)).toBe('1.23 grm')
   })
 
+  it('cuantiza pedido desde Total estimado mostrado × pliegos', () => {
+    const snapshot = computeEstimarTintasInkTotalsSnapshot(
+      {
+        inkG: { c: 0.004, m: 0, y: 0, k: 0 },
+        detectedColors: [
+          {
+            index: 5,
+            name: '485 C',
+            category: 'pantone' as const,
+            swatch: '#e4002b',
+            coverage: 0.12,
+            inkG: 0.002546,
+          },
+        ],
+      },
+      2600
+    )
+
+    expect(snapshot.perPliego.processInkG).toBeCloseTo(0.004, 6)
+    expect(snapshot.perPliego.pantoneInkG).toBeCloseTo(0.0025, 6)
+    expect(snapshot.pedido!.processInkG).toBeCloseTo(10.4, 6)
+    expect(snapshot.pedido!.pantoneInkG).toBeCloseTo(6.5, 6)
+    expect(snapshot.pedido!.totalInkG).toBeCloseTo(16.9, 6)
+  })
+
+  it('desglosa totales CMYK, Pantone y unificado por pliego y pedido', () => {
+    const result = {
+      inkG: { c: 1.2, m: 0.9, y: 0.5, k: 1.4 },
+      detectedColors: [
+        {
+          index: 5,
+          name: '485 C',
+          category: 'pantone' as const,
+          swatch: '#e4002b',
+          coverage: 0.12,
+          inkG: 0.8,
+        },
+      ],
+    }
+
+    const snapshot = computeEstimarTintasInkTotalsSnapshot(result, 100)
+
+    expect(snapshot.perPliego.processInkG).toBeCloseTo(4, 6)
+    expect(snapshot.perPliego.pantoneInkG).toBeCloseTo(0.8, 6)
+    expect(snapshot.perPliego.totalInkG).toBeCloseTo(4.8, 6)
+    expect(snapshot.perPliego.totalInkG).toBeCloseTo(
+      computeEstimarTintasTotalInkGPerPliego(result),
+      6
+    )
+
+    expect(snapshot.pedido).not.toBeNull()
+    expect(snapshot.pedido!.processInkG).toBeCloseTo(400, 6)
+    expect(snapshot.pedido!.pantoneInkG).toBeCloseTo(80, 6)
+    expect(snapshot.pedido!.totalInkG).toBeCloseTo(480, 6)
+  })
+
+  it('omite pedido cuando no hay pliegos', () => {
+    const snapshot = computeEstimarTintasInkTotalsSnapshot(
+      {
+        inkG: { c: 1, m: 1, y: 1, k: 1 },
+        detectedColors: [],
+      },
+      0
+    )
+
+    expect(snapshot.pedido).toBeNull()
+    expect(snapshot.perPliego.totalInkG).toBeCloseTo(4, 6)
+  })
+
   it('convierte blanco a CMYK cero', () => {
     expect(rgbToCmyk(255, 255, 255)).toEqual({ c: 0, m: 0, y: 0, k: 0 })
   })
@@ -187,9 +263,33 @@ describe('estimarTintasUtils', () => {
       0, 0, 0, 255,
     ])
 
-    const result = averageCmykCoverageFromImageData(imageData, 128)
+    const result = averageCmykCoverageFromImageData(imageData, 64)
     expect(result.coverage).toEqual({ c: 0, m: 0, y: 0, k: 1 })
     expect(result.inkedPixels).toBe(1)
+  })
+
+  it('devuelve CMYK cero cuando todos los píxeles con tinta son Pantone', async () => {
+    const imageData = mockImageData(3, 1, [
+      255, 255, 255, 0,
+      68, 0, 153, 255,
+      87, 39, 141, 255,
+    ])
+    const { isEstimarTintasPantonePixel } = await import('./estimarTintasImageColorsUtils')
+    const options = {
+      spotReferenceRgbs: [[68, 0, 153], [87, 39, 141]] as const,
+      pantoneSpotNames: ['PANTONE Violet C'],
+    }
+
+    const result = averageCmykCoverageFromImageData(
+      imageData,
+      0,
+      0.985,
+      (r, g, b) => isEstimarTintasPantonePixel(r, g, b, options)
+    )
+
+    expect(result.coverage).toEqual({ c: 0, m: 0, y: 0, k: 0 })
+    expect(result.inkedPixels).toBe(0)
+    expect(countVisibleInkedPixelsFromImageData(imageData, 0)).toBe(2)
   })
 
   it('reduce dimensiones de muestreo conservando proporción', () => {

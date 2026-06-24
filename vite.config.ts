@@ -24,6 +24,7 @@ function redirectRootToApp(): Plugin {
 
 export default defineConfig({
   base: APP_URL_PATH,
+  assetsInclude: ['**/*.wasm'],
   plugins: [react(), redirectRootToApp()],
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
@@ -46,6 +47,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/jspdf')) return 'pdf'
+          if (id.includes('node_modules/lcms-wasm')) return 'lcms-wasm'
+          if (id.includes('conversionImagen') && !id.includes('lcms-wasm')) return 'conversion-imagen'
           if (id.includes('node_modules/@mantine')) return 'mantine'
           if (id.includes('node_modules/date-fns')) return 'date-fns'
         },

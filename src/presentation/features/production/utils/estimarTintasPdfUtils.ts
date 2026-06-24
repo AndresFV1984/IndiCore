@@ -3,7 +3,18 @@ import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import {
   ESTIMAR_TINTAS_MAX_SAMPLE_EDGE,
   ESTIMAR_TINTAS_REFERENCE_DPI,
+  type CmykCoverage,
+  clampCmykTac,
 } from './estimarTintasUtils'
+import {
+  detectPdfColorSpaceFromBytes,
+  type EstimarTintasSourceColorSpace,
+} from './estimarTintasColorSpaceUtils'
+import {
+  extractPantoneSpotNamesFromPdfBytes,
+  loadPdfSpotReferenceRgbs,
+  type EstimarTintasSpotRgb,
+} from './estimarTintasPdfSpotUtils'
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
@@ -17,6 +28,12 @@ export interface EstimarTintasPdfPageMeta {
 
 export interface EstimarTintasPdfSource {
   meta: EstimarTintasPdfPageMeta
+  sourceColorSpace: EstimarTintasSourceColorSpace
+  spotReferenceRgbs: EstimarTintasSpotRgb[]
+  pantoneSpotNames: string[]
+  cmykOperatorSamples: CmykCoverage[]
+  getAnalysisCanvas: () => Promise<HTMLCanvasElement>
+  /** @deprecated Preferir getAnalysisCanvas para evitar conversión PNG intermedia. */
   getAnalysisImage: () => Promise<HTMLImageElement>
 }
 
@@ -55,6 +72,58 @@ const resolvePdfRenderScale = (pageWidthPt: number, pageHeightPt: number): numbe
   return scale
 }
 
+const readOperatorChannel = (args: unknown, index: number): number | null => {
+  if (Array.isArray(args)) {
+    const value = args[index]
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+  }
+
+  if (args && typeof args === 'object') {
+    const record = args as Record<string, unknown>
+    const value = record[String(index)] ?? record[index]
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+  }
+
+  return null
+}
+
+const normalizePdfCmykChannel = (value: number): number => {
+  if (value <= 1) return Math.max(0, Math.min(1, value))
+  if (value <= 100) return Math.max(0, Math.min(1, value / 100))
+  return Math.max(0, Math.min(1, value / 255))
+}
+
+export const extractCmykSamplesFromPdfPage = async (
+  page: pdfjs.PDFPageProxy
+): Promise<CmykCoverage[]> => {
+  const operatorList = await page.getOperatorList()
+  const cmykOps = new Set<number>([pdfjs.OPS.setFillCMYKColor, pdfjs.OPS.setStrokeCMYKColor])
+  const samples: CmykCoverage[] = []
+
+  for (let index = 0; index < operatorList.fnArray.length; index += 1) {
+    const fn = operatorList.fnArray[index]
+    if (!cmykOps.has(fn)) continue
+
+    const args = operatorList.argsArray[index]
+    const c = readOperatorChannel(args, 0)
+    const m = readOperatorChannel(args, 1)
+    const y = readOperatorChannel(args, 2)
+    const k = readOperatorChannel(args, 3)
+    if (c == null || m == null || y == null || k == null) continue
+
+    samples.push(
+      clampCmykTac({
+        c: normalizePdfCmykChannel(c),
+        m: normalizePdfCmykChannel(m),
+        y: normalizePdfCmykChannel(y),
+        k: normalizePdfCmykChannel(k),
+      })
+    )
+  }
+
+  return samples
+}
+
 export async function prepareEstimarTintasPdfSource(url: string): Promise<EstimarTintasPdfSource> {
   let pdf: pdfjs.PDFDocumentProxy
 
@@ -77,6 +146,25 @@ export async function prepareEstimarTintasPdfSource(url: string): Promise<Estima
   const heightCm = pdfPointsToCm(baseViewport.height)
   const renderScale = resolvePdfRenderScale(baseViewport.width, baseViewport.height)
   const renderViewport = page.getViewport({ scale: renderScale })
+
+  let spotReferenceRgbs: EstimarTintasSpotRgb[] = []
+  let pantoneSpotNames: string[] = []
+  let sourceColorSpace: EstimarTintasSourceColorSpace = 'rgb'
+  let cmykOperatorSamples: CmykCoverage[] = []
+  try {
+    const pdfData = await pdf.getData()
+    sourceColorSpace = detectPdfColorSpaceFromBytes(pdfData)
+    pantoneSpotNames = extractPantoneSpotNamesFromPdfBytes(pdfData)
+    if (pantoneSpotNames.length > 0) {
+      spotReferenceRgbs = await loadPdfSpotReferenceRgbs(pdf, 1)
+    }
+    cmykOperatorSamples = await extractCmykSamplesFromPdfPage(page)
+  } catch {
+    spotReferenceRgbs = []
+    pantoneSpotNames = []
+    sourceColorSpace = 'rgb'
+    cmykOperatorSamples = []
+  }
 
   let cachedCanvas: HTMLCanvasElement | null = null
 
@@ -108,6 +196,11 @@ export async function prepareEstimarTintasPdfSource(url: string): Promise<Estima
       widthCm,
       heightCm,
     },
+    spotReferenceRgbs,
+    pantoneSpotNames,
+    sourceColorSpace,
+    cmykOperatorSamples,
+    getAnalysisCanvas: renderToCanvas,
     getAnalysisImage: async () => canvasToImage(await renderToCanvas()),
   }
 }

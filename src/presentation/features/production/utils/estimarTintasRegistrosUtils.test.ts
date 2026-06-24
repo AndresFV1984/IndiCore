@@ -7,7 +7,9 @@ import {
   createImpresionEstimarTintasEntrada,
   emptyImpresionEstimarTintasRegistro,
   isImpresionEstimarTintasPlanchaCompleta,
+  normalizeImpresionEstimarTintasEntrada,
   patchImpresionEstimarTintasRegistro,
+  resolveEntradaInkTotalsSnapshot,
   resolveEstimarTintasCompletedPlanchaIds,
   syncImpresionEstimarTintasRegistros,
 } from './estimarTintasRegistrosUtils'
@@ -59,6 +61,14 @@ describe('estimarTintasRegistrosUtils', () => {
     expect(isImpresionEstimarTintasPlanchaCompleta(next[0]!)).toBe(true)
     expect(resolveEstimarTintasCompletedPlanchaIds(next)).toEqual(['a'])
     expect(buildEstimarTintasTableRows([plancha('a')], next)).toHaveLength(1)
+
+    const saved = next[0]!.entradas[0]!
+    expect(saved.totalProcessInkG).toBeCloseTo(4, 6)
+    expect(saved.totalPantoneInkG).toBe(0)
+    expect(saved.totalInkG).toBeCloseTo(4, 6)
+    expect(saved.totalProcessInkPedidoG).toBeCloseTo(4800, 6)
+    expect(saved.totalPantoneInkPedidoG).toBe(0)
+    expect(saved.totalInkPedidoG).toBeCloseTo(4800, 6)
   })
 
   it('migrates legacy flat registro shape into entradas', () => {
@@ -167,6 +177,92 @@ describe('estimarTintasRegistrosUtils', () => {
 
     expect(resumen.registrosCount).toBe(2)
     expect(resumen.pedidoPorCanal.c).toBeCloseTo(1.2 * 100 + 1.2 * 50, 6)
+    expect(resumen.totalPedidoProcess).toBeCloseTo(4 * 100 + 4 * 50, 6)
+    expect(resumen.totalPedidoPantone).toBe(0)
     expect(resumen.totalPedido).toBeCloseTo(4 * 100 + 4 * 50, 6)
+  })
+
+  it('deriva desglose CMYK/Pantone en registros legacy sin campos nuevos', () => {
+    const legacy = {
+      id: 'legacy-1',
+      colorPlanchaId: 'a',
+      fileName: 'legacy.jpg',
+      sourceKind: 'image' as const,
+      widthCm: 10,
+      heightCm: 15,
+      dpi: 300,
+      conversionFactorG: 0.00021,
+      coverage: sampleResult.coverage,
+      inkG: sampleResult.inkG,
+      totalInkG: 4.8,
+      totalPliegos: 10,
+      averageTac: 0.35,
+      calculatedAt: '2026-01-01T00:00:00.000Z',
+      detectedColors: [
+        {
+          index: 5,
+          name: '485 C',
+          category: 'pantone' as const,
+          swatch: '#e4002b',
+          coverage: 0.12,
+          inkG: 0.8,
+        },
+      ],
+    }
+
+    const synced = syncImpresionEstimarTintasRegistros([plancha('a')], [legacy])
+    const entrada = synced[0]!.entradas[0]!
+    const totals = resolveEntradaInkTotalsSnapshot(entrada)
+
+    expect(entrada.totalProcessInkG).toBeCloseTo(4, 6)
+    expect(entrada.totalPantoneInkG).toBeCloseTo(0.8, 6)
+    expect(entrada.totalInkG).toBeCloseTo(4.8, 6)
+    expect(totals.pedido!.processInkG).toBeCloseTo(40, 6)
+    expect(totals.pedido!.pantoneInkG).toBeCloseTo(8, 6)
+    expect(totals.pedido!.totalInkG).toBeCloseTo(48, 6)
+  })
+
+  it('recalcula pedido CMYK y Pantone desde Total estimado por pliego', () => {
+    const entrada = normalizeImpresionEstimarTintasEntrada({
+      id: 'mismatch-1',
+      fileName: 'arte.pdf',
+      sourceKind: 'pdf',
+      widthCm: 70,
+      heightCm: 100,
+      dpi: 300,
+      conversionFactorG: 0.00021,
+      coverage: sampleResult.coverage,
+      inkG: sampleResult.inkG,
+      totalProcessInkG: 4,
+      totalPantoneInkG: 0.8,
+      totalInkG: 4.8,
+      totalPliegos: 100,
+      totalProcessInkPedidoG: 999,
+      totalPantoneInkPedidoG: 1,
+      totalInkPedidoG: 5000,
+      averageTac: 0.35,
+      calculatedAt: '2026-01-01T00:00:00.000Z',
+      detectedColors: [
+        {
+          index: 5,
+          name: '485 C',
+          category: 'pantone' as const,
+          swatch: '#e4002b',
+          coverage: 0.12,
+          inkG: 0.8,
+        },
+      ],
+    })
+
+    const totals = resolveEntradaInkTotalsSnapshot(entrada)
+
+    expect(totals.perPliego.processInkG).toBeCloseTo(4, 6)
+    expect(totals.perPliego.pantoneInkG).toBeCloseTo(0.8, 6)
+    expect(totals.pedido!.processInkG).toBeCloseTo(400, 6)
+    expect(totals.pedido!.pantoneInkG).toBeCloseTo(80, 6)
+    expect(totals.pedido!.totalInkG).toBeCloseTo(480, 6)
+    expect(entrada.totalProcessInkPedidoG).toBeCloseTo(400, 6)
+    expect(entrada.totalPantoneInkPedidoG).toBeCloseTo(80, 6)
+    expect(entrada.totalInkPedidoG).toBeCloseTo(480, 6)
   })
 })

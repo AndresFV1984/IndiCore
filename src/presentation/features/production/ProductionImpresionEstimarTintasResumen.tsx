@@ -5,15 +5,9 @@ import {
   buildEstimarTintasCobroResumen,
   type EstimarTintasTableRow,
 } from './utils/estimarTintasRegistrosUtils'
-import { CMYK_CHANNELS, formatEstimarTintasWeightG } from './utils/estimarTintasUtils'
+import { formatEstimarTintasWeightG } from './utils/estimarTintasUtils'
 
 const resumenCopy = copy.muestra.resumen
-const channelLabels: Record<(typeof CMYK_CHANNELS)[number], string> = {
-  c: resumenCopy.valorCian,
-  m: resumenCopy.valorMagenta,
-  y: resumenCopy.valorAmarillo,
-  k: resumenCopy.valorNegro,
-}
 
 const formatValor = (value: number) =>
   value > 0 ? formatEstimarTintasWeightG(value) : resumenCopy.empty
@@ -32,22 +26,18 @@ const ProductionImpresionEstimarTintasResumen: React.FC<
   if (resumen.registrosCount === 0) return null
 
   const filas = [
-    ...CMYK_CHANNELS.map(channel => ({
-      key: channel,
-      label: channelLabels[channel],
-      value: formatValor(resumen.pedidoPorCanal[channel]),
-      inactive: resumen.pedidoPorCanal[channel] <= 0,
-    })),
-    ...(resumen.registrosCount === 1
-      ? [
-          {
-            key: 'estimado-pliego',
-            label: resumenCopy.totalEstimadoPliego,
-            value: formatValor(resumen.totalEstimadoPliego),
-            inactive: resumen.totalEstimadoPliego <= 0,
-          },
-        ]
-      : []),
+    {
+      key: 'pedido-process',
+      label: resumenCopy.totalPedidoProcess,
+      value: formatValor(resumen.totalPedidoProcess),
+      inactive: resumen.totalPedidoProcess <= 0,
+    },
+    {
+      key: 'pedido-pantone',
+      label: resumenCopy.totalPedidoPantone,
+      value: formatValor(resumen.totalPedidoPantone),
+      inactive: resumen.totalPedidoPantone <= 0,
+    },
   ]
 
   return (

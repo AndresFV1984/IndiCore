@@ -42,6 +42,14 @@ export const DISENO_INK_PALETTE = [
   { name: 'Pantone', swatch: DISENO_INK_PANTONE_MIX_SWATCH },
 ] as const
 
+/** Colores visuales de los 4 primarios CMYK de proceso (no muestreados del archivo). */
+export const ESTIMAR_TINTAS_PROCESS_CMYK_SWATCHES = {
+  c: DISENO_INK_PALETTE[0]!.swatch,
+  m: DISENO_INK_PALETTE[1]!.swatch,
+  y: DISENO_INK_PALETTE[2]!.swatch,
+  k: DISENO_INK_PALETTE[3]!.swatch,
+} as const
+
 export const DISENO_INK_PALETTE_SECTIONS = [
   {
     id: 'primarios',

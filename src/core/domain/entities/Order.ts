@@ -263,6 +263,16 @@ export interface EstimarTintasCmykValues {
   k: number;
 }
 
+export interface EstimarTintasDetectedColorSnapshot {
+  index: number;
+  name: string;
+  category: 'basico' | 'secundario' | 'pantone';
+  swatch: string;
+  representativeSwatch?: string;
+  coverage: number;
+  inkG: number;
+}
+
 /** Línea de estimación CMYK guardada para una plancha. */
 export interface ImpresionEstimarTintasEntrada {
   id: string;
@@ -274,17 +284,31 @@ export interface ImpresionEstimarTintasEntrada {
   conversionFactorG: number;
   coverage: EstimarTintasCmykValues;
   inkG: EstimarTintasCmykValues;
-  /** Consumo CMYK total estimado por pliego (g). */
+  /** Consumo CMYK de proceso estimado por pliego (g). */
+  totalProcessInkG: number;
+  /** Consumo Pantone estimado por pliego (g). */
+  totalPantoneInkG: number;
+  /** Consumo total estimado por pliego (g): proceso + Pantone. */
   totalInkG: number;
-  /** Consumo CMYK total para el tiraje: totalInkG × totalPliegos (g). */
+  /** Consumo CMYK de proceso para el tiraje (g). */
+  totalProcessInkPedidoG: number;
+  /** Consumo Pantone para el tiraje (g). */
+  totalPantoneInkPedidoG: number;
+  /** Consumo total para el tiraje (g). */
   totalInkPedidoG: number;
   totalPliegos: number;
   averageTac: number;
   calculatedAt: string;
+  /** Colores detectados en el archivo analizado (independientes de la plancha). */
+  detectedColors?: EstimarTintasDetectedColorSnapshot[];
+  /** Color RGB dominante por canal CMYK detectado en el archivo. */
+  cmykRepresentativeSwatches?: Partial<Record<'c' | 'm' | 'y' | 'k', string>>;
   /** Snapshot del tipo de papel al guardar el registro. */
   tipoPapelDisplay?: string;
   /** Snapshot del despiece al guardar el registro. */
   despieceDisplay?: string;
+  /** Miniatura del archivo analizado para mostrar al editar el registro. */
+  previewImageDataUrl?: string;
 }
 
 /** Estimación de tinta CMYK por registro de preprensa (plancha). */

@@ -11300,7 +11300,7 @@
 }
 
 .production-plancha-table--estimar-tintas {
-  min-width: 52rem;
+  min-width: 56rem;
 }
 
 .production-plancha-table--estimar-tintas .production-plancha-table__row:not(.production-plancha-table__row--empty) {
@@ -11322,6 +11322,21 @@
   width: auto;
 }
 
+.production-impresion-estimar-tintas-total-value {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.production-impresion-estimar-tintas-total-value--unified {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--corp-primary-strong, var(--corp-primary));
+}
+
 .production-impresion-estimar-tintas-cmyk-grupo {
   background: #f8fafc;
   border-color: #e8edf3;
@@ -11336,10 +11351,10 @@
 }
 
 .production-impresion-estimar-tintas-cmyk-inline .production-colores-swatch-icon {
-  filter: saturate(0.62);
-  opacity: 0.86;
-  border-width: 1.5px;
-  box-shadow: inset 0 -1px 1px rgba(15, 23, 42, 0.05);
+  opacity: 1;
+  filter: none;
+  border-width: 2px;
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.12);
 }
 
 .production-impresion-estimar-tintas-cmyk-inline__item {
@@ -11711,6 +11726,144 @@
   display: none;
 }
 
+.production-impresion-estimar-tintas-hud__palette {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.production-impresion-estimar-tintas-hud__palette-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.production-impresion-estimar-tintas-hud__palette-heading {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas-hud__palette-hint {
+  margin: -0.2rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: #94a3b8;
+}
+
+.production-impresion-estimar-tintas-hud__ink-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.75rem, 1fr));
+  gap: 0.75rem;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 2px 10px rgb(15 23 42 / 0.06);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 24px rgb(15 23 42 / 0.1);
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile--pantone {
+  border-color: #ddd6fe;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-hero {
+  position: relative;
+  height: 4.35rem;
+  flex-shrink: 0;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-badge {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  padding: 0.58rem 0.62rem 0.62rem;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-name {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: #eef2f6;
+  overflow: hidden;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  min-width: 0;
+  transition: width 0.45s ease;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-metrics {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-coverage {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+.production-impresion-estimar-tintas-hud__ink-tile-grams {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+@media (min-width: 860px) {
+  .production-impresion-estimar-tintas-hud__ink-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .production-impresion-estimar-tintas-hud__badge {
   align-self: flex-start;
   padding: 0.1rem 0.42rem;
@@ -11799,6 +11952,75 @@
   --ring-track: color-mix(in srgb, #334155 14%, #eef2f6);
 }
 
+.production-impresion-estimar-tintas-hud__ring-card--pantone {
+  --ring-ink: #7c3aed;
+  --ring-ink-strong: #5b21b6;
+  --ring-border: #7c3aed;
+  --ring-surface: #faf5ff;
+  --ring-track: color-mix(in srgb, #7c3aed 18%, #f5f3ff);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--detected {
+  --ring-ink: #475569;
+  --ring-ink-strong: #1e293b;
+  --ring-border: #94a3b8;
+  --ring-surface: #f8fafc;
+  --ring-track: color-mix(in srgb, #475569 14%, #f8fafc);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--detected
+  .production-impresion-estimar-tintas-hud__ring-card-badge {
+  border: 1px solid rgb(15 23 42 / 0.12);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--spot-4 {
+  --ring-ink: #e4002b;
+  --ring-ink-strong: #b8001f;
+  --ring-border: #e4002b;
+  --ring-surface: #fff5f5;
+  --ring-track: color-mix(in srgb, #e4002b 16%, #fff5f5);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--spot-5 {
+  --ring-ink: #005eb8;
+  --ring-ink-strong: #004493;
+  --ring-border: #005eb8;
+  --ring-surface: #eff6ff;
+  --ring-track: color-mix(in srgb, #005eb8 16%, #eff6ff);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--spot-6 {
+  --ring-ink: #00a651;
+  --ring-ink-strong: #007a3b;
+  --ring-border: #00a651;
+  --ring-surface: #f0fdf4;
+  --ring-track: color-mix(in srgb, #00a651 16%, #f0fdf4);
+}
+
+.production-impresion-estimar-tintas-hud__spot-title {
+  margin: 0.85rem 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas-hud__rings--spot {
+  margin-top: 0;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--file-color {
+  border-top-color: var(--ring-border);
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--file-color:hover {
+  border-top-color: var(--ring-border);
+  background: #fff;
+}
+
 .production-impresion-estimar-tintas-hud__ring-card-head {
   display: flex;
   align-items: center;
@@ -11822,6 +12044,41 @@
   color: #fff;
   border: 1px solid rgba(15, 23, 42, 0.12);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.production-impresion-estimar-tintas-hud__ink-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.62rem;
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.production-impresion-estimar-tintas-hud__ink-chip--solid {
+  opacity: 1;
+  filter: none;
+  border: 2px solid rgb(15 23 42 / 0.14);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.12);
+}
+
+.production-impresion-estimar-tintas-hud__ink-chip--pantone-mix {
+  color: #0f172a;
+  border-color: rgb(15 23 42 / 0.14);
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--file-color
+  .production-impresion-estimar-tintas-hud__ring-card-progress {
+  filter: none;
+}
+
+.production-impresion-estimar-tintas-hud__ring-card--file-color
+  .production-impresion-estimar-tintas-hud__ring-card-track {
+  opacity: 1;
 }
 
 .production-impresion-estimar-tintas-hud__ring-card--y .production-impresion-estimar-tintas-hud__ring-card-badge {
@@ -11857,8 +12114,6 @@
 
 .production-impresion-estimar-tintas-hud__ring-card-progress {
   transition: stroke-dashoffset 0.45s ease;
-  stroke: var(--ring-ink);
-  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--ring-ink) 35%, transparent));
 }
 
 .production-impresion-estimar-tintas-hud__ring-card-pct {
@@ -11946,6 +12201,32 @@
   color: var(--txt-2);
 }
 
+.production-impresion-estimar-tintas-hud__total-hint--inline {
+  margin-top: 0.15rem;
+}
+
+.production-impresion-estimar-tintas-hud__details {
+  margin-top: 0.65rem;
+}
+
+.production-impresion-estimar-tintas-hud__details .production-impresion-estimar-tintas-hud__note {
+  font-size: 0.625rem;
+}
+
+.production-impresion-estimar-tintas-hud__calibration.production-impresion-estimar-tintas-hud__details {
+  margin-top: 0.5rem;
+}
+
+.production-impresion-estimar-tintas-hud__calibration.production-impresion-estimar-tintas-hud__details
+  .production-impresion-estimar-tintas-hud__calibration-sub {
+  margin: 0;
+}
+
+.production-impresion-estimar-tintas-hud__calibration.production-impresion-estimar-tintas-hud__details
+  .production-impresion-estimar-tintas-hud__calibration-body {
+  margin-top: 0;
+}
+
 .production-impresion-estimar-tintas-hud__total-formula {
   width: 100%;
   margin-top: 0.08rem;
@@ -11967,11 +12248,68 @@
 }
 
 .production-impresion-estimar-tintas-hud__total-label {
+  margin: 0;
   font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  width: 100%;
+  margin: 0.15rem 0 0;
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown-row dt {
+  margin: 0;
+  font-weight: 500;
+  color: var(--txt-2);
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown-row dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown-row--unified {
+  margin-top: 0.35rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown-row--unified dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__total-breakdown-row--unified dd {
+  font-size: clamp(1.05rem, 2.8vw, 1.3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.production-impresion-estimar-tintas-hud__total--pedido
+  .production-impresion-estimar-tintas-hud__total-breakdown-row--unified
+  dd {
+  color: var(--estimar-accent-strong);
 }
 
 .production-impresion-estimar-tintas-hud__total-value {
@@ -12002,27 +12340,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  padding: 0.65rem 0.72rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--estimar-accent) 6%, #fff);
-  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, #e2e8f0);
-}
-
-.production-impresion-estimar-tintas-hud__save-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.production-impresion-estimar-tintas-hud__save-hint {
-  margin: 0;
-  flex: 1 1 12rem;
-  min-width: 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: #475569;
 }
 
 .production-impresion-estimar-tintas-hud__save-actions {
@@ -12065,6 +12382,72 @@
 .production-impresion-estimar-tintas-hud__btn--calibrate:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.production-impresion-estimar-tintas-hud__btn-spinner {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.45rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: production-impresion-estimar-tintas-spin 0.75s linear infinite;
+  vertical-align: -0.12em;
+}
+
+.production-impresion-estimar-tintas-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--estimar-accent) 18%, #e2e8f0);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.96) 0%, color-mix(in srgb, var(--estimar-accent) 4%, #f8fafc) 100%);
+}
+
+.production-impresion-estimar-tintas-progress__track {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--estimar-accent) 10%, #e2e8f0);
+}
+
+.production-impresion-estimar-tintas-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--estimar-accent) 0%,
+    var(--estimar-accent-strong) 100%
+  );
+  transition: width 0.24s ease;
+}
+
+.production-impresion-estimar-tintas-progress__fill--indeterminate {
+  width: 38% !important;
+  animation: production-impresion-estimar-tintas-progress-indeterminate 1.15s ease-in-out infinite;
+}
+
+.production-impresion-estimar-tintas-progress__label {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--txt-2);
+}
+
+@keyframes production-impresion-estimar-tintas-progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(320%);
+  }
 }
 
 .production-impresion-estimar-tintas-hud__btn--calibrate {
@@ -12284,6 +12667,11 @@
   color: var(--txt-2);
 }
 
+.production-impresion-estimar-tintas-hud__calibration-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .production-impresion-estimar-tintas-hud__input {
   background: #fff !important;
   border-color: var(--border) !important;
@@ -12380,11 +12768,6 @@
   .production-impresion-estimar-tintas-hud__calibration-measured {
     grid-template-columns: 1fr;
     gap: 0.4rem;
-    align-items: stretch;
-  }
-
-  .production-impresion-estimar-tintas-hud__save-toolbar {
-    flex-direction: column;
     align-items: stretch;
   }
 
@@ -12676,6 +13059,13 @@
   white-space: nowrap;
 }
 
+.production-impresion-estimar-tintas__asset-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
 .production-impresion-estimar-tintas__chips {
   display: flex;
   flex-wrap: wrap;
@@ -12695,6 +13085,82 @@
   border: 1px solid color-mix(in srgb, var(--estimar-accent) 22%, transparent);
 }
 
+.production-impresion-estimar-tintas__chip--success {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.production-impresion-estimar-tintas__chip--warn {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.production-impresion-estimar-tintas__color-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.production-impresion-estimar-tintas__color-profile-title {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.production-impresion-estimar-tintas__chips--profile {
+  margin-top: 0.05rem;
+}
+
+.production-impresion-estimar-tintas__color-profile-status {
+  margin: 0;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas__color-profile-status--ok {
+  color: #166534;
+}
+
+.production-impresion-estimar-tintas__color-profile-status--warn {
+  color: #92400e;
+}
+
+.production-impresion-estimar-tintas__color-profile-spots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.production-impresion-estimar-tintas__color-profile-spots-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.production-impresion-estimar-tintas__color-profile-spot-list {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.production-impresion-estimar-tintas__color-profile-meta {
+  margin: 0;
+  font-size: 0.5625rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
 .production-impresion-estimar-tintas__asset-actions {
   display: flex;
   flex-wrap: wrap;
@@ -12710,6 +13176,90 @@
 
 .production-impresion-estimar-tintas__plancha-select {
   margin: 0;
+}
+
+.production-impresion-estimar-tintas .production-form-select {
+  min-height: 2.35rem;
+  padding: 0.5rem 0.72rem;
+  background-color: #fafbfc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.45rem;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  box-shadow: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.production-impresion-estimar-tintas .production-form-select:hover {
+  border-color: #cbd5e1;
+  background-color: #fff;
+}
+
+.production-impresion-estimar-tintas .production-form-select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--corp-primary) 38%, #cbd5e1);
+  background-color: #fff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--corp-primary) 10%, transparent);
+}
+
+.production-impresion-estimar-tintas .production-form-select:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  background-color: #f8fafc;
+  color: #94a3b8;
+}
+
+.production-impresion-estimar-tintas .production-form-select option {
+  color: #334155;
+  font-weight: 400;
+}
+
+.production-impresion-estimar-tintas .production-form-select option:disabled {
+  color: #94a3b8;
+}
+
+/* Conversión img — mismo estilo que preprensa / Precio de montaje */
+.production-specs-content .production-impresion-conversion-imagen .production-form-select {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--ink);
+  background-color: var(--surface);
+  border: 1px solid var(--corp-primary-border);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.production-specs-content .production-impresion-conversion-imagen .production-form-select:hover {
+  border-color: var(--corp-accent-line);
+  background-color: var(--surface);
+}
+
+.production-specs-content .production-impresion-conversion-imagen .production-form-select:focus {
+  outline: none;
+  border-color: var(--corp-accent-line);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--corp-focus-ring);
+}
+
+.production-specs-content .production-impresion-conversion-imagen .production-form-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.production-specs-content .production-impresion-conversion-imagen .production-diseno-montaje-select__control {
+  width: 100%;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .production-impresion-estimar-tintas__plancha-metrics,
@@ -13411,6 +13961,635 @@
   font-size: 0.72rem;
   line-height: 1.45;
   color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__bundle-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__upload-progress {
+  margin-bottom: 0.65rem;
+}
+
+.production-impresion-conversion-imagen__drop--busy {
+  opacity: 0.72;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.production-impresion-conversion-imagen__help {
+  margin-top: 0.35rem;
+}
+
+.production-impresion-conversion-imagen__help .production-impresion-datos__formula-summary {
+  font-size: 0.62rem;
+  padding: 0.14rem 0.42rem;
+}
+
+.production-impresion-conversion-imagen__help-intro {
+  margin: 0;
+  font-size: 0.58rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__help-desc {
+  font-size: 0.54rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen .production-impresion-datos__formula-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+}
+
+.production-impresion-conversion-imagen__wasm-status {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.production-impresion-conversion-imagen__wasm-status--ready {
+  background: color-mix(in srgb, #16a34a 8%, #fff);
+  border-color: color-mix(in srgb, #16a34a 25%, #e2e8f0);
+  color: #166534;
+}
+
+.production-impresion-conversion-imagen__error {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.production-impresion-conversion-imagen__error p {
+  margin: 0;
+}
+
+.production-impresion-conversion-imagen__error-detail {
+  margin-top: 0.35rem !important;
+  font-size: 0.68rem;
+  opacity: 0.85;
+  word-break: break-word;
+}
+
+.production-impresion-conversion-imagen__grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .production-impresion-conversion-imagen__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.production-impresion-conversion-imagen__column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.production-impresion-conversion-imagen__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #e8e4df;
+  background: #fff;
+}
+
+.production-impresion-conversion-imagen__card--preview {
+  min-height: 20rem;
+}
+
+.production-impresion-conversion-imagen__card-head h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__card-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 1.25rem 1rem;
+  border: 1.5px dashed color-mix(in srgb, var(--corp-primary) 24%, #cbd5e1);
+  border-radius: 10px;
+  background: linear-gradient(165deg, #fff 0%, color-mix(in srgb, var(--corp-primary) 4%, #fff) 100%);
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.production-impresion-conversion-imagen__drop:hover,
+.production-impresion-conversion-imagen__drop--active {
+  border-color: var(--corp-primary);
+  background: color-mix(in srgb, var(--corp-primary) 6%, #fff);
+}
+
+.production-impresion-conversion-imagen__drop small {
+  font-size: 0.68rem;
+  color: var(--txt-2);
+  text-align: center;
+}
+
+.production-impresion-conversion-imagen__select-btn {
+  margin-top: 0.35rem;
+}
+
+.production-impresion-conversion-imagen__asset {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .production-impresion-conversion-imagen__asset {
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+  }
+
+  .production-impresion-conversion-imagen__asset .production-impresion-estimar-tintas__asset-preview {
+    width: 8.5rem;
+    height: 8.5rem;
+  }
+}
+
+.production-impresion-conversion-imagen__hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__hint--warn {
+  color: #b45309;
+}
+
+.production-impresion-conversion-imagen__intent-desc {
+  margin: 0.35rem 0 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.production-impresion-conversion-imagen__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.production-impresion-conversion-imagen__options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 0.55rem;
+  border: 1px solid #eef2f6;
+  background: #fafbfc;
+}
+
+.production-impresion-conversion-imagen__options-head h4 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__options-head p {
+  margin: 0.18rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__options-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.production-impresion-conversion-imagen__option-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.production-impresion-conversion-imagen__option-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.production-impresion-conversion-imagen__option-value {
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__option-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__options-advanced {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.55rem;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.production-impresion-conversion-imagen__options-advanced-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.production-impresion-conversion-imagen__options-advanced-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.production-impresion-conversion-imagen__options-advanced-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.production-impresion-conversion-imagen__options-advanced-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.production-impresion-conversion-imagen__options-advanced-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #334155;
+}
+
+.production-impresion-conversion-imagen__options-advanced-subtitle {
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: #94a3b8;
+}
+
+.production-impresion-conversion-imagen__options-advanced-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  flex-shrink: 0;
+  padding: 0.14rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #64748b;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.production-impresion-conversion-imagen__options-advanced-action-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.production-impresion-conversion-imagen__options-advanced-action-open {
+  display: none;
+}
+
+.production-impresion-conversion-imagen__options-advanced[open]
+  .production-impresion-conversion-imagen__options-advanced-action-closed {
+  display: none;
+}
+
+.production-impresion-conversion-imagen__options-advanced[open]
+  .production-impresion-conversion-imagen__options-advanced-action-open {
+  display: inline;
+}
+
+.production-impresion-conversion-imagen__options-advanced-chevron {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-1px);
+  opacity: 0.8;
+  transition: transform 0.15s ease;
+}
+
+.production-impresion-conversion-imagen__options-advanced[open]
+  .production-impresion-conversion-imagen__options-advanced-chevron {
+  transform: rotate(225deg) translate(-1px, 1px);
+}
+
+.production-impresion-conversion-imagen__options-advanced[open]
+  .production-impresion-conversion-imagen__options-advanced-action {
+  color: var(--corp-primary-strong, var(--corp-primary));
+  border-color: color-mix(in srgb, var(--corp-primary) 22%, transparent);
+  background: color-mix(in srgb, var(--corp-primary) 8%, #fff);
+}
+
+.production-impresion-conversion-imagen__options-advanced-toggle:hover
+  .production-impresion-conversion-imagen__options-advanced-action {
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.production-impresion-conversion-imagen__options-advanced[open]
+  .production-impresion-conversion-imagen__options-advanced-toggle:hover
+  .production-impresion-conversion-imagen__options-advanced-action {
+  border-color: color-mix(in srgb, var(--corp-primary) 30%, transparent);
+}
+
+.production-impresion-conversion-imagen__options-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0.8rem 0.8rem;
+  border-top: 1px solid #eef2f6;
+}
+
+.production-impresion-conversion-imagen__options-advanced-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.625rem;
+  line-height: 1.45;
+  color: var(--txt-2);
+}
+
+.production-impresion-conversion-imagen__options-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.15rem;
+}
+
+.production-impresion-conversion-imagen__options-note {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: #b45309;
+}
+
+.production-impresion-conversion-imagen__options .production-impresion-estimar-tintas-callout {
+  margin: 0;
+}
+
+.production-impresion-conversion-imagen__options .production-impresion-datos__formula {
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 720px) {
+  .production-impresion-conversion-imagen__options-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.production-impresion-conversion-imagen__options .production-diseno-montaje-select__control {
+  font-weight: 500;
+}
+
+.production-impresion-conversion-imagen__range {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.production-impresion-conversion-imagen__tac-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.production-impresion-conversion-imagen__preset {
+  padding: 0.28rem 0.55rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.production-impresion-conversion-imagen__preset:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__preset--active {
+  border-color: color-mix(in srgb, var(--corp-primary) 35%, #cbd5e1);
+  background: color-mix(in srgb, var(--corp-primary) 6%, #fff);
+  color: var(--corp-primary-strong);
+}
+
+.production-impresion-conversion-imagen__gcr-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.production-impresion-conversion-imagen__gcr-pill {
+  padding: 0.32rem 0.62rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.production-impresion-conversion-imagen__gcr-pill:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__gcr-pill--active {
+  border-color: color-mix(in srgb, var(--corp-primary) 35%, #cbd5e1);
+  background: color-mix(in srgb, var(--corp-primary) 6%, #fff);
+  color: var(--corp-primary-strong);
+}
+
+.production-impresion-conversion-imagen__radio {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  color: var(--ink);
+}
+
+.production-impresion-conversion-imagen__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.production-impresion-conversion-imagen__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+  padding: 0 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.production-impresion-conversion-imagen__progress-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--corp-primary) 35%, #93c5fd);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.production-impresion-conversion-imagen__progress {
+  position: relative;
+}
+
+.production-impresion-conversion-imagen__preview-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 14rem;
+  border-radius: 8px;
+  border: 1px solid #e8e4df;
+  background: repeating-conic-gradient(#f1f5f9 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+  overflow: auto;
+}
+
+.production-impresion-conversion-imagen__preview-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.production-impresion-conversion-imagen__preview-empty {
+  margin: 0;
+  padding: 1rem;
+  font-size: 0.75rem;
+  color: var(--txt-2);
+  text-align: center;
+}
+
+.production-impresion-conversion-imagen__preview-converting {
+  width: min(100%, 22rem);
+  padding: 1rem 1.25rem;
+}
+
+.production-impresion-conversion-imagen__convert-progress {
+  width: 100%;
+}
+
+.production-impresion-conversion-imagen__result-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.production-impresion-conversion-imagen__result-meta dt {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.production-impresion-conversion-imagen__requirements {
+  flex: 1 1 100%;
+  margin: 0 0 0.35rem;
+  padding: 0.55rem 0.7rem;
+  list-style: none;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.production-impresion-conversion-imagen__requirements-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #475569;
+}
+
+.production-impresion-conversion-imagen__requirement {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.production-impresion-conversion-imagen__requirement--ok {
+  color: #166534;
+}
+
+.production-impresion-conversion-imagen__result-meta dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 @media (max-width: 1080px) {
@@ -14985,12 +16164,47 @@
 }
 
 .production-impresion-tintas-total-cell {
-  display: inline-block;
-  font-size: 0.875rem;
-  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.12rem;
+  min-width: 5.5rem;
+  font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
-  color: var(--corp-primary-strong, var(--corp-primary));
+  color: var(--txt-2);
   white-space: nowrap;
+}
+
+.production-impresion-tintas-total-cell__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.production-impresion-tintas-total-cell__label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.production-impresion-tintas-total-cell__row--unified {
+  margin-top: 0.08rem;
+  padding-top: 0.2rem;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 0.75rem;
+  color: var(--corp-primary-strong, var(--corp-primary));
+}
+
+.production-impresion-tintas-total-cell__row--unified .production-impresion-tintas-total-cell__label {
+  color: var(--corp-primary-strong, var(--corp-primary));
+}
+
+.production-impresion-tintas-total-cell__row--unified strong {
+  font-weight: 700;
 }
 
 .production-impresion-tintas-table__empty {

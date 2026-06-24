@@ -2,29 +2,24 @@ import React from 'react'
 import clsx from 'clsx'
 import ActionIcon from '../../components/ui/ActionIcon'
 import { ColoresInkIcon } from './DisenoColoresPicker'
+import { ESTIMAR_TINTAS_PROCESS_CMYK_SWATCHES } from './constants/preprensaDisenoColors'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
 import {
   CMYK_CHANNELS,
-  computeEstimarTintasTotalPedidoG,
   formatEstimarTintasCoverage,
   formatEstimarTintasWeightG,
 } from './utils/estimarTintasUtils'
-import type { CmykChannel } from './utils/estimarTintasUtils'
 import type { EstimarTintasCorteDisplay, EstimarTintasTableRow } from './utils/estimarTintasRegistrosUtils'
+import { resolveEntradaInkTotalsSnapshot } from './utils/estimarTintasRegistrosUtils'
+import { EstimarTintasInkTotalsValueCell } from './EstimarTintasInkTotalsPanel'
+import { sortPantoneDetectedColorsForDisplay, resolveEstimarTintasPantoneDisplaySwatch } from './utils/estimarTintasImageColorsUtils'
 import type { ImpresionEstimarTintasEntrada } from '../../../core/domain/entities/Order'
 
 const entradasCopy = copy.muestra.entradas
 const channelsCopy = copy.muestra.channels
 const channelNamesCopy = copy.muestra.channelNames
 
-const TABLE_COL_COUNT = 9
-
-const CMYK_SWATCH: Record<CmykChannel, string> = {
-  c: '#00a9e0',
-  m: '#d6007a',
-  y: '#ffd400',
-  k: '#1a1a1a',
-}
+const TABLE_COL_COUNT = 10
 
 interface EstimarTintasEntradasListProps {
   rows: EstimarTintasTableRow[]
@@ -91,7 +86,11 @@ const EstimarTintasCmykTableCell: React.FC<{ entrada: ImpresionEstimarTintasEntr
               )}
               title={`${label}: ${formatEstimarTintasCoverage(coverage)} · ${formatEstimarTintasWeightG(grams)}`}
             >
-              <ColoresInkIcon swatch={CMYK_SWATCH[channel]} name={label} size="sm" />
+              <ColoresInkIcon
+                swatch={ESTIMAR_TINTAS_PROCESS_CMYK_SWATCHES[channel]}
+                name={label}
+                size="sm"
+              />
               <span className="production-impresion-estimar-tintas-cmyk-inline__name">{name}</span>
               <span className="production-impresion-estimar-tintas-cmyk-inline__coverage">
                 {formatEstimarTintasCoverage(coverage)}
@@ -102,6 +101,33 @@ const EstimarTintasCmykTableCell: React.FC<{ entrada: ImpresionEstimarTintasEntr
             </div>
           )
         })}
+        {sortPantoneDetectedColorsForDisplay(entrada.detectedColors ?? []).map(color => (
+          <div
+            key={`${color.index}-${color.representativeSwatch ?? color.name}`}
+            className={clsx(
+              'production-impresion-estimar-tintas-cmyk-inline__item',
+              color.category === 'pantone'
+                ? 'production-impresion-estimar-tintas-cmyk-inline__item--pantone'
+                : color.category === 'basico'
+                  ? `production-impresion-estimar-tintas-cmyk-inline__item--${CMYK_CHANNELS[color.index]}`
+                  : `production-impresion-estimar-tintas-cmyk-inline__item--spot-${color.index}`
+            )}
+            title={`${color.name}: ${formatEstimarTintasCoverage(color.coverage)} · ${formatEstimarTintasWeightG(color.inkG)}`}
+          >
+            <ColoresInkIcon
+              swatch={resolveEstimarTintasPantoneDisplaySwatch(color)}
+              name={color.name}
+              size="sm"
+            />
+            <span className="production-impresion-estimar-tintas-cmyk-inline__name">{color.name}</span>
+            <span className="production-impresion-estimar-tintas-cmyk-inline__coverage">
+              {formatEstimarTintasCoverage(color.coverage)}
+            </span>
+            <span className="production-impresion-estimar-tintas-cmyk-inline__grams">
+              {formatEstimarTintasWeightG(color.inkG)}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   </div>
@@ -138,10 +164,13 @@ const EstimarTintasEntradasList: React.FC<EstimarTintasEntradasListProps> = ({
               {entradasCopy.tableConsumo}
             </th>
             <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
-              {entradasCopy.registroEstimadoLabel}
+              {entradasCopy.tableTotalColorBasico}
             </th>
             <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
-              {entradasCopy.registroTotalLabel}
+              {entradasCopy.tableTotalPantone}
+            </th>
+            <th scope="col" className="production-plancha-table__th production-plancha-table__th--num">
+              {entradasCopy.tableTotalUnificado}
             </th>
             <th scope="col" className="production-plancha-table__th production-plancha-table__th--act">
               <span className="sr-only">{entradasCopy.tableAcciones}</span>
@@ -163,6 +192,12 @@ const EstimarTintasEntradasList: React.FC<EstimarTintasEntradasListProps> = ({
             rows.map(({ colorPlanchaId, plancha, entrada, corteDisplay }) => {
               const isEditing = editingEntradaId === entrada.id
               const isActivePlancha = colorPlanchaId === activeColorPlanchaId
+              const inkTotals = resolveEntradaInkTotalsSnapshot(entrada)
+              const pedidoTotals = inkTotals.pedido ?? {
+                processInkG: 0,
+                pantoneInkG: 0,
+                totalInkG: 0,
+              }
               const planchaLabel = [
                 plancha.planchaNombreMedida,
                 plancha.detalle?.trim() ? plancha.detalle.trim() : '',
@@ -198,18 +233,16 @@ const EstimarTintasEntradasList: React.FC<EstimarTintasEntradasListProps> = ({
                     <EstimarTintasCmykTableCell entrada={entrada} />
                   </td>
                   <td className="production-plancha-table__td production-plancha-table__td--num">
-                    <span className="production-impresion-tintas-total-cell">
-                      {formatEstimarTintasWeightG(entrada.totalInkG)}
-                    </span>
+                    <EstimarTintasInkTotalsValueCell valueG={pedidoTotals.processInkG} />
                   </td>
-                  <td className="production-plancha-table__td production-plancha-table__td--num production-plancha-table__td--total">
-                    <span className="production-impresion-tintas-total-cell">
-                      {formatEstimarTintasWeightG(
-                        entrada.totalInkPedidoG > 0
-                          ? entrada.totalInkPedidoG
-                          : computeEstimarTintasTotalPedidoG(entrada.totalInkG, entrada.totalPliegos)
-                      )}
-                    </span>
+                  <td className="production-plancha-table__td production-plancha-table__td--num">
+                    <EstimarTintasInkTotalsValueCell valueG={pedidoTotals.pantoneInkG} />
+                  </td>
+                  <td
+                    className="production-plancha-table__td production-plancha-table__td--num production-plancha-table__td--total"
+                    title={`${entradasCopy.tableTotalUnificado}: CMYK + Pantone × pliegos`}
+                  >
+                    <EstimarTintasInkTotalsValueCell valueG={pedidoTotals.totalInkG} variant="unified" />
                   </td>
                   <td className="production-plancha-table__td production-plancha-table__td--act">
                     <div className="production-impresion-tintas-table__actions">

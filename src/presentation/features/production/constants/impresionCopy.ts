@@ -421,6 +421,8 @@ export const IMPRESION_COPY = {
       selectBtn: 'Seleccionar archivo',
       replaceBtn: 'Cambiar archivo',
       removeBtn: 'Quitar',
+      editStoredPreviewHint:
+        'Vista previa del registro guardado. Para recalcular, use «Cambiar archivo» y vuelva a cargar el diseño.',
       previewAlt: 'Vista previa del archivo cargado',
       pixelsLabel: (width: number, height: number) => `${width} × ${height} px`,
       pdfBadge: 'PDF',
@@ -428,6 +430,25 @@ export const IMPRESION_COPY = {
         total > 1 ? `Página ${page} de ${total}` : 'Página 1',
       pdfSizeLabel: (widthCm: number, heightCm: number) =>
         `${widthCm.toFixed(1)} × ${heightCm.toFixed(1)} cm (tamaño PDF)`,
+      colorProfileTitle: 'Propiedades de color en el archivo',
+      colorSpaceLabel: 'Espacio de color',
+      colorSpaceValues: {
+        rgb: 'RGB',
+        cmyk: 'CMYK',
+        mixed: 'CMYK + spot (mixto)',
+      },
+      spotStatusFound: 'Placas Pantone (spot) detectadas en el PDF',
+      spotStatusMissingPdf:
+        'No se encontraron placas Pantone en el PDF. Solo se estimará tinta CMYK de proceso.',
+      spotStatusMissingImage:
+        'Las imágenes no incluyen metadatos Pantone. Suba el PDF de preprensa para detectar spots.',
+      spotNamesLabel: 'Spots encontrados',
+      spotReferencesLabel: (count: number) =>
+        `${count.toLocaleString('es-CO')} referencia${count === 1 ? '' : 's'} de color para el cálculo Pantone.`,
+      cmykNativeLabel: 'El PDF incluye valores CMYK nativos (DeviceCMYK).',
+      spotChipFound: 'Pantone en archivo',
+      spotChipMissing: 'Sin Pantone en archivo',
+      colorSpaceChip: (label: string) => label,
     },
     plancha: {
       tag: 'Paso 1',
@@ -440,7 +461,7 @@ export const IMPRESION_COPY = {
         'Aún no hay registros de plancha en Preprensa. Complete Especificaciones técnicas en Preprensa para habilitar esta sección.',
       tamanosBuenosLabel: 'Tamaños buenos',
       sobranteLabel: 'Sobrante',
-      totalPliegosLabel: 'Total pliegos',
+      totalPliegosLabel: 'Total tamaños',
       totalPliegosHint: 'Tamaños buenos + sobrante',
       corteSectionTitle: 'Datos de corte de papel',
       corteSectionHint: 'Información definida en Corte de papel para la plancha seleccionada.',
@@ -485,16 +506,22 @@ export const IMPRESION_COPY = {
       calculate: 'Calcular consumo de tinta',
       calculating: 'Calculando consumo…',
     },
+    progress: {
+      processingFile: 'Analizando archivo…',
+      preparingSample: 'Preparando muestra del diseño…',
+      renderingPdf: 'Renderizando PDF para análisis…',
+      readingPixels: 'Leyendo píxeles del archivo…',
+      detectingSpots: 'Detectando colores Pantone…',
+      computingCmyk: 'Calculando cobertura CMYK…',
+      detectingPantone: 'Clasificando tintas Pantone…',
+      finishing: 'Finalizando estimación…',
+    },
     entradas: {
       addTitle: 'Nueva estimación de tintas',
       editTitle: 'Editar estimación de tintas',
       addHint: 'Calcule el consumo y agregue el registro de esta plancha.',
       editHint: 'Ajuste parámetros, recalcule y guarde los cambios.',
       addButton: 'Guardar registro',
-      saveAfterCalculateHint:
-        'Guarde el registro de esta plancha. Al ingresar consumo medido se recalcula el total estimado y, con ese valor, el factor actual.',
-      editAfterCalculateHint:
-        'Ajuste los valores y guarde. El consumo medido actualiza el total estimado y el factor se deriva de ese total.',
       saving: 'Guardando…',
       saveEdit: 'Guardar cambios',
       cancelEdit: 'Cancelar edición',
@@ -513,9 +540,10 @@ export const IMPRESION_COPY = {
       tableArchivo: 'Archivo',
       tableMedidas: 'Área de impresión',
       tablePliegos: 'Pliegos',
-      tableConsumo: 'Consumo CMYK',
-      registroEstimadoLabel: 'Total estimado',
-      registroTotalLabel: 'Total tinta pedido',
+      tableConsumo: 'Consumo primarios (CMYK) · Pantone',
+      tableTotalColorBasico: 'Total colores básicos',
+      tableTotalPantone: 'Total Pantone',
+      tableTotalUnificado: 'Total unificado',
       dpiValueLabel: (dpi: number) => `${dpi} DPI`,
       tableAcciones: 'Acciones',
     },
@@ -527,8 +555,13 @@ export const IMPRESION_COPY = {
       valorAmarillo: 'Amarillo (Y)',
       valorNegro: 'Negro (K)',
       totalEstimadoPliego: 'Total estimado por pliego',
-      total: 'Total tinta pedido',
-      totalHint: 'Consumo CMYK proyectado para cubrir el tiraje de las planchas con registro.',
+      totalEstimadoProcessPliego: 'Estimado CMYK por pliego',
+      totalEstimadoPantonePliego: 'Estimado Pantone por pliego',
+      totalEstimadoUnifiedPliego: 'Total estimado unificado por pliego',
+      totalPedidoProcess: 'Total colores básicos',
+      totalPedidoPantone: 'Total colores Pantone',
+      total: 'Total tinta pedido unificado',
+      totalHint: 'Consumo proyectado para cubrir el tiraje de las planchas con registro.',
       empty: '—',
     },
     calibration: {
@@ -548,9 +581,9 @@ export const IMPRESION_COPY = {
       factorChangeLabel: 'Cambio del factor',
       appliedTitle: 'Calibración aplicada',
       appliedHint:
-        'El factor quedó guardado en «Paso 3». Cargue otro archivo y calcule sin volver a ingresar tiraje.',
-      apply: 'Guardar factor calibrado',
-      applying: 'Guardando…',
+        'El factor de conversión quedó actualizado en «Tamaño a imprimir» y el consumo estimado se recalculó con ese valor.',
+      apply: 'Recalcular con factor ajustado',
+      applying: 'Recalculando…',
       requiresEstimate: 'Calcule primero una estimación antes de calibrar.',
       invalidMeasured: 'Ingrese el consumo medido en gramos (valor mayor a cero).',
       invalidCoverage: 'La cobertura de la imagen es insuficiente para calibrar.',
@@ -561,33 +594,39 @@ export const IMPRESION_COPY = {
       badge: 'CMYK · LIVE',
       title: 'Consumo estimado',
       subtitle: 'Cobertura promedio y peso estimado en gramos.',
+      discardEstimate: 'Descartar cálculo',
       channelHeader: 'Canal',
       coverageHeader: 'Cobertura',
       weightHeader: 'Peso',
       totalLabel: 'Total estimado',
-      totalLabelHint: 'Por pliego según el área analizada.',
+      processTotalLabel: 'Colores básicos (CMYK)',
+      pantoneTotalLabel: 'Pantone',
+      unifiedTotalLabel: 'Total unificado',
+      processShortLabel: 'CMYK',
+      pantoneShortLabel: 'Pantone',
+      unifiedShortLabel: 'Total',
       totalPedidoLabel: 'Total tinta pedido',
-      totalPedidoHint: 'Consumo de tinta para cubrir el tiraje de la plancha.',
       totalPedidoEmpty: 'Indique tamaños buenos en Preprensa para proyectar el total tinta pedido.',
       totalPedidoFormulaSummary: 'Ver fórmula de cálculo',
-      totalPedidoFormulaPliegosRule: 'Total pliegos = Tamaños buenos + Sobrante',
-      totalPedidoFormulaPedidoRule: 'Total tinta pedido = Total estimado × Total pliegos',
+      calibrationDetailsSummary: 'Calibrar con tiraje real (opcional)',
+      totalPedidoFormulaPliegosRule: 'Total tamaños = Tamaños buenos + Sobrante',
+      totalPedidoFormulaPedidoRule: 'Total tinta pedido = (CMYK + Pantone por pliego) × Total tamaños',
       totalPedidoFormulaPliegosCalc: (
         tamanosBuenos: number,
         sobrante: number,
         totalPliegos: number
       ) =>
-        `${tamanosBuenos.toLocaleString('es-CO')} + ${sobrante.toLocaleString('es-CO')} = ${totalPliegos.toLocaleString('es-CO')} pliegos`,
+        `${tamanosBuenos.toLocaleString('es-CO')} + ${sobrante.toLocaleString('es-CO')} = ${totalPliegos.toLocaleString('es-CO')} tamaños`,
       totalPedidoFormulaPedidoCalc: (
         totalInkG: number,
         totalPliegos: number,
         totalPedidoG: number
       ) =>
         `${totalInkG < 0.01 ? totalInkG.toFixed(4) : totalInkG.toFixed(2)} grm × ${totalPliegos.toLocaleString('es-CO')} = ${totalPedidoG < 100 ? totalPedidoG.toFixed(2) : totalPedidoG.toFixed(1)} grm`,
-      sampleHint: (width: number, height: number, pixels: number, inkedPixels: number, tac: number) =>
-        `Muestreo ${width} × ${height} px · ${inkedPixels.toLocaleString('es-CO')} píxeles con tinta de ${pixels.toLocaleString('es-CO')} · TAC prom. ${(tac * 100).toFixed(0)} %`,
-      estimationNote:
-        'Estimación orientativa: sRGB→CMYK con GCR simplificado y TAC máx. 300 %. No sustituye el consumo real del RIP/máquina. El tiraje es opcional para afinar el factor.',
+      processColorsTitle: 'Colores de proceso (CMYK)',
+      processColorsHint:
+        'Cuadros con los primarios offset (C, M, Y, K). Los demás colores del diseño se descomponen en estas cuatricromías.',
+      detectedColorsTitle: 'Pantone del archivo',
       empty: 'Cargue una imagen o PDF y pulse «Calcular estimación» para ver el desglose CMYK.',
     },
     channels: {
@@ -617,15 +656,190 @@ export const IMPRESION_COPY = {
   },
   conversionImagen: {
     panelDesc:
-      'Convierta archivos img entre formatos y resoluciones de preprensa sin salir del flujo de producción.',
+      'Conversión profesional RGB → CMYK en el navegador con Little CMS 2 (LCMS2) vía WebAssembly. Sin servidor.',
     section: {
       tag: 'Conversión',
       title: 'Conversión img',
-      subtitle: 'Prepare archivos listos para impresión offset.',
+      subtitle: 'RGB a CMYK con perfiles ICC, rendering intent y control de TAC para preprensa.',
     },
-    empty: {
-      title: 'Próximamente',
-      text: 'Aquí podrá convertir archivos img (formato, DPI y medidas) para impresión.',
+    flow: {
+      stepArchivo: 'Archivo',
+      stepOpciones: 'Opciones CMYK',
+      stepResultado: 'Resultado',
     },
+    pending: {
+      archivo: 'Cargue una imagen RGB para habilitar las opciones de conversión.',
+      opciones: 'Ajuste perfiles ICC, TAC y GCR, luego pulse «Convertir a CMYK».',
+      wasm: 'Espere a que el motor LCMS2 esté listo antes de convertir.',
+    },
+    options: {
+      title: 'Opciones de conversión',
+      subtitle: 'Revise perfiles y parámetros. Los ajustes avanzados son opcionales.',
+      groups: {
+        profilesTitle: 'Perfiles de color',
+        profilesHint: 'De dónde viene la imagen y hacia qué espacio CMYK va a convertir.',
+        conversionTitle: 'Modo y archivo',
+        conversionHint: 'Cómo mapear los colores y en qué formato guardar el resultado.',
+        printTitle: 'Ajustes de imprenta (opcional)',
+        printHint: 'TAC y GCR. Use los valores que le indique su proveedor.',
+        printToggleHint: 'TAC y GCR',
+        printToggleAction: 'Ver opciones',
+        printToggleActionOpen: 'Ocultar',
+      },
+    },
+    results: {
+      title: 'Resultado CMYK',
+      subtitle: 'Vista previa simulada en RGB y descarga en TIFF o PDF con perfil ICC embebido.',
+    },
+    help: {
+      profilesSummary: 'Guía de perfiles RGB y CMYK',
+      conversionSummary: 'Guía de modo y formato',
+      printSummary: 'Guía de TAC y GCR',
+      inputSummary: '¿Qué perfil RGB de entrada usar?',
+      outputSummary: '¿Qué perfil CMYK de salida usar?',
+      renderingIntentSummary: '¿Qué rendering intent elegir?',
+      tacSummary: '¿Qué es TAC y qué porcentaje poner?',
+      gcrSummary: '¿Qué nivel de GCR aplicar?',
+      outputSummary: '¿Qué formato TIFF generar?',
+    },
+    progress: {
+      decode: 'Leyendo imagen…',
+      prepare: 'Preparando motor de color…',
+      transform: 'Convirtiendo RGB → CMYK…',
+      post: 'Aplicando TAC y GCR…',
+      preview: 'Generando vista previa…',
+      encode: 'Codificando TIFF CMYK…',
+      pdf: 'Generando PDF CMYK…',
+      queue: 'Iniciando conversión…',
+      done: 'Finalizando…',
+    },
+    wasm: {
+      initializing: 'Inicializando motor LCMS2 (WebAssembly)…',
+      ready: 'Motor de color listo.',
+      unsupported: 'Su navegador no soporta WebAssembly. Use Chrome, Firefox, Edge o Safari reciente.',
+      initFailed: 'No se pudo cargar lcms-wasm. Recargue la página e intente de nuevo.',
+    },
+    upload: {
+      title: 'Archivo de origen',
+      subtitle: 'JPEG, PNG, WebP, BMP, GIF o TIFF en resolución original.',
+      dropLabel: 'Arrastre una imagen o haga clic para seleccionar',
+      dropActive: 'Suelte la imagen aquí',
+      dropHint: 'La transparencia se aplana sobre blanco. Escala de grises se convierte automáticamente.',
+      selectBtn: 'Seleccionar archivo',
+      openingPicker: 'Abriendo explorador de archivos…',
+      readingFile: 'Leyendo imagen…',
+      replace: 'Cambiar archivo',
+      remove: 'Quitar',
+      previewAlt: 'Vista previa del archivo cargado',
+      pixelsLabel: (width: number, height: number) => `${width.toLocaleString('es-CO')} × ${height.toLocaleString('es-CO')} px`,
+    },
+    profiles: {
+      inputLabel: 'RGB de entrada',
+      outputLabel: 'CMYK de salida',
+      inputHelpIntro:
+        'El perfil RGB indica cómo interpretar los colores de su imagen antes de pasarla a CMYK. Debe coincidir con el espacio en que fue creada o exportada la foto.',
+      outputHelpIntro:
+        'El perfil CMYK define cómo se separarán las tintas en imprenta. Elija el que le indique su proveedor (Europa, USA o GRACoL).',
+      outputUnavailableNote: 'Perfil no instalado en public/icc/.',
+      iccMissing:
+        'No se encontró el perfil en public/icc/. Use el perfil CMYK genérico incluido o consulte public/icc/README.md.',
+    },
+    renderingIntent: {
+      label: 'Modo de conversión',
+      hint: 'Define cómo se mapean los colores fuera de la gama del destino CMYK.',
+      helpIntro:
+        'Cuando un color RGB no cabe en la gama CMYK, este ajuste decide qué priorizar: apariencia, exactitud o saturación.',
+      perceptual: 'Perceptual',
+      perceptualDesc: 'Fotografías e imágenes continuas. Mantiene la sensación visual aunque los valores exactos cambien.',
+      relativeColorimetric: 'Relative Colorimetric',
+      relativeColorimetricDesc: 'Logotipos, rótulos y colores corporativos. Respeta los tonos medios y planos con mayor fidelidad.',
+      saturation: 'Saturation',
+      saturationDesc: 'Gráficos llamativos y presentaciones. Conserva colores vivos aunque los detalles finos varíen.',
+      absoluteColorimetric: 'Absolute Colorimetric',
+      absoluteColorimetricDesc: 'Pruebas de color y control con imprenta. Compara con muestra física sin compensar el blanco del papel.',
+    },
+    tac: {
+      label: 'TAC — Total Area Coverage',
+      hint: 'Límite máximo de tinta (C+M+Y+K) por píxel. Couché 300–340 %, bond 260–280 %, digital 220–260 %.',
+      helpIntro:
+        'TAC = suma de C + M + Y + K en un mismo punto. Limita cuánta tinta total puede llevar un píxel para evitar manchas, repunte o sequedad lenta.',
+      presetHelp: {
+        digital: '240 % — prensas digitales y papeles que no admiten mucha tinta.',
+        bond: '280 % — papeles bond, volantes y trabajos económicos.',
+        coated: '320 % — couché offset habitual; buen punto de partida si la imprenta no indica otro valor.',
+        max: '340 % — couché brillante con buen secado; confírmelo con la imprenta antes de usarlo.',
+      },
+      presets: {
+        digital: 'Digital (240 %)',
+        bond: 'Bond (280 %)',
+        coated: 'Couché (320 %)',
+        max: 'Máximo (340 %)',
+      },
+    },
+    gcr: {
+      label: 'GCR — Generación de negro',
+      hint:
+        'Simulación post-conversión. El perfil CMYK define el negro base; lcms-wasm no expone curvas GCR del RIP.',
+      helpIntro:
+        'GCR traslada gris de cian, magenta y amarillo hacia negro (K). Ahorra tinta de color y estabiliza neutros, pero depende también del perfil ICC y del RIP.',
+      lightDesc: 'Poca sustitución. Útil si quiere conservar el máximo color en CMY.',
+      mediumDesc: 'Opción equilibrada para la mayoría de trabajos comerciales.',
+      maximumDesc: 'Más negro en sombras. Reduce CMY, pero conviene validar el resultado en imprenta.',
+      light: 'GCR ligero',
+      medium: 'GCR medio (estándar)',
+      maximum: 'GCR máximo',
+      limitation:
+        'Para control GCR/UCR idéntico a Photoshop, el ajuste depende del perfil ICC de destino y del RIP de imprenta.',
+    },
+    output: {
+      label: 'Formato de salida',
+      helpIntro:
+        'El TIFF conserva los cuatro canales CMYK y el perfil ICC embebido. El PDF usa DeviceCMYK y metadatos compatibles con Estimar tintas.',
+      tiff16: 'TIFF CMYK 16-bit (recomendado)',
+      tiff16Desc: 'Más tonos por canal; preferible para imprenta offset, retoques y archivos maestros.',
+      tiff8: 'TIFF CMYK 8-bit (archivo más liviano)',
+      tiff8Desc: 'Menor peso. Sirve para pruebas internas o cuando la imprenta acepta 8 bits.',
+      jpegNote:
+        'JPEG CMYK no está disponible en navegador sin backend. Use TIFF con perfil ICC embebido.',
+    },
+    preview: {
+      label: 'Vista previa (simulación RGB)',
+      hint:
+        'Los monitores solo muestran RGB. La previsualización convierte CMYK → sRGB para aproximar el resultado; no sustituye una prueba en imprenta.',
+      empty: 'Suba una imagen y pulse «Convertir a CMYK» para ver la simulación.',
+    },
+    actions: {
+      convert: 'Convertir a CMYK',
+      converting: 'Convirtiendo…',
+      download: 'Descargar TIFF CMYK',
+      downloadPdf: 'Descargar PDF CMYK',
+      reset: 'Nueva conversión',
+      cancel: 'Cancelar',
+    },
+    requirements: {
+      title: 'Para activar la conversión:',
+      file: 'Seleccione una imagen',
+      wasm: 'Espere a que el motor LCMS2 esté listo',
+      profile: 'Perfil CMYK disponible (integrado o en public/icc/)',
+    },
+    result: {
+      sizeLabel: 'Tamaño TIFF',
+      pdfSizeLabel: 'Tamaño PDF',
+      dimensionsLabel: 'Dimensiones',
+      alphaFlattened: 'Se detectó transparencia y se aplanó sobre blanco.',
+      grayscaleConverted: 'Imagen en escala de grises convertida a RGB antes del perfilado.',
+      tiffViewerNote:
+        'El visor de fotos de Windows no abre TIFF CMYK. El PDF CMYK puede cargarse en Estimar tintas para estimar consumo de tinta.',
+    },
+    errors: {
+      unsupportedFormat: 'Formato no soportado. Use JPEG, PNG, WebP, BMP, GIF o TIFF.',
+      corruptImage: 'No se pudo leer la imagen. El archivo puede estar dañado.',
+      iccMissing: 'Perfil ICC no encontrado. Coloque los archivos .icc en public/icc/.',
+      iccInvalid:
+        'El perfil ICC es inválido o está corrupto. Si descargó desde la web, compruebe que no sea una página HTML renombrada como .icc.',
+      conversionFailed: 'Error durante la conversión. Intente con otra imagen o perfil.',
+    },
+    bundleNote:
+      'lcms-wasm (~64 KB) se carga solo al abrir esta pestaña. wasm-vips (~8 MB) no es necesario para esta función.',
   },
 } as const

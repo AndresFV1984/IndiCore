@@ -1,10 +1,12 @@
 import type {
   EstimarTintasCmykValues,
+  EstimarTintasDetectedColorSnapshot,
   ImpresionEstimarTintasEntrada,
   ImpresionEstimarTintasRegistro,
   PaperRow,
 } from '../../../../core/domain/entities/Order'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
+import { DISENO_INK_PANTONE_INDEX } from '../constants/preprensaDisenoColors'
 import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
 import { despieceAsociadoMedida } from '../../../../core/domain/entities/CortePapel'
 import { formatMedidaDisplayFrom } from '../../catalog/cortePapelUtils'
@@ -21,10 +23,15 @@ import type {
 } from './estimarTintasUtils'
 import {
   CMYK_CHANNELS,
-  computeEstimarTintasTotalPedidoG,
+  buildEstimarTintasInkTotalsBreakdown,
+  computeEstimarTintasInkTotalsSnapshot,
   ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G,
+  resolvePedidoInkTotalsBreakdown,
+  scaleEstimarTintasInkTotalsBreakdown,
   sumCmykCoverage,
+  quantizeEstimarTintasInkTotalsBreakdown,
   type CmykChannel,
+  type EstimarTintasInkTotalsSnapshot,
 } from './estimarTintasUtils'
 
 export const ESTIMAR_TINTAS_ENTRADAS_POR_PLANCHA_MAX = 1
@@ -36,14 +43,92 @@ const normalizeCmykValues = (values: EstimarTintasCmykValues): EstimarTintasCmyk
   k: Number.isFinite(values.k) ? values.k : 0,
 })
 
+const normalizeDetectedColors = (
+  raw: Partial<ImpresionEstimarTintasEntrada>
+): EstimarTintasDetectedColorSnapshot[] | undefined => {
+  if (!Array.isArray(raw.detectedColors)) return undefined
+
+  const normalized = raw.detectedColors
+    .filter(
+      item =>
+        item &&
+        Number.isInteger(item.index) &&
+        item.index >= 0 &&
+        typeof item.name === 'string' &&
+        item.name.trim() &&
+        (item.category === 'basico' ||
+          item.category === 'secundario' ||
+          item.category === 'pantone') &&
+        typeof item.swatch === 'string' &&
+        item.swatch.trim() &&
+        typeof item.coverage === 'number' &&
+        item.coverage >= 0 &&
+        typeof item.inkG === 'number' &&
+        item.inkG >= 0
+    )
+    .map(item => ({
+      index: item.index,
+      name: item.index === DISENO_INK_PANTONE_INDEX ? 'Pantone' : item.name.trim(),
+      category: item.category,
+      swatch: item.swatch.trim(),
+      representativeSwatch:
+        typeof item.representativeSwatch === 'string' && item.representativeSwatch.trim()
+          ? item.representativeSwatch.trim()
+          : undefined,
+      coverage: item.coverage,
+      inkG: item.inkG,
+    }))
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
+const sumPantoneInkGFromSnapshots = (
+  colors: EstimarTintasDetectedColorSnapshot[] | undefined
+): number =>
+  (colors ?? [])
+    .filter(item => item.category === 'pantone')
+    .reduce((total, item) => total + (item.inkG > 0 ? item.inkG : 0), 0)
+
+export const resolveEntradaInkTotalsSnapshot = (
+  entrada: ImpresionEstimarTintasEntrada
+): EstimarTintasInkTotalsSnapshot => {
+  const normalized = normalizeImpresionEstimarTintasEntrada(entrada)
+  const perPliego = buildEstimarTintasInkTotalsBreakdown(
+    normalized.totalProcessInkG,
+    normalized.totalPantoneInkG
+  )
+  const rawPedido = resolvePedidoInkTotalsBreakdown(perPliego, normalized.totalPliegos)
+
+  return {
+    perPliego,
+    pedido: rawPedido ? quantizeEstimarTintasInkTotalsBreakdown(rawPedido) : null,
+  }
+}
+
 export const normalizeImpresionEstimarTintasEntrada = (
   raw: ImpresionEstimarTintasEntrada
 ): ImpresionEstimarTintasEntrada => {
   const inkG = normalizeCmykValues(raw.inkG)
-  const totalInkG =
-    typeof raw.totalInkG === 'number' && raw.totalInkG >= 0
-      ? raw.totalInkG
-      : sumCmykCoverage(inkG)
+  const detectedColors = normalizeDetectedColors(raw)
+  const totalPliegos =
+    typeof raw.totalPliegos === 'number' && raw.totalPliegos >= 0 ? raw.totalPliegos : 0
+
+  const rawPerPliego = buildEstimarTintasInkTotalsBreakdown(
+    typeof raw.totalProcessInkG === 'number' && raw.totalProcessInkG >= 0
+      ? raw.totalProcessInkG
+      : sumCmykCoverage(inkG),
+    typeof raw.totalPantoneInkG === 'number' && raw.totalPantoneInkG >= 0
+      ? raw.totalPantoneInkG
+      : sumPantoneInkGFromSnapshots(detectedColors)
+  )
+  const perPliego = quantizeEstimarTintasInkTotalsBreakdown(rawPerPliego)
+  const totalInkG = perPliego.totalInkG
+  const pedidoBreakdown =
+    totalPliegos > 0
+      ? quantizeEstimarTintasInkTotalsBreakdown(
+          scaleEstimarTintasInkTotalsBreakdown(perPliego, totalPliegos)
+        )
+      : buildEstimarTintasInkTotalsBreakdown(0, 0)
 
   return {
     id: raw.id?.trim() ? raw.id : crypto.randomUUID(),
@@ -58,21 +143,23 @@ export const normalizeImpresionEstimarTintasEntrada = (
         : ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G,
     coverage: normalizeCmykValues(raw.coverage),
     inkG,
+    totalProcessInkG: perPliego.processInkG,
+    totalPantoneInkG: perPliego.pantoneInkG,
     totalInkG,
-    totalPliegos:
-      typeof raw.totalPliegos === 'number' && raw.totalPliegos >= 0 ? raw.totalPliegos : 0,
-    totalInkPedidoG:
-      typeof raw.totalInkPedidoG === 'number' && raw.totalInkPedidoG >= 0
-        ? raw.totalInkPedidoG
-        : computeEstimarTintasTotalPedidoG(
-            totalInkG,
-            typeof raw.totalPliegos === 'number' && raw.totalPliegos >= 0 ? raw.totalPliegos : 0
-          ),
+    totalPliegos,
+    totalProcessInkPedidoG: pedidoBreakdown.processInkG,
+    totalPantoneInkPedidoG: pedidoBreakdown.pantoneInkG,
+    totalInkPedidoG: pedidoBreakdown.totalInkG,
     averageTac:
       typeof raw.averageTac === 'number' && raw.averageTac >= 0 ? raw.averageTac : 0,
+    detectedColors,
     calculatedAt: raw.calculatedAt?.trim() ? raw.calculatedAt : new Date().toISOString(),
     tipoPapelDisplay: raw.tipoPapelDisplay?.trim() ? raw.tipoPapelDisplay.trim() : undefined,
     despieceDisplay: raw.despieceDisplay?.trim() ? raw.despieceDisplay.trim() : undefined,
+    previewImageDataUrl:
+      typeof raw.previewImageDataUrl === 'string' && raw.previewImageDataUrl.trim()
+        ? raw.previewImageDataUrl.trim()
+        : undefined,
   }
 }
 
@@ -118,13 +205,13 @@ export const normalizeImpresionEstimarTintasRegistro = (
           conversionFactorG: raw.conversionFactorG ?? 0,
           coverage: normalizeCmykValues(raw.coverage ?? { c: 0, m: 0, y: 0, k: 0 }),
           inkG: normalizeCmykValues(raw.inkG ?? { c: 0, m: 0, y: 0, k: 0 }),
+          totalProcessInkG: raw.totalProcessInkG,
+          totalPantoneInkG: raw.totalPantoneInkG,
           totalInkG: raw.totalInkG,
-          totalInkPedidoG:
-            typeof raw.totalInkPedidoG === 'number' && raw.totalInkPedidoG >= 0
-              ? raw.totalInkPedidoG
-              : computeEstimarTintasTotalPedidoG(raw.totalInkG, raw.totalPliegos ?? 0),
           totalPliegos: raw.totalPliegos ?? 0,
           averageTac: raw.averageTac ?? 0,
+          detectedColors: raw.detectedColors,
+          previewImageDataUrl: raw.previewImageDataUrl,
           calculatedAt: raw.calculatedAt ?? new Date().toISOString(),
         }),
       ]),
@@ -262,10 +349,13 @@ export const createImpresionEstimarTintasEntrada = (
     totalPliegos: number
     tipoPapelDisplay?: string | null
     despieceDisplay?: string | null
+    previewImageDataUrl?: string | null
   },
   id?: string
-): ImpresionEstimarTintasEntrada =>
-  normalizeImpresionEstimarTintasEntrada({
+): ImpresionEstimarTintasEntrada => {
+  const totalsSnapshot = computeEstimarTintasInkTotalsSnapshot(input.result, input.totalPliegos)
+
+  return normalizeImpresionEstimarTintasEntrada({
     id: id ?? crypto.randomUUID(),
     fileName: input.fileName,
     sourceKind: input.sourceKind,
@@ -275,29 +365,42 @@ export const createImpresionEstimarTintasEntrada = (
     conversionFactorG: input.conversionFactorG,
     coverage: toCmykValues(input.result.coverage),
     inkG: toCmykValues(input.result.inkG),
-    totalInkG: sumCmykCoverage(input.result.inkG),
-    totalInkPedidoG: computeEstimarTintasTotalPedidoG(
-      sumCmykCoverage(input.result.inkG),
-      input.totalPliegos
-    ),
+    totalProcessInkG: totalsSnapshot.perPliego.processInkG,
+    totalPantoneInkG: totalsSnapshot.perPliego.pantoneInkG,
+    totalInkG: totalsSnapshot.perPliego.totalInkG,
+    totalProcessInkPedidoG: totalsSnapshot.pedido?.processInkG ?? 0,
+    totalPantoneInkPedidoG: totalsSnapshot.pedido?.pantoneInkG ?? 0,
+    totalInkPedidoG: totalsSnapshot.pedido?.totalInkG ?? 0,
     totalPliegos: input.totalPliegos,
     averageTac: input.result.averageTac,
+    detectedColors: input.result.detectedColors?.map(
+      (item): EstimarTintasDetectedColorSnapshot => ({
+        index: item.index,
+        name: item.name,
+        category: item.category,
+        swatch: item.swatch,
+        representativeSwatch: item.representativeSwatch,
+        coverage: item.coverage,
+        inkG: item.inkG,
+      })
+    ),
     calculatedAt: new Date().toISOString(),
     tipoPapelDisplay: input.tipoPapelDisplay?.trim() ? input.tipoPapelDisplay.trim() : undefined,
     despieceDisplay: input.despieceDisplay?.trim() ? input.despieceDisplay.trim() : undefined,
+    previewImageDataUrl: input.previewImageDataUrl?.trim() ? input.previewImageDataUrl.trim() : undefined,
   })
+}
 
 export interface EstimarTintasCobroResumen {
   pedidoPorCanal: EstimarTintasCmykValues
   totalEstimadoPliego: number
+  totalEstimadoProcessPliego: number
+  totalEstimadoPantonePliego: number
   totalPedido: number
+  totalPedidoProcess: number
+  totalPedidoPantone: number
   registrosCount: number
 }
-
-const resolveEntradaTotalPedidoG = (entrada: ImpresionEstimarTintasEntrada): number =>
-  entrada.totalInkPedidoG > 0
-    ? entrada.totalInkPedidoG
-    : computeEstimarTintasTotalPedidoG(entrada.totalInkG, entrada.totalPliegos)
 
 export const buildEstimarTintasCobroResumen = (
   rows: EstimarTintasTableRow[]
@@ -311,21 +414,39 @@ export const buildEstimarTintasCobroResumen = (
   )
 
   let totalEstimadoPliego = 0
+  let totalEstimadoProcessPliego = 0
+  let totalEstimadoPantonePliego = 0
   let totalPedido = 0
+  let totalPedidoProcess = 0
+  let totalPedidoPantone = 0
 
   for (const { entrada } of rows) {
+    const totals = resolveEntradaInkTotalsSnapshot(entrada)
     const pliegos = entrada.totalPliegos
+
     for (const channel of CMYK_CHANNELS) {
       pedidoPorCanal[channel] += entrada.inkG[channel] * pliegos
     }
-    totalEstimadoPliego += entrada.totalInkG
-    totalPedido += resolveEntradaTotalPedidoG(entrada)
+
+    totalEstimadoPliego += totals.perPliego.totalInkG
+    totalEstimadoProcessPliego += totals.perPliego.processInkG
+    totalEstimadoPantonePliego += totals.perPliego.pantoneInkG
+
+    if (totals.pedido) {
+      totalPedido += totals.pedido.totalInkG
+      totalPedidoProcess += totals.pedido.processInkG
+      totalPedidoPantone += totals.pedido.pantoneInkG
+    }
   }
 
   return {
     pedidoPorCanal,
     totalEstimadoPliego,
+    totalEstimadoProcessPliego,
+    totalEstimadoPantonePliego,
     totalPedido,
+    totalPedidoProcess,
+    totalPedidoPantone,
     registrosCount: rows.length,
   }
 }
@@ -342,4 +463,20 @@ export const entradaToEstimarTintasResult = (
   imageWidthPx: 0,
   imageHeightPx: 0,
   averageTac: entrada.averageTac,
+  detectedColors: entrada.detectedColors?.map(item => ({
+    index: item.index,
+    name: item.name,
+    category: item.category,
+    swatch: item.swatch,
+    representativeSwatch: item.representativeSwatch,
+    coverage: item.coverage,
+    inkG: item.inkG,
+    matchedPixels: 0,
+  })),
+  sourceColorSpace: 'rgb',
+  colorAnalysisAlgorithm: 'rgb-raster',
+  distinctInkCount: Math.max(
+    1,
+    (entrada.detectedColors ?? []).filter(item => item.category === 'pantone').length
+  ),
 })

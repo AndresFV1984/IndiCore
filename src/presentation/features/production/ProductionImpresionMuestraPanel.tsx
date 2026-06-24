@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import clsx from 'clsx'
 import type { PaperRow } from '../../../core/domain/entities/Order'
 import type { TipoPapel } from '../../../core/domain/entities/TipoPapel'
-import { despieceAsociadoMedida } from '../../../core/domain/entities/CortePapel'
 import type { DisenoColorPlanchaItem } from '../../../core/domain/entities/PreprensaDiseno'
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import ImpresionPlanchaSelect from './ImpresionPlanchaSelect'
@@ -23,16 +22,17 @@ import {
   ESTIMAR_TINTAS_MAX_FILE_MB,
   getEstimarTintasDefaultPrintArea,
   computeCalibrationPreview,
-  computeEstimarTintasTotalPedidoG,
+  computeEstimarTintasInkTotalsSnapshot,
+  computeEstimarTintasTotalInkGPerPliego,
   buildEstimarTintasEstimateOptions,
   formatCalibrationDeltaPercent,
   formatConversionFactorForInput,
   parseConversionFactorInput,
   resolveConversionFactorG,
-  type CmykChannel,
   type EstimarTintasCalibrationPreview,
   type EstimarTintasResult,
   estimateInkFromImageElement,
+  estimateInkFromCanvas,
   formatEstimarTintasCoverage,
   formatEstimarTintasWeightG,
   formatEstimarTintasEntero,
@@ -40,14 +40,23 @@ import {
   resolveDespiecePrintAreaCm,
   loadEstimarTintasImage,
   mapEstimarTintasErrorCode,
-  sumCmykCoverage,
   validateEstimarTintasFile,
   type EstimarTintasSourceKind,
+  type EstimarTintasProgressUpdate,
   getEstimarTintasSourceKind,
 } from './utils/estimarTintasUtils'
 import { prepareEstimarTintasPdfSource } from './utils/estimarTintasPdfUtils'
+import { captureEstimarTintasAssetPreviewDataUrl } from './utils/estimarTintasPreviewUtils'
+import {
+  deleteEstimarTintasCachedAsset,
+  getEstimarTintasCachedAsset,
+  setEstimarTintasCachedAsset,
+} from './utils/estimarTintasAssetCache'
 import EstimarTintasPdfAssetPreview from './EstimarTintasPdfAssetPreview'
 import EstimarTintasEntradasList from './EstimarTintasEntradasList'
+import EstimarTintasConsumoPalette from './EstimarTintasConsumoPalette'
+import EstimarTintasInkTotalsPanel from './EstimarTintasInkTotalsPanel'
+import EstimarTintasProgressBar from './EstimarTintasProgressBar'
 import ProductionImpresionEstimarTintasResumen from './ProductionImpresionEstimarTintasResumen'
 import {
   buildEstimarTintasTableRows,
@@ -55,17 +64,16 @@ import {
   entradaToEstimarTintasResult,
 } from './utils/estimarTintasRegistrosUtils'
 import type { ImpresionEstimarTintasEntrada, ImpresionEstimarTintasRegistro } from '../../../core/domain/entities/Order'
+import {
+  buildEstimarTintasFileColorProfile,
+  detectEstimarTintasFileColorSpace,
+  type EstimarTintasFileColorProfile,
+  type EstimarTintasSourceColorSpace,
+} from './utils/estimarTintasColorSpaceUtils'
 
 const estimarCopy = copy.muestra
 const planchaCopy = estimarCopy.plancha
 const entradasCopy = estimarCopy.entradas
-
-const CMYK_SWATCH: Record<CmykChannel, string> = {
-  c: '#00a9e0',
-  m: '#d6007a',
-  y: '#ffd400',
-  k: '#1a1a1a',
-}
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`
@@ -85,6 +93,30 @@ const formatDefaultPrintAreaInputs = () => {
     heightCmInput: formatCmInput(defaults.heightCm),
     dpiInput: String(defaults.dpi),
     conversionFactorInput: formatConversionFactorForInput(defaults.conversionFactorG),
+  }
+}
+
+const resolveEstimarTintasProgressLabel = (
+  update: EstimarTintasProgressUpdate
+): string => {
+  switch (update.label) {
+    case 'preparing-sample':
+      return estimarCopy.progress.preparingSample
+    case 'rendering-pdf':
+      return estimarCopy.progress.renderingPdf
+    case 'reading-pixels':
+      return estimarCopy.progress.readingPixels
+    case 'detecting-spots':
+      return estimarCopy.progress.detectingSpots
+    case 'computing-cmyk':
+      return estimarCopy.progress.computingCmyk
+    case 'detecting-pantone':
+      return estimarCopy.progress.detectingPantone
+    case 'finishing':
+    case 'done':
+      return estimarCopy.progress.finishing
+    default:
+      return estimarCopy.actions.calculating
   }
 }
 
@@ -146,6 +178,7 @@ const EstimarTintasShell: React.FC<EstimarTintasShellProps> = ({
   className,
 }) => (
   <section
+    id={`estimar-tintas-step-${sectionId}`}
     className={clsx(
       'production-impresion-estimar-tintas-step',
       `production-impresion-estimar-tintas-step--${status}`,
@@ -247,91 +280,6 @@ const EstimarTintasPlanchaSummary: React.FC<EstimarTintasPlanchaSummaryProps> = 
   </dl>
 )
 
-const ESTIMAR_TINTAS_RING_RADIUS = 26
-const ESTIMAR_TINTAS_RING_SIZE = 64
-const ESTIMAR_TINTAS_RING_STROKE = 5.5
-const ESTIMAR_TINTAS_RING_CENTER = ESTIMAR_TINTAS_RING_SIZE / 2
-const ESTIMAR_TINTAS_RING_CIRCUMFERENCE = 2 * Math.PI * ESTIMAR_TINTAS_RING_RADIUS
-
-interface EstimarTintasChannelCardProps {
-  channel: CmykChannel
-  label: string
-  coverage: number
-  weightG: number
-}
-
-const EstimarTintasHudChannelCard: React.FC<EstimarTintasChannelCardProps> = ({
-  channel,
-  label,
-  coverage,
-  weightG,
-}) => {
-  const coveragePercent = Math.min(100, Math.max(0, coverage * 100))
-  const ringOffset = ESTIMAR_TINTAS_RING_CIRCUMFERENCE * (1 - coveragePercent / 100)
-
-  return (
-    <article
-      className={clsx(
-        'production-impresion-estimar-tintas-hud__ring-card',
-        `production-impresion-estimar-tintas-hud__ring-card--${channel}`
-      )}
-      role="listitem"
-      aria-label={`${label}: ${formatEstimarTintasCoverage(coverage)}, ${formatEstimarTintasWeightG(weightG)}`}
-    >
-      <div className="production-impresion-estimar-tintas-hud__ring-card-head">
-        <span
-          className="production-impresion-estimar-tintas-hud__ring-card-badge"
-          style={{ backgroundColor: CMYK_SWATCH[channel] }}
-          aria-hidden
-        >
-          {channel.toUpperCase()}
-        </span>
-        <span className="production-impresion-estimar-tintas-hud__ring-card-name">{label}</span>
-      </div>
-
-      <div className="production-impresion-estimar-tintas-hud__ring-card-viz">
-        <svg
-          className="production-impresion-estimar-tintas-hud__ring-card-svg"
-          viewBox={`0 0 ${ESTIMAR_TINTAS_RING_SIZE} ${ESTIMAR_TINTAS_RING_SIZE}`}
-          role="presentation"
-          aria-hidden
-        >
-          <circle
-            className="production-impresion-estimar-tintas-hud__ring-card-track"
-            cx={ESTIMAR_TINTAS_RING_CENTER}
-            cy={ESTIMAR_TINTAS_RING_CENTER}
-            r={ESTIMAR_TINTAS_RING_RADIUS}
-            fill="none"
-            strokeWidth={ESTIMAR_TINTAS_RING_STROKE}
-          />
-          <circle
-            className="production-impresion-estimar-tintas-hud__ring-card-progress"
-            cx={ESTIMAR_TINTAS_RING_CENTER}
-            cy={ESTIMAR_TINTAS_RING_CENTER}
-            r={ESTIMAR_TINTAS_RING_RADIUS}
-            fill="none"
-            strokeWidth={ESTIMAR_TINTAS_RING_STROKE}
-            strokeLinecap="round"
-            strokeDasharray={ESTIMAR_TINTAS_RING_CIRCUMFERENCE}
-            strokeDashoffset={ringOffset}
-            transform={`rotate(-90 ${ESTIMAR_TINTAS_RING_CENTER} ${ESTIMAR_TINTAS_RING_CENTER})`}
-          />
-        </svg>
-        <span className="production-impresion-estimar-tintas-hud__ring-card-pct">
-          {formatEstimarTintasCoverage(coverage)}
-        </span>
-      </div>
-
-      <div className="production-impresion-estimar-tintas-hud__ring-card-foot">
-        <span className="production-impresion-estimar-tintas-hud__ring-card-foot-label">Consumo</span>
-        <p className="production-impresion-estimar-tintas-hud__ring-card-grams">
-          {formatEstimarTintasWeightG(weightG)}
-        </p>
-      </div>
-    </article>
-  )
-}
-
 interface EstimarTintasTotalPedidoFormulaProps {
   tamanosBuenos: number
   sobrante: number
@@ -378,6 +326,78 @@ const EstimarTintasTotalPedidoFormula: React.FC<EstimarTintasTotalPedidoFormulaP
   </details>
 )
 
+const EstimarTintasFileColorProfilePanel: React.FC<{
+  profile: EstimarTintasFileColorProfile
+  sourceKind: EstimarTintasSourceKind
+}> = ({ profile, sourceKind }) => {
+  const uploadCopy = estimarCopy.upload
+  const colorSpaceLabel = uploadCopy.colorSpaceValues[profile.sourceColorSpace]
+  const spotStatusMessage = profile.hasSpotMetadata
+    ? uploadCopy.spotStatusFound
+    : sourceKind === 'pdf'
+      ? uploadCopy.spotStatusMissingPdf
+      : uploadCopy.spotStatusMissingImage
+
+  return (
+    <div
+      className="production-impresion-estimar-tintas__color-profile"
+      role="status"
+      aria-live="polite"
+    >
+      <p className="production-impresion-estimar-tintas__color-profile-title">
+        {uploadCopy.colorProfileTitle}
+      </p>
+      <div className="production-impresion-estimar-tintas__chips production-impresion-estimar-tintas__chips--profile">
+        <span className="production-impresion-estimar-tintas__chip">
+          {uploadCopy.colorSpaceLabel}: {colorSpaceLabel}
+        </span>
+        <span
+          className={clsx(
+            'production-impresion-estimar-tintas__chip',
+            profile.hasSpotMetadata
+              ? 'production-impresion-estimar-tintas__chip--success'
+              : 'production-impresion-estimar-tintas__chip--warn'
+          )}
+        >
+          {profile.hasSpotMetadata ? uploadCopy.spotChipFound : uploadCopy.spotChipMissing}
+        </span>
+      </div>
+      <p
+        className={clsx(
+          'production-impresion-estimar-tintas__color-profile-status',
+          profile.hasSpotMetadata
+            ? 'production-impresion-estimar-tintas__color-profile-status--ok'
+            : 'production-impresion-estimar-tintas__color-profile-status--warn'
+        )}
+      >
+        {spotStatusMessage}
+      </p>
+      {profile.hasSpotMetadata ? (
+        <div className="production-impresion-estimar-tintas__color-profile-spots">
+          <span className="production-impresion-estimar-tintas__color-profile-spots-label">
+            {uploadCopy.spotNamesLabel}:
+          </span>
+          <ul className="production-impresion-estimar-tintas__color-profile-spot-list">
+            {profile.pantoneSpotNames.map(name => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+          {profile.spotReferenceCount > 0 ? (
+            <p className="production-impresion-estimar-tintas__color-profile-meta">
+              {uploadCopy.spotReferencesLabel(profile.spotReferenceCount)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {profile.hasCmykOperatorSamples ? (
+        <p className="production-impresion-estimar-tintas__color-profile-meta">
+          {uploadCopy.cmykNativeLabel}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 interface ProductionImpresionMuestraPanelProps {
   coloresPlanchas: DisenoColorPlanchaItem[]
   paperRows: PaperRow[]
@@ -404,8 +424,15 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
   const registrosLabelId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const blobUrlRef = useRef<string | null>(null)
+  const fileRef = useRef<File | null>(null)
   const dragDepthRef = useRef(0)
-  const pdfAnalysisRef = useRef<(() => Promise<HTMLImageElement>) | null>(null)
+  const pdfAnalysisRef = useRef<(() => Promise<HTMLCanvasElement>) | null>(null)
+  const pdfSpotReferenceRgbsRef = useRef<readonly [number, number, number][]>([])
+  const pdfPantoneSpotNamesRef = useRef<string[]>([])
+  const sourceColorSpaceRef = useRef<EstimarTintasSourceColorSpace>('rgb')
+  const pdfCmykOperatorSamplesRef = useRef<
+    readonly { c: number; m: number; y: number; k: number }[]
+  >([])
   const conversionFactorRef = useRef(formatConversionFactorForInput(ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G))
   const conversionFactorManuallyEditedRef = useRef(false)
   const skipResetOnPlanchaChangeRef = useRef(false)
@@ -414,9 +441,13 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
   const [fileName, setFileName] = useState('')
   const [fileSize, setFileSize] = useState<number | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [storedPreviewImageDataUrl, setStoredPreviewImageDataUrl] = useState<string | null>(null)
   const [sourceKind, setSourceKind] = useState<EstimarTintasSourceKind | null>(null)
   const [pdfPageCount, setPdfPageCount] = useState<number | null>(null)
   const [pdfPhysicalSize, setPdfPhysicalSize] = useState<{ widthCm: number; heightCm: number } | null>(
+    null
+  )
+  const [fileColorProfile, setFileColorProfile] = useState<EstimarTintasFileColorProfile | null>(
     null
   )
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null)
@@ -424,13 +455,14 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
   const [fileError, setFileError] = useState<string | null>(null)
   const [estimateError, setEstimateError] = useState<string | null>(null)
   const [isCalculating, setIsCalculating] = useState(false)
+  const [isProcessingFile, setIsProcessingFile] = useState(false)
+  const [calculationProgress, setCalculationProgress] = useState<{
+    label: string
+    percent: number
+  } | null>(null)
   const [result, setResult] = useState<EstimarTintasResult | null>(null)
   const [dimensionsTouched, setDimensionsTouched] = useState(false)
   const [measuredGInput, setMeasuredGInput] = useState('')
-  const [calibrationBaseline, setCalibrationBaseline] = useState<{
-    factorG: number
-    totalG: number
-  } | null>(null)
   const [calibrationSummary, setCalibrationSummary] = useState<
     (EstimarTintasCalibrationPreview & { appliedFactorInput: string }) | null
   >(null)
@@ -490,7 +522,7 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
         : null
 
     const despieceDisplay = despiece
-      ? `${despiece.name?.trim() || '—'} · ${despieceAsociadoMedida(despiece)}`
+      ? `${despiece.name?.trim() || '—'} · ${formatMedidaDisplayFrom(despiece)}`
       : null
 
     return {
@@ -507,7 +539,9 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
   const despiecePrintArea = planchaCorteContext?.printAreaCm ?? null
   const hasTipoPapel = Boolean(planchaCorteContext?.hasTipoPapel)
   const hasPlanchaSelected = Boolean(activePlancha)
-  const hasFileLoaded = Boolean(fileName && previewUrl)
+  const hasPreviewVisual = Boolean(previewUrl || storedPreviewImageDataUrl)
+  const isStoredPreviewOnly = Boolean(fileName && storedPreviewImageDataUrl && !previewUrl)
+  const hasFileLoaded = Boolean(fileName && hasPreviewVisual)
   const canShowUploadSection = hasPlanchaSelected && showEstimarTintasComposer
   const canShowParamsSection = hasPlanchaSelected && hasFileLoaded && showEstimarTintasComposer
   const canShowResultsPanel = Boolean(result) && showEstimarTintasComposer
@@ -536,6 +570,11 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       blobUrlRef.current = null
     }
     pdfAnalysisRef.current = null
+    pdfSpotReferenceRgbsRef.current = []
+    pdfPantoneSpotNamesRef.current = []
+    sourceColorSpaceRef.current = 'rgb'
+    pdfCmykOperatorSamplesRef.current = []
+    setFileColorProfile(null)
     setPreviewUrl(null)
   }, [])
 
@@ -549,6 +588,19 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     setRestoreFactorSuccess(null)
     setRegistroDraftError(null)
   }, [])
+
+  const scrollToEstimarTintasSection = useCallback((sectionId: string) => {
+    document
+      .getElementById(`estimar-tintas-step-${sectionId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  const handleDiscardEstimate = useCallback(() => {
+    resetEstimate()
+    window.requestAnimationFrame(() => {
+      scrollToEstimarTintasSection('archivo')
+    })
+  }, [resetEstimate, scrollToEstimarTintasSection])
 
   const applyDespiecePrintArea = useCallback(() => {
     if (despiecePrintArea) {
@@ -564,6 +616,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
 
   const clearUploadedAsset = useCallback(() => {
     revokePreview()
+    fileRef.current = null
+    setStoredPreviewImageDataUrl(null)
     setFileName('')
     setFileSize(null)
     setImageMeta(null)
@@ -571,6 +625,11 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     setPdfPageCount(null)
     setPdfPhysicalSize(null)
     pdfAnalysisRef.current = null
+    pdfSpotReferenceRgbsRef.current = []
+    pdfPantoneSpotNamesRef.current = []
+    sourceColorSpaceRef.current = 'rgb'
+    pdfCmykOperatorSamplesRef.current = []
+    setFileColorProfile(null)
     setFileError(null)
   }, [revokePreview])
 
@@ -579,7 +638,6 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     setRegistroDraftError(null)
     resetEstimate()
     setMeasuredGInput('')
-    setCalibrationBaseline(null)
     setCalibrationSummary(null)
     setCalibrationError(null)
     setDimensionsTouched(false)
@@ -613,10 +671,10 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     setDimensionsTouched(true)
     setFileName(entrada.fileName)
     setSourceKind(entrada.sourceKind)
+    setStoredPreviewImageDataUrl(entrada.previewImageDataUrl ?? null)
     setResult(entradaToEstimarTintasResult(entrada))
     setEditingEntradaId(entrada.id)
     setMeasuredGInput('')
-    setCalibrationBaseline(null)
     setCalibrationSummary(null)
     setCalibrationError(null)
     setRegistroDraftError(null)
@@ -634,15 +692,105 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     return meta
   }, [])
 
-  const loadAnalysisImage = useCallback(async (): Promise<HTMLImageElement> => {
+  const hydrateUploadedAsset = useCallback(
+    async (file: File, url: string, kind: EstimarTintasSourceKind) => {
+      if (kind === 'pdf') {
+        const pdfSource = await prepareEstimarTintasPdfSource(url)
+        pdfAnalysisRef.current = pdfSource.getAnalysisCanvas
+        pdfSpotReferenceRgbsRef.current = pdfSource.spotReferenceRgbs
+        pdfPantoneSpotNamesRef.current = pdfSource.pantoneSpotNames
+        sourceColorSpaceRef.current = pdfSource.sourceColorSpace
+        pdfCmykOperatorSamplesRef.current = pdfSource.cmykOperatorSamples
+        setFileColorProfile(
+          buildEstimarTintasFileColorProfile({
+            sourceColorSpace: pdfSource.sourceColorSpace,
+            pantoneSpotNames: pdfSource.pantoneSpotNames,
+            spotReferenceCount: pdfSource.spotReferenceRgbs.length,
+            cmykOperatorSampleCount: pdfSource.cmykOperatorSamples.length,
+          })
+        )
+        setPdfPageCount(pdfSource.meta.pageCount)
+        setPdfPhysicalSize({
+          widthCm: pdfSource.meta.widthCm,
+          heightCm: pdfSource.meta.heightCm,
+        })
+        setImageMeta({
+          width: pdfSource.meta.widthPx,
+          height: pdfSource.meta.heightPx,
+        })
+        void pdfSource.getAnalysisCanvas().catch(() => undefined)
+        return
+      }
+
+      sourceColorSpaceRef.current = await detectEstimarTintasFileColorSpace(file, 'image')
+      pdfCmykOperatorSamplesRef.current = []
+      setFileColorProfile(
+        buildEstimarTintasFileColorProfile({
+          sourceColorSpace: sourceColorSpaceRef.current,
+        })
+      )
+      setPdfPageCount(null)
+      setPdfPhysicalSize(null)
+      await loadImageMeta(url)
+    },
+    [loadImageMeta]
+  )
+
+  const restoreUploadedAssetForEdit = useCallback(
+    async (file: File, entrada: ImpresionEstimarTintasEntrada) => {
+      setIsProcessingFile(true)
+      setFileError(null)
+      fileRef.current = file
+      revokePreview()
+      setStoredPreviewImageDataUrl(null)
+
+      const url = URL.createObjectURL(file)
+      blobUrlRef.current = url
+      setPreviewUrl(url)
+      setFileSize(file.size)
+
+      try {
+        await hydrateUploadedAsset(file, url, entrada.sourceKind)
+      } catch (error) {
+        revokePreview()
+        fileRef.current = null
+        setStoredPreviewImageDataUrl(entrada.previewImageDataUrl ?? null)
+        setFileError(
+          resolveErrorMessage(
+            mapEstimarTintasErrorCode(error instanceof Error ? error.message : 'unknown')
+          )
+        )
+      } finally {
+        setIsProcessingFile(false)
+      }
+    },
+    [hydrateUploadedAsset, revokePreview]
+  )
+
+  const loadAnalysisCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
     if (sourceKind === 'pdf') {
       if (!pdfAnalysisRef.current) throw new Error('pdf-load-failed')
       return pdfAnalysisRef.current()
     }
 
     if (!previewUrl) throw new Error('image-load-failed')
-    return loadEstimarTintasImage(previewUrl)
+
+    const img = await loadEstimarTintasImage(previewUrl)
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('canvas-context-unavailable')
+    context.drawImage(img, 0, 0)
+    return canvas
   }, [previewUrl, sourceKind])
+
+  const reportCalculationProgress = useCallback((update: EstimarTintasProgressUpdate) => {
+    setCalculationProgress({
+      percent: update.percent,
+      label: resolveEstimarTintasProgressLabel(update),
+    })
+  }, [])
 
   const applyFile = useCallback(
     async (file: File) => {
@@ -663,12 +811,21 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       setFileError(null)
       setEstimateError(null)
       setResult(null)
+      setCalculationProgress(null)
+      setIsProcessingFile(true)
+      setStoredPreviewImageDataUrl(null)
+      fileRef.current = file
       setFileName(file.name)
       setFileSize(file.size)
       setSourceKind(kind)
       setPdfPageCount(null)
       setPdfPhysicalSize(null)
       pdfAnalysisRef.current = null
+    pdfSpotReferenceRgbsRef.current = []
+    pdfPantoneSpotNamesRef.current = []
+    sourceColorSpaceRef.current = 'rgb'
+    pdfCmykOperatorSamplesRef.current = []
+    setFileColorProfile(null)
 
       revokePreview()
 
@@ -677,38 +834,27 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       setPreviewUrl(url)
 
       try {
-        if (kind === 'pdf') {
-          const pdfSource = await prepareEstimarTintasPdfSource(url)
-          pdfAnalysisRef.current = pdfSource.getAnalysisImage
-          setPdfPageCount(pdfSource.meta.pageCount)
-          setPdfPhysicalSize({
-            widthCm: pdfSource.meta.widthCm,
-            heightCm: pdfSource.meta.heightCm,
-          })
-          setImageMeta({
-            width: pdfSource.meta.widthPx,
-            height: pdfSource.meta.heightPx,
-          })
-          return
-        }
-
-        await loadImageMeta(url)
+        await hydrateUploadedAsset(file, url, kind)
       } catch (error) {
         revokePreview()
+        fileRef.current = null
         setFileName('')
         setFileSize(null)
         setImageMeta(null)
         setSourceKind(null)
         setPdfPageCount(null)
         setPdfPhysicalSize(null)
+        setFileColorProfile(null)
         setFileError(
           resolveErrorMessage(
             mapEstimarTintasErrorCode(error instanceof Error ? error.message : 'unknown')
           )
         )
+      } finally {
+        setIsProcessingFile(false)
       }
     },
-    [canUploadFile, loadImageMeta, revokePreview]
+    [canUploadFile, hydrateUploadedAsset, revokePreview]
   )
 
   const handleChange = useCallback(
@@ -815,15 +961,42 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       throw new Error('invalid-estimate-params')
     }
 
-    const img = await loadAnalysisImage()
-    return estimateInkFromImageElement(img, buildEstimarTintasEstimateOptions(params))
-  }, [getEstimateParams, loadAnalysisImage, previewUrl])
+    const estimateOptions = buildEstimarTintasEstimateOptions({
+      ...params,
+      spotReferenceRgbs:
+        sourceKind === 'pdf' ? pdfSpotReferenceRgbsRef.current : undefined,
+      pantoneSpotNames:
+        sourceKind === 'pdf' ? pdfPantoneSpotNamesRef.current : undefined,
+      sourceColorSpace: sourceColorSpaceRef.current,
+      cmykOperatorSamples:
+        sourceKind === 'pdf' ? pdfCmykOperatorSamplesRef.current : undefined,
+    })
+
+    if (sourceKind === 'pdf') {
+      reportCalculationProgress({ phase: 'rendering', percent: 18, label: 'rendering-pdf' })
+      const canvas = await loadAnalysisCanvas()
+      return estimateInkFromCanvas(canvas, estimateOptions, reportCalculationProgress)
+    }
+
+    const img = await loadEstimarTintasImage(previewUrl)
+    return estimateInkFromImageElement(img, estimateOptions, reportCalculationProgress)
+  }, [
+    getEstimateParams,
+    loadAnalysisCanvas,
+    previewUrl,
+    reportCalculationProgress,
+    sourceKind,
+  ])
 
   const runEstimate = useCallback(async (): Promise<EstimarTintasResult | null> => {
     if (!previewUrl) return null
 
     setEstimateError(null)
     setIsCalculating(true)
+    setCalculationProgress({
+      percent: 6,
+      label: estimarCopy.progress.preparingSample,
+    })
 
     try {
       const estimate = await computeEstimateFromPreview()
@@ -839,6 +1012,7 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       return null
     } finally {
       setIsCalculating(false)
+      setCalculationProgress(null)
     }
   }, [computeEstimateFromPreview, previewUrl])
 
@@ -848,18 +1022,18 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     setCalibrationError(null)
   }, [])
 
-  const canCalculate = Boolean(canUploadFile && previewUrl && fileName && !isCalculating)
+  const canCalculate = Boolean(canUploadFile && previewUrl && fileName && !isCalculating && !isProcessingFile)
   const canSaveDraft = Boolean(
     result && activePlancha && activeRegistro && fileName && sourceKind && !isCalculating
   )
   const defaultFactorInput = formatConversionFactorForInput(ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G)
-  const totalInkG = result ? sumCmykCoverage(result.inkG) : 0
+  const inkTotalsSnapshot = useMemo(() => {
+    if (!result) return null
+    return computeEstimarTintasInkTotalsSnapshot(result, planchaPliegos?.totalPliegos)
+  }, [planchaPliegos?.totalPliegos, result])
 
-  const totalInkPedidoG = useMemo(() => {
-    const totalPliegos = planchaPliegos?.totalPliegos ?? 0
-    if (!result || totalPliegos <= 0) return null
-    return computeEstimarTintasTotalPedidoG(totalInkG, totalPliegos)
-  }, [planchaPliegos?.totalPliegos, result, totalInkG])
+  const totalInkG = inkTotalsSnapshot?.perPliego.totalInkG ?? 0
+  const totalInkPedidoG = inkTotalsSnapshot?.pedido?.totalInkG ?? null
   const isUsingDefaultFactor =
     parseConversionFactorInput(conversionFactorInput) === ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G
 
@@ -871,11 +1045,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
 
     const widthCm = parsePositiveNumber(widthCmInput)
     const heightCm = parsePositiveNumber(heightCmInput)
-    const currentFactorG =
-      calibrationBaseline?.factorG ??
-      (parseConversionFactorInput(conversionFactorRef.current) ||
-        ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G)
-    const currentTotalG = calibrationBaseline?.totalG ?? sumCmykCoverage(result.inkG)
+    const currentFactorG = resolveConversionFactorG(conversionFactorRef.current)
+    const currentTotalG = computeEstimarTintasTotalInkGPerPliego(result)
 
     try {
       return computeCalibrationPreview({
@@ -890,13 +1061,80 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       return null
     }
   }, [
-    calibrationBaseline,
     calibrationSummary,
     heightCmInput,
     measuredGInput,
     result,
     widthCmInput,
     conversionFactorInput,
+  ])
+
+  const canRecalculateWithCalibratedFactor = Boolean(
+    result && !calibrationSummary && parsePositiveNumber(measuredGInput) > 0 && !isCalculating
+  )
+
+  const handleRecalculateWithCalibratedFactor = useCallback(async () => {
+    if (!result) {
+      setCalibrationError(estimarCopy.calibration.requiresEstimate)
+      return
+    }
+
+    const measuredGTotal = parsePositiveNumber(measuredGInput)
+    if (measuredGTotal <= 0) {
+      setCalibrationError(estimarCopy.calibration.invalidMeasured)
+      return
+    }
+
+    const widthCm = parsePositiveNumber(widthCmInput)
+    const heightCm = parsePositiveNumber(heightCmInput)
+    const currentFactorG = resolveConversionFactorG(conversionFactorRef.current)
+    const currentTotalG = computeEstimarTintasTotalInkGPerPliego(result)
+
+    let preview: EstimarTintasCalibrationPreview
+    try {
+      preview = computeCalibrationPreview({
+        coverage: result.coverage,
+        widthCm,
+        heightCm,
+        currentFactorG,
+        currentTotalG,
+        measuredGTotal,
+      })
+    } catch (error) {
+      setCalibrationError(
+        resolveErrorMessage(
+          mapEstimarTintasErrorCode(error instanceof Error ? error.message : 'unknown')
+        )
+      )
+      return
+    }
+
+    const appliedFactorInput = formatConversionFactorForInput(preview.projectedFactorG)
+    if (!appliedFactorInput) {
+      setCalibrationError(estimarCopy.calibration.invalidParams)
+      return
+    }
+
+    conversionFactorManuallyEditedRef.current = true
+    updateConversionFactor(appliedFactorInput)
+    setCalibrationError(null)
+    setRestoreFactorSuccess(null)
+    setRegistroDraftError(null)
+
+    const estimate = await runEstimate()
+    if (!estimate) return
+
+    setCalibrationSummary({
+      ...preview,
+      appliedFactorInput: appliedFactorInput.replace('.', ','),
+    })
+  }, [
+    heightCmInput,
+    measuredGInput,
+    result,
+    runEstimate,
+    updateConversionFactor,
+    widthCmInput,
   ])
 
   const handleCalculate = useCallback(async () => {
@@ -931,6 +1169,17 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       return
     }
 
+    const entradaId = editingEntradaId ?? activeEntrada?.id ?? crypto.randomUUID()
+    let previewImageDataUrl = storedPreviewImageDataUrl ?? undefined
+
+    if (previewUrl && sourceKind) {
+      try {
+        previewImageDataUrl = await captureEstimarTintasAssetPreviewDataUrl(previewUrl, sourceKind)
+      } catch {
+        // Conservar miniatura previa si no se pudo regenerar.
+      }
+    }
+
     const entrada = createImpresionEstimarTintasEntrada(
       {
         fileName,
@@ -943,9 +1192,14 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
         totalPliegos: planchaPliegos?.totalPliegos ?? 0,
         tipoPapelDisplay: planchaCorteContext?.tipoPapelDisplay,
         despieceDisplay: planchaCorteContext?.despieceDisplay,
+        previewImageDataUrl,
       },
-      editingEntradaId ?? activeEntrada?.id
+      entradaId
     )
+
+    if (fileRef.current) {
+      setEstimarTintasCachedAsset(entrada.id, fileRef.current)
+    }
 
     persistRegistro({
       ...activeRegistro,
@@ -966,8 +1220,10 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     planchaCorteContext?.despieceDisplay,
     planchaCorteContext?.tipoPapelDisplay,
     planchaPliegos?.totalPliegos,
+    previewUrl,
     result,
     sourceKind,
+    storedPreviewImageDataUrl,
   ])
 
   const handleEditEntrada = useCallback(
@@ -982,8 +1238,19 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       }
 
       loadDraftFromEntrada(entrada)
+
+      const cachedFile = getEstimarTintasCachedAsset(entrada.id)
+      if (cachedFile) {
+        void restoreUploadedAssetForEdit(cachedFile, entrada)
+      }
     },
-    [activeColorPlanchaId, loadDraftFromEntrada, onActiveColorPlanchaIdChange, registros]
+    [
+      activeColorPlanchaId,
+      loadDraftFromEntrada,
+      onActiveColorPlanchaIdChange,
+      registros,
+      restoreUploadedAssetForEdit,
+    ]
   )
 
   const handleRemoveEntrada = useCallback(
@@ -995,6 +1262,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
         ...registro,
         entradas: registro.entradas.filter(item => item.id !== entradaId),
       })
+
+      deleteEstimarTintasCachedAsset(entradaId)
 
       if (editingEntradaId === entradaId) {
         clearDraft()
@@ -1017,6 +1286,10 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
 
     if (previewUrl && result) {
       setIsCalculating(true)
+      setCalculationProgress({
+        percent: 6,
+        label: estimarCopy.progress.preparingSample,
+      })
       try {
         const estimate = await computeEstimateFromPreview()
         setResult(estimate)
@@ -1029,6 +1302,7 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
         )
       } finally {
         setIsCalculating(false)
+        setCalculationProgress(null)
       }
     }
   }, [
@@ -1041,7 +1315,7 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
 
   const flowSteps = useMemo((): EstimarTintasFlowStep[] => {
     const stepPlanchaComplete = hasPlanchaSelected
-    const stepArchivoComplete = Boolean(fileName && previewUrl)
+    const stepArchivoComplete = Boolean(fileName && hasPreviewVisual)
     const stepResultComplete = Boolean(result)
 
     const stepPlanchaState: EstimarTintasStepState = stepPlanchaComplete
@@ -1090,6 +1364,7 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     fileName,
     hasActiveEntrada,
     hasPlanchaSelected,
+    hasPreviewVisual,
     previewUrl,
     result,
   ])
@@ -1245,9 +1520,9 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                           url={previewUrl}
                           alt={estimarCopy.upload.previewAlt}
                         />
-                      ) : previewUrl ? (
+                      ) : previewUrl || storedPreviewImageDataUrl ? (
                         <img
-                          src={previewUrl}
+                          src={previewUrl ?? storedPreviewImageDataUrl ?? undefined}
                           alt={estimarCopy.upload.previewAlt}
                           className="production-impresion-estimar-tintas__asset-image"
                         />
@@ -1257,6 +1532,11 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                       <strong className="production-impresion-estimar-tintas__asset-name" title={fileName}>
                         {fileName}
                       </strong>
+                      {isStoredPreviewOnly ? (
+                        <p className="production-impresion-estimar-tintas__asset-hint">
+                          {estimarCopy.upload.editStoredPreviewHint}
+                        </p>
+                      ) : null}
                       <div className="production-impresion-estimar-tintas__chips">
                         {sourceKind === 'pdf' ? (
                           <span className="production-impresion-estimar-tintas__chip">
@@ -1285,6 +1565,19 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                           </span>
                         ) : null}
                       </div>
+                      {fileColorProfile && sourceKind ? (
+                        <EstimarTintasFileColorProfilePanel
+                          profile={fileColorProfile}
+                          sourceKind={sourceKind}
+                        />
+                      ) : null}
+                      {isProcessingFile ? (
+                        <EstimarTintasProgressBar
+                          label={estimarCopy.progress.processingFile}
+                          percent={0}
+                          indeterminate
+                        />
+                      ) : null}
                       <div className="production-impresion-estimar-tintas__asset-actions">
                         <button
                           type="button"
@@ -1500,6 +1793,13 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                   </button>
                 </div>
 
+                {isCalculating && calculationProgress ? (
+                  <EstimarTintasProgressBar
+                    label={calculationProgress.label}
+                    percent={calculationProgress.percent}
+                  />
+                ) : null}
+
                 {restoreFactorSuccess ? (
                   <p
                     className="production-impresion-estimar-tintas-area__message production-impresion-estimar-tintas-area__message--success"
@@ -1525,93 +1825,44 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                 <EstimarTintasShell
                   sectionId="resultado"
                   title={estimarCopy.results.title}
-                  subtitle={estimarCopy.results.subtitle}
                   status={flowSteps[3]?.state ?? 'complete'}
                   className="production-impresion-estimar-tintas-step--result"
                 >
                   <div className="production-impresion-estimar-tintas-hud" aria-live="polite">
                     <div className="production-impresion-estimar-tintas-hud__fx" aria-hidden />
-                    <div className="production-impresion-estimar-tintas-hud__rings" role="list">
-                      {CMYK_CHANNELS.map(channel => (
-                        <EstimarTintasHudChannelCard
-                          key={channel}
-                          channel={channel}
-                          label={estimarCopy.channelNames[channel]}
-                          coverage={result.coverage[channel]}
-                          weightG={result.inkG[channel]}
-                        />
-                      ))}
-                    </div>
+                    <EstimarTintasConsumoPalette result={result} />
 
-                    <div className="production-impresion-estimar-tintas-hud__totals-row">
-                      <div className="production-impresion-estimar-tintas-hud__total production-impresion-estimar-tintas-hud__total--sample">
-                        <span className="production-impresion-estimar-tintas-hud__total-label">
-                          {estimarCopy.results.totalLabel}
-                        </span>
-                        <strong className="production-impresion-estimar-tintas-hud__total-value">
-                          {formatEstimarTintasWeightG(totalInkG)}
-                        </strong>
-                        <span className="production-impresion-estimar-tintas-hud__total-hint">
-                          {estimarCopy.results.totalLabelHint}
-                        </span>
-                      </div>
+                    <EstimarTintasInkTotalsPanel
+                      totals={
+                        inkTotalsSnapshot ?? {
+                          perPliego: { processInkG: 0, pantoneInkG: 0, totalInkG: 0 },
+                          pedido: null,
+                        }
+                      }
+                      totalPliegos={planchaPliegos?.totalPliegos}
+                      pedidoEmptyHint={estimarCopy.results.totalPedidoEmpty}
+                    />
 
-                      <div className="production-impresion-estimar-tintas-hud__total production-impresion-estimar-tintas-hud__total--pedido">
-                        <span className="production-impresion-estimar-tintas-hud__total-label">
-                          {estimarCopy.results.totalPedidoLabel}
-                        </span>
-                        <strong className="production-impresion-estimar-tintas-hud__total-value production-impresion-estimar-tintas-hud__total-value--pedido">
-                          {totalInkPedidoG != null
-                            ? formatEstimarTintasWeightG(totalInkPedidoG)
-                            : '—'}
-                        </strong>
-                        {totalInkPedidoG != null && planchaPliegos ? (
-                          <>
-                            <span className="production-impresion-estimar-tintas-hud__total-hint">
-                              {estimarCopy.results.totalPedidoHint}
-                            </span>
-                            <EstimarTintasTotalPedidoFormula
-                              tamanosBuenos={planchaPliegos.tamanosBuenos}
-                              sobrante={planchaPliegos.sobrante}
-                              totalPliegos={planchaPliegos.totalPliegos}
-                              totalInkG={totalInkG}
-                              totalPedidoG={totalInkPedidoG}
-                            />
-                          </>
-                        ) : (
-                          <span className="production-impresion-estimar-tintas-hud__total-hint">
-                            {estimarCopy.results.totalPedidoEmpty}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    {totalInkPedidoG != null && planchaPliegos ? (
+                      <EstimarTintasTotalPedidoFormula
+                        tamanosBuenos={planchaPliegos.tamanosBuenos}
+                        sobrante={planchaPliegos.sobrante}
+                        totalPliegos={planchaPliegos.totalPliegos}
+                        totalInkG={totalInkG}
+                        totalPedidoG={totalInkPedidoG}
+                      />
+                    ) : null}
 
-                    <p className="production-impresion-estimar-tintas-hud__total-meta">
-                      {estimarCopy.results.sampleHint(
-                        result.sampleWidth,
-                        result.sampleHeight,
-                        result.sampledPixels,
-                        result.inkedPixels,
-                        result.averageTac
-                      )}
-                    </p>
+                    <details className="production-impresion-estimar-tintas-area__advanced production-impresion-estimar-tintas-hud__details production-impresion-estimar-tintas-hud__calibration">
+                      <summary className="production-impresion-estimar-tintas-area__advanced-toggle">
+                        {estimarCopy.results.calibrationDetailsSummary}
+                      </summary>
+                      <div className="production-impresion-estimar-tintas-area__advanced-body">
+                        <p className="production-impresion-estimar-tintas-hud__calibration-sub">
+                          {estimarCopy.calibration.subtitle}
+                        </p>
 
-                    <section className="production-impresion-estimar-tintas-hud__calibration">
-                      <header className="production-impresion-estimar-tintas-hud__calibration-head">
-                        <span className="production-impresion-estimar-tintas-hud__calibration-tag">
-                          {estimarCopy.calibration.tag}
-                        </span>
-                        <div>
-                          <h5 className="production-impresion-estimar-tintas-hud__calibration-title">
-                            {estimarCopy.calibration.title}
-                          </h5>
-                          <p className="production-impresion-estimar-tintas-hud__calibration-sub">
-                            {estimarCopy.calibration.subtitle}
-                          </p>
-                        </div>
-                      </header>
-
-                      <div className="production-impresion-estimar-tintas-hud__calibration-body">
+                        <div className="production-impresion-estimar-tintas-hud__calibration-body">
                         <div className="production-impresion-estimar-tintas-hud__calibration-measured">
                           <label
                             className="production-impresion-estimar-tintas-hud__calibration-measured-label"
@@ -1639,6 +1890,21 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                         <p className="production-impresion-estimar-tintas-hud__calibration-field-hint">
                           {estimarCopy.calibration.measuredHint}
                         </p>
+
+                        {canRecalculateWithCalibratedFactor ? (
+                          <div className="production-impresion-estimar-tintas-hud__calibration-actions">
+                            <button
+                              type="button"
+                              className="production-impresion-estimar-tintas-hud__btn production-impresion-estimar-tintas-hud__btn--calibrate"
+                              disabled={isCalculating}
+                              onClick={() => void handleRecalculateWithCalibratedFactor()}
+                            >
+                              {isCalculating
+                                ? estimarCopy.calibration.applying
+                                : estimarCopy.calibration.apply}
+                            </button>
+                          </div>
+                        ) : null}
 
                         {calibrationPreview ? (
                           <div className="production-impresion-estimar-tintas-hud__calibration-preview">
@@ -1711,38 +1977,37 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                             {calibrationError}
                           </p>
                         ) : null}
+                        </div>
                       </div>
-                    </section>
+                    </details>
 
                     {showComposerActions ? (
                       <div className="production-impresion-estimar-tintas-hud__save">
-                        <div className="production-impresion-estimar-tintas-hud__save-toolbar">
-                          <p className="production-impresion-estimar-tintas-hud__save-hint">
-                            {editingEntradaId
-                              ? entradasCopy.editAfterCalculateHint
-                              : entradasCopy.saveAfterCalculateHint}
-                          </p>
-                          <div className="production-impresion-estimar-tintas-hud__save-actions">
-                            {editingEntradaId ? (
-                              <button
-                                type="button"
-                                className="production-impresion-estimar-tintas-hud__btn production-impresion-estimar-tintas-hud__btn--ghost"
-                                onClick={handleCancelEdit}
-                              >
-                                {entradasCopy.cancelEdit}
-                              </button>
-                            ) : null}
+                        <div className="production-impresion-estimar-tintas-hud__save-actions">
+                          <button
+                            type="button"
+                            className="production-impresion-estimar-tintas-hud__btn production-impresion-estimar-tintas-hud__btn--ghost"
+                            onClick={handleDiscardEstimate}
+                          >
+                            {estimarCopy.results.discardEstimate}
+                          </button>
+                          {editingEntradaId ? (
                             <button
                               type="button"
-                              className="production-impresion-estimar-tintas-hud__btn production-impresion-estimar-tintas-hud__btn--primary"
-                              disabled={!canSaveDraft}
-                              onClick={() => void handleSaveRegistro()}
+                              className="production-impresion-estimar-tintas-hud__btn production-impresion-estimar-tintas-hud__btn--ghost"
+                              onClick={handleCancelEdit}
                             >
-                              {editingEntradaId
-                                ? entradasCopy.saveEdit
-                                : entradasCopy.addButton}
+                              {entradasCopy.cancelEdit}
                             </button>
-                          </div>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="production-impresion-estimar-tintas-hud__btn production-impresion-estimar-tintas-hud__btn--primary"
+                            disabled={!canSaveDraft}
+                            onClick={() => void handleSaveRegistro()}
+                          >
+                            {editingEntradaId ? entradasCopy.saveEdit : entradasCopy.addButton}
+                          </button>
                         </div>
                         {registroDraftError ? (
                           <p
@@ -1754,10 +2019,6 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                         ) : null}
                       </div>
                     ) : null}
-
-                    <p className="production-impresion-estimar-tintas-hud__note">
-                      {estimarCopy.results.estimationNote}
-                    </p>
                   </div>
                 </EstimarTintasShell>
               </EstimarTintasReveal>
