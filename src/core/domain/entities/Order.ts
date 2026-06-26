@@ -1,9 +1,16 @@
 import { Money } from '../value-objects/Money.js';
 import { OrderStatus } from '../value-objects/OrderStatus.js';
+import {
+  DEFAULT_PRODUCTION_ORDER_STATUS,
+  type ProductionOrderStatus,
+} from '../value-objects/ProductionOrderStatus.js';
 import { OrderTotalCalculator } from '../value-objects/OrderTotalCalculator.js';
 import type { UserPermission, UserRole } from '../auth/userPermissions.js';
 import type { DespieceAsociado } from './CortePapel.js';
 import { PreprensaDisenoSpecs, YesNoChoice } from './PreprensaDiseno.js';
+
+/** Modo del descuento opcional en Costeo (pestaña Cobro). */
+export type CobroDescuentoModo = 'porcentaje' | 'valor';
 
 export interface OrderSpecs {
   paperRows: PaperRow[];
@@ -52,6 +59,9 @@ export interface OrderSpecs {
   operadorCobroId?: string;
   operadorCobroRol?: UserRole;
   operadorCobroPermisos?: UserPermission[];
+  /** Descuento opcional en Costeo: porcentaje (0–100) o valor fijo en COP. */
+  cobroDescuentoModo?: CobroDescuentoModo;
+  cobroDescuentoValor?: number;
 }
 
 export interface PaperRow {
@@ -326,7 +336,8 @@ export class Order {
     public readonly specs: OrderSpecs,
     public readonly status: OrderStatus,
     public readonly total: Money,
-    public readonly vendedorId: string = ''
+    public readonly vendedorId: string = '',
+    public readonly productionStatus: ProductionOrderStatus = DEFAULT_PRODUCTION_ORDER_STATUS
   ) {}
 
   static create(dto: CreateOrderDTO): Order {
@@ -339,7 +350,8 @@ export class Order {
       dto.specs,
       'En curso',
       total,
-      dto.vendedorId ?? ''
+      dto.vendedorId ?? '',
+      DEFAULT_PRODUCTION_ORDER_STATUS
     );
   }
 
@@ -352,7 +364,22 @@ export class Order {
       this.specs,
       newStatus,
       this.total,
-      this.vendedorId
+      this.vendedorId,
+      this.productionStatus
+    );
+  }
+
+  updateProductionStatus(newProductionStatus: ProductionOrderStatus): Order {
+    return new Order(
+      this.id,
+      this.clientId,
+      this.workName,
+      this.date,
+      this.specs,
+      this.status,
+      this.total,
+      this.vendedorId,
+      newProductionStatus
     );
   }
 }

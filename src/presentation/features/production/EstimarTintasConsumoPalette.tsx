@@ -6,6 +6,7 @@ import {
   isDisenoInkPantoneMix,
 } from './constants/preprensaDisenoColors'
 import type { EstimarTintasDetectedColor } from './utils/estimarTintasImageColorsUtils'
+import type { EstimarTintasSpotRgb } from './utils/estimarTintasPdfSpotUtils'
 import {
   resolveEstimarTintasPantoneDisplaySwatch,
   sortPantoneDetectedColorsForDisplay,
@@ -107,15 +108,27 @@ const resolvePantoneBadge = (color: EstimarTintasDetectedColor): string => {
   return color.name.trim().charAt(0).toUpperCase() || '?'
 }
 
-const resolvePantoneSwatch = (color: EstimarTintasDetectedColor): string =>
-  resolveEstimarTintasPantoneDisplaySwatch(color)
+const resolvePantoneSwatch = (
+  color: EstimarTintasDetectedColor,
+  context?: {
+    spotReferenceRgbs?: readonly EstimarTintasSpotRgb[]
+    pantoneSpotNames?: readonly string[]
+  }
+): string => resolveEstimarTintasPantoneDisplaySwatch(color, context)
 
 interface EstimarTintasConsumoPaletteProps {
   result: EstimarTintasResult
+  pantoneSpotNames?: readonly string[]
+  spotReferenceRgbs?: readonly EstimarTintasSpotRgb[]
 }
 
-const EstimarTintasConsumoPalette: React.FC<EstimarTintasConsumoPaletteProps> = ({ result }) => {
+const EstimarTintasConsumoPalette: React.FC<EstimarTintasConsumoPaletteProps> = ({
+  result,
+  pantoneSpotNames = [],
+  spotReferenceRgbs = [],
+}) => {
   const spotColors = sortPantoneDetectedColorsForDisplay(result.detectedColors ?? [])
+  const pantoneDisplayContext = { pantoneSpotNames, spotReferenceRgbs }
 
   return (
     <div className="production-impresion-estimar-tintas-hud__palette">
@@ -155,7 +168,7 @@ const EstimarTintasConsumoPalette: React.FC<EstimarTintasConsumoPaletteProps> = 
                 key={`${color.index}-${color.representativeSwatch ?? color.name}`}
                 name={color.name}
                 badge={resolvePantoneBadge(color)}
-                swatch={resolvePantoneSwatch(color)}
+                swatch={resolvePantoneSwatch(color, pantoneDisplayContext)}
                 coverage={color.coverage}
                 weightG={color.inkG}
                 variant="pantone"

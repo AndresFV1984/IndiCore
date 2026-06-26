@@ -1,3 +1,12 @@
+import {
+  buildEstimarTintasDeclaredSpotPreviews,
+  resolveEffectivePantoneSpotNames,
+  resolvePantoneDisplaySwatchForName,
+  resolvePantoneLabelAsCatalogName,
+  type EstimarTintasDeclaredSpotPreview,
+} from './estimarTintasPdfSpotUtils'
+import { resolvePantoneDisplayHexFromName } from './estimarTintasPantoneDisplayCatalog'
+
 /** Espacio de color detectado en el archivo fuente (no el canvas del navegador). */
 export type EstimarTintasSourceColorSpace = 'rgb' | 'cmyk' | 'mixed'
 
@@ -98,9 +107,97 @@ export async function detectEstimarTintasFileColorSpace(
   return detectImageFileColorSpace(file)
 }
 
+export type { EstimarTintasDeclaredSpotPreview } from './estimarTintasPdfSpotUtils'
+
+export const mergeDeclaredSpotPreviews = (
+  primary: readonly EstimarTintasDeclaredSpotPreview[],
+  secondary: readonly EstimarTintasDeclaredSpotPreview[]
+): EstimarTintasDeclaredSpotPreview[] => {
+  const merged = new Map<string, EstimarTintasDeclaredSpotPreview>()
+
+  for (const spot of primary) {
+    merged.set(spot.name.toLowerCase(), spot)
+  }
+
+  for (const spot of secondary) {
+    const key = spot.name.toLowerCase()
+    const previous = merged.get(key)
+    merged.set(key, {
+      name: spot.name,
+      displayLabel: spot.displayLabel || previous?.displayLabel || spot.name,
+      swatch: spot.swatch ?? previous?.swatch,
+    })
+  }
+
+  return [...merged.values()]
+}
+
+export const buildDeclaredSpotPreviewsFromDetectedColors = (
+  detectedColors:
+    | readonly {
+        name: string
+        category: string
+        representativeSwatch?: string
+        swatch?: string
+      }[]
+    | undefined,
+  pantoneSpotNames: readonly string[] = [],
+  spotReferenceRgbs: readonly [number, number, number][] = []
+): EstimarTintasDeclaredSpotPreview[] => {
+  if (!detectedColors?.length) return []
+
+  return detectedColors
+    .filter(color => color.category === 'pantone')
+    .map(color => {
+      const catalogName = resolvePantoneLabelAsCatalogName(color.name)
+      const swatch =
+        resolvePantoneDisplayHexFromName(catalogName) ??
+        resolvePantoneDisplaySwatchForName(
+          catalogName,
+          spotReferenceRgbs,
+          pantoneSpotNames.length > 0 ? pantoneSpotNames : [catalogName],
+          color.representativeSwatch?.trim() || color.swatch?.trim()
+        )
+
+      return {
+        name: catalogName,
+        displayLabel: color.name,
+        swatch: swatch && swatch !== 'pantone-mix' ? swatch : undefined,
+      }
+    })
+}
+
+export const syncFileColorProfileSpotsFromEstimate = (
+  profile: EstimarTintasFileColorProfile,
+  detectedColors:
+    | readonly {
+        name: string
+        category: string
+        representativeSwatch?: string
+        swatch?: string
+      }[]
+    | undefined
+): EstimarTintasFileColorProfile => {
+  const fromDetected = buildDeclaredSpotPreviewsFromDetectedColors(
+    detectedColors,
+    profile.pantoneSpotNames,
+    profile.spotReferenceRgbs
+  )
+  if (fromDetected.length === 0) return profile
+
+  return {
+    ...profile,
+    pantoneSpotNames: fromDetected.map(spot => spot.name),
+    declaredSpots: fromDetected,
+    hasSpotMetadata: true,
+  }
+}
+
 export interface EstimarTintasFileColorProfile {
   sourceColorSpace: EstimarTintasSourceColorSpace
   pantoneSpotNames: readonly string[]
+  declaredSpots: readonly EstimarTintasDeclaredSpotPreview[]
+  spotReferenceRgbs: readonly [number, number, number][]
   hasSpotMetadata: boolean
   hasCmykOperatorSamples: boolean
   spotReferenceCount: number
@@ -109,15 +206,24 @@ export interface EstimarTintasFileColorProfile {
 export const buildEstimarTintasFileColorProfile = (params: {
   sourceColorSpace: EstimarTintasSourceColorSpace
   pantoneSpotNames?: readonly string[]
+  spotReferenceRgbs?: readonly [number, number, number][]
   spotReferenceCount?: number
   cmykOperatorSampleCount?: number
 }): EstimarTintasFileColorProfile => {
-  const pantoneSpotNames = params.pantoneSpotNames ?? []
+  const spotReferenceRgbs = params.spotReferenceRgbs ?? []
+  const pantoneSpotNames = resolveEffectivePantoneSpotNames(
+    params.pantoneSpotNames ?? [],
+    spotReferenceRgbs
+  )
+  const declaredSpots = buildEstimarTintasDeclaredSpotPreviews(pantoneSpotNames, spotReferenceRgbs)
+
   return {
     sourceColorSpace: params.sourceColorSpace,
     pantoneSpotNames,
+    declaredSpots,
+    spotReferenceRgbs,
     hasSpotMetadata: pantoneSpotNames.length > 0,
     hasCmykOperatorSamples: (params.cmykOperatorSampleCount ?? 0) >= 2,
-    spotReferenceCount: params.spotReferenceCount ?? 0,
+    spotReferenceCount: params.spotReferenceCount ?? spotReferenceRgbs.length,
   }
 }

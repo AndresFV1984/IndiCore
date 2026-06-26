@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import clsx from 'clsx'
-import type { OrderSpecs } from '../../../core/domain/entities/Order'
+import type { CobroDescuentoModo, OrderSpecs } from '../../../core/domain/entities/Order'
 import type { TipoPapel } from '../../../core/domain/entities/TipoPapel'
 import { ProductionSubNavIcon } from './ProductionSubNav'
 import { PRODUCTION_COBRO_COPY as copy } from './constants/productionCobroCopy'
@@ -11,6 +11,31 @@ import {
 } from './utils/productionOrderCobroResumen'
 import { normalizeMargenRedondeo } from './utils/cortePapelCalculations'
 import { normalizePreprensaSnapshot } from './utils/applyPreprensaFromHistorial'
+import { computeCobroDescuento } from './utils/cobroDescuentoUtils'
+
+const parseDigits = (value: string): number => {
+  const digits = value.replace(/\D/g, '')
+  return digits ? Number(digits) : 0
+}
+
+const blockNonDigitKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  const allowed = [
+    'Backspace',
+    'Delete',
+    'Tab',
+    'Enter',
+    'Escape',
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+  ]
+  if (allowed.includes(e.key)) return
+  if (!/^\d$/.test(e.key)) e.preventDefault()
+}
 
 const formatValor = (value: number) =>
   new Intl.NumberFormat('es-CO', {
@@ -33,6 +58,12 @@ interface ProductionOrderCobroPanelProps {
   quantity: number
   specs: OrderSpecs
   tiposPapel: TipoPapel[]
+  cobroDescuentoModo: CobroDescuentoModo
+  cobroDescuentoValor: number
+  onCobroDescuentoChange: (patch: {
+    cobroDescuentoModo?: CobroDescuentoModo
+    cobroDescuentoValor?: number
+  }) => void
 }
 
 const scrollToSection = (sectionId: ProductionOrderCobroSectionId) => {
@@ -148,12 +179,102 @@ const CobroBreakdownSection: React.FC<{ section: ProductionOrderCobroSection }> 
   )
 }
 
+const CobroDescuentoSection: React.FC<{
+  modo: CobroDescuentoModo
+  valor: number
+  descuentoAplicado: number
+  onModoChange: (modo: CobroDescuentoModo) => void
+  onValorChange: (valor: number) => void
+}> = ({ modo, valor, descuentoAplicado, onModoChange, onValorChange }) => {
+  const discountCopy = copy.discount
+  const inputLabel =
+    modo === 'porcentaje' ? discountCopy.inputPorcentajeLabel : discountCopy.inputValorLabel
+  const inputPlaceholder =
+    modo === 'porcentaje'
+      ? discountCopy.inputPorcentajePlaceholder
+      : discountCopy.inputValorPlaceholder
+
+  return (
+    <section
+      className="production-order-cobro-discount"
+      aria-labelledby="production-cobro-discount-title"
+    >
+      <header className="production-order-cobro-discount__head">
+        <h5 className="production-order-cobro-discount__title" id="production-cobro-discount-title">
+          {discountCopy.title}
+        </h5>
+        <p className="production-order-cobro-discount__hint">{discountCopy.hint}</p>
+      </header>
+
+      <div
+        className="production-order-cobro-discount__modes"
+        role="radiogroup"
+        aria-label={discountCopy.ariaModo}
+      >
+        <button
+          type="button"
+          role="radio"
+          aria-checked={modo === 'porcentaje'}
+          className={clsx(
+            'production-order-cobro-discount__mode',
+            modo === 'porcentaje' && 'production-order-cobro-discount__mode--active'
+          )}
+          onClick={() => onModoChange('porcentaje')}
+        >
+          {discountCopy.modoPorcentaje}
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={modo === 'valor'}
+          className={clsx(
+            'production-order-cobro-discount__mode',
+            modo === 'valor' && 'production-order-cobro-discount__mode--active'
+          )}
+          onClick={() => onModoChange('valor')}
+        >
+          {discountCopy.modoValor}
+        </button>
+      </div>
+
+      <label className="production-order-cobro-discount__field">
+        <span className="production-order-cobro-discount__field-label">{inputLabel}</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          className="production-form-input production-order-cobro-discount__input"
+          value={valor > 0 ? String(valor) : ''}
+          placeholder={inputPlaceholder}
+          onChange={e => onValorChange(parseDigits(e.target.value))}
+          onKeyDown={blockNonDigitKey}
+          onPaste={e => {
+            e.preventDefault()
+            onValorChange(parseDigits(e.clipboardData.getData('text')))
+          }}
+        />
+      </label>
+
+      <p className="production-order-cobro-discount__applied" aria-live="polite">
+        <span>{discountCopy.aplicado}</span>
+        <strong>
+          {descuentoAplicado > 0
+            ? `−${formatValor(descuentoAplicado)}`
+            : discountCopy.sinDescuento}
+        </strong>
+      </p>
+    </section>
+  )
+}
+
 const ProductionOrderCobroPanel: React.FC<ProductionOrderCobroPanelProps> = ({
   clientName,
   workName,
   quantity,
   specs,
   tiposPapel,
+  cobroDescuentoModo,
+  cobroDescuentoValor,
+  onCobroDescuentoChange,
 }) => {
   const [selectedSectionId, setSelectedSectionId] = useState<ProductionOrderCobroSectionId | null>(
     null
@@ -197,6 +318,16 @@ const ProductionOrderCobroPanel: React.FC<ProductionOrderCobroPanelProps> = ({
   const totalConceptos = useMemo(
     () => cobro.sections.reduce((acc, section) => acc + section.lines.length, 0),
     [cobro.sections]
+  )
+
+  const descuento = useMemo(
+    () =>
+      computeCobroDescuento({
+        modo: cobroDescuentoModo,
+        valor: cobroDescuentoValor,
+        subtotal: cobro.grandTotal,
+      }),
+    [cobroDescuentoModo, cobroDescuentoValor, cobro.grandTotal]
   )
 
   const cantidadLabel =
@@ -371,10 +502,39 @@ const ProductionOrderCobroPanel: React.FC<ProductionOrderCobroPanelProps> = ({
               ))}
             </ul>
 
+            <CobroDescuentoSection
+              modo={cobroDescuentoModo}
+              valor={cobroDescuentoValor}
+              descuentoAplicado={descuento.descuentoAplicado}
+              onModoChange={modo => onCobroDescuentoChange({ cobroDescuentoModo: modo })}
+              onValorChange={valor =>
+                onCobroDescuentoChange({
+                  cobroDescuentoValor:
+                    cobroDescuentoModo === 'porcentaje' ? Math.min(100, valor) : valor,
+                })
+              }
+            />
+
             <div className="production-order-cobro-summary__total" aria-live="polite">
               <span className="production-order-cobro-summary__total-label">{copy.grandTotal}</span>
               <strong className="production-order-cobro-summary__total-value">
                 {formatValor(cobro.grandTotal)}
+              </strong>
+            </div>
+
+            <div
+              className={clsx(
+                'production-order-cobro-summary__total',
+                'production-order-cobro-summary__total--discounted',
+                descuento.hasDescuento && 'production-order-cobro-summary__total--discounted-active'
+              )}
+              aria-live="polite"
+            >
+              <span className="production-order-cobro-summary__total-label">
+                {copy.discount.totalConDescuento}
+              </span>
+              <strong className="production-order-cobro-summary__total-value">
+                {formatValor(descuento.totalConDescuento)}
               </strong>
             </div>
 

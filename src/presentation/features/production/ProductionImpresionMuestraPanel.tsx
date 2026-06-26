@@ -40,7 +40,10 @@ import {
   resolveDespiecePrintAreaCm,
   loadEstimarTintasImage,
   mapEstimarTintasErrorCode,
+  resolveEstimarTintasPantoneSpotContext,
   validateEstimarTintasFile,
+  ESTIMAR_TINTAS_ALPHA_MIN,
+  ESTIMAR_TINTAS_WHITE_THRESHOLD,
   type EstimarTintasSourceKind,
   type EstimarTintasProgressUpdate,
   getEstimarTintasSourceKind,
@@ -67,9 +70,12 @@ import type { ImpresionEstimarTintasEntrada, ImpresionEstimarTintasRegistro } fr
 import {
   buildEstimarTintasFileColorProfile,
   detectEstimarTintasFileColorSpace,
+  syncFileColorProfileSpotsFromEstimate,
   type EstimarTintasFileColorProfile,
   type EstimarTintasSourceColorSpace,
 } from './utils/estimarTintasColorSpaceUtils'
+import { resolvePantoneLabelAsCatalogName } from './utils/estimarTintasPdfSpotUtils'
+import { resolvePantoneDisplayHexFromName } from './utils/estimarTintasPantoneDisplayCatalog'
 
 const estimarCopy = copy.muestra
 const planchaCopy = estimarCopy.plancha
@@ -332,8 +338,11 @@ const EstimarTintasFileColorProfilePanel: React.FC<{
 }> = ({ profile, sourceKind }) => {
   const uploadCopy = estimarCopy.upload
   const colorSpaceLabel = uploadCopy.colorSpaceValues[profile.sourceColorSpace]
+  const spotCount = profile.declaredSpots.length
   const spotStatusMessage = profile.hasSpotMetadata
-    ? uploadCopy.spotStatusFound
+    ? sourceKind === 'pdf'
+      ? uploadCopy.spotStatusFound(spotCount)
+      : uploadCopy.spotStatusFoundImage(spotCount)
     : sourceKind === 'pdf'
       ? uploadCopy.spotStatusMissingPdf
       : uploadCopy.spotStatusMissingImage
@@ -375,12 +384,34 @@ const EstimarTintasFileColorProfilePanel: React.FC<{
       {profile.hasSpotMetadata ? (
         <div className="production-impresion-estimar-tintas__color-profile-spots">
           <span className="production-impresion-estimar-tintas__color-profile-spots-label">
-            {uploadCopy.spotNamesLabel}:
+            {uploadCopy.spotNamesLabel}
+            {spotCount > 1 ? ` (${spotCount})` : ''}:
           </span>
           <ul className="production-impresion-estimar-tintas__color-profile-spot-list">
-            {profile.pantoneSpotNames.map(name => (
-              <li key={name}>{name}</li>
-            ))}
+            {profile.declaredSpots.map(spot => {
+              const displaySwatch =
+                resolvePantoneDisplayHexFromName(spot.name) ?? spot.swatch
+
+              return (
+              <li
+                key={spot.name}
+                className="production-impresion-estimar-tintas__color-profile-spot-item"
+                title={spot.name}
+              >
+                <span
+                  className={clsx(
+                    'production-impresion-estimar-tintas__color-profile-spot-swatch',
+                    !displaySwatch &&
+                      'production-impresion-estimar-tintas__color-profile-spot-swatch--unknown'
+                  )}
+                  style={displaySwatch ? { backgroundColor: displaySwatch } : undefined}
+                  aria-hidden
+                />
+                <span className="production-impresion-estimar-tintas__color-profile-spot-name">
+                  {spot.displayLabel}
+                </span>
+              </li>
+            )})}
           </ul>
           {profile.spotReferenceCount > 0 ? (
             <p className="production-impresion-estimar-tintas__color-profile-meta">
@@ -429,6 +460,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
   const pdfAnalysisRef = useRef<(() => Promise<HTMLCanvasElement>) | null>(null)
   const pdfSpotReferenceRgbsRef = useRef<readonly [number, number, number][]>([])
   const pdfPantoneSpotNamesRef = useRef<string[]>([])
+  const imageSpotReferenceRgbsRef = useRef<readonly [number, number, number][]>([])
+  const imagePantoneSpotNamesRef = useRef<string[]>([])
   const sourceColorSpaceRef = useRef<EstimarTintasSourceColorSpace>('rgb')
   const pdfCmykOperatorSamplesRef = useRef<
     readonly { c: number; m: number; y: number; k: number }[]
@@ -572,6 +605,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     pdfAnalysisRef.current = null
     pdfSpotReferenceRgbsRef.current = []
     pdfPantoneSpotNamesRef.current = []
+    imageSpotReferenceRgbsRef.current = []
+    imagePantoneSpotNamesRef.current = []
     sourceColorSpaceRef.current = 'rgb'
     pdfCmykOperatorSamplesRef.current = []
     setFileColorProfile(null)
@@ -627,6 +662,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     pdfAnalysisRef.current = null
     pdfSpotReferenceRgbsRef.current = []
     pdfPantoneSpotNamesRef.current = []
+    imageSpotReferenceRgbsRef.current = []
+    imagePantoneSpotNamesRef.current = []
     sourceColorSpaceRef.current = 'rgb'
     pdfCmykOperatorSamplesRef.current = []
     setFileColorProfile(null)
@@ -685,12 +722,28 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     applyDespiecePrintArea()
   }, [applyDespiecePrintArea, dimensionsTouched])
 
-  const loadImageMeta = useCallback(async (url: string) => {
-    const img = await loadEstimarTintasImage(url)
-    const meta = { width: img.naturalWidth, height: img.naturalHeight }
-    setImageMeta(meta)
-    return meta
-  }, [])
+  useEffect(() => {
+    if (!result?.detectedColors?.length) return
+
+    const pantoneNames = [
+      ...new Set(
+        result.detectedColors
+          .filter(color => color.category === 'pantone')
+          .map(color => resolvePantoneLabelAsCatalogName(color.name))
+      ),
+    ]
+
+    if (sourceKind === 'pdf') {
+      if (pantoneNames.length > 0) pdfPantoneSpotNamesRef.current = pantoneNames
+    } else if (sourceKind === 'image') {
+      if (pantoneNames.length > 0) imagePantoneSpotNamesRef.current = pantoneNames
+    }
+
+    setFileColorProfile(current => {
+      if (!current) return current
+      return syncFileColorProfileSpotsFromEstimate(current, result.detectedColors)
+    })
+  }, [result, sourceKind])
 
   const hydrateUploadedAsset = useCallback(
     async (file: File, url: string, kind: EstimarTintasSourceKind) => {
@@ -705,6 +758,7 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
           buildEstimarTintasFileColorProfile({
             sourceColorSpace: pdfSource.sourceColorSpace,
             pantoneSpotNames: pdfSource.pantoneSpotNames,
+            spotReferenceRgbs: pdfSource.spotReferenceRgbs,
             spotReferenceCount: pdfSource.spotReferenceRgbs.length,
             cmykOperatorSampleCount: pdfSource.cmykOperatorSamples.length,
           })
@@ -724,16 +778,47 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
 
       sourceColorSpaceRef.current = await detectEstimarTintasFileColorSpace(file, 'image')
       pdfCmykOperatorSamplesRef.current = []
-      setFileColorProfile(
-        buildEstimarTintasFileColorProfile({
-          sourceColorSpace: sourceColorSpaceRef.current,
+      imageSpotReferenceRgbsRef.current = []
+      imagePantoneSpotNamesRef.current = []
+
+      const img = await loadEstimarTintasImage(url)
+      setImageMeta({ width: img.naturalWidth, height: img.naturalHeight })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+
+      if (context) {
+        context.drawImage(img, 0, 0)
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+        const spotContext = resolveEstimarTintasPantoneSpotContext({
+          imageData,
+          alphaMin: ESTIMAR_TINTAS_ALPHA_MIN,
+          whiteThreshold: ESTIMAR_TINTAS_WHITE_THRESHOLD,
         })
-      )
+        imagePantoneSpotNamesRef.current = spotContext.pantoneSpotNames
+        imageSpotReferenceRgbsRef.current = spotContext.spotReferenceRgbs
+        setFileColorProfile(
+          buildEstimarTintasFileColorProfile({
+            sourceColorSpace: sourceColorSpaceRef.current,
+            pantoneSpotNames: spotContext.pantoneSpotNames,
+            spotReferenceRgbs: spotContext.spotReferenceRgbs,
+            spotReferenceCount: spotContext.spotReferenceRgbs.length,
+          })
+        )
+      } else {
+        setFileColorProfile(
+          buildEstimarTintasFileColorProfile({
+            sourceColorSpace: sourceColorSpaceRef.current,
+          })
+        )
+      }
+
       setPdfPageCount(null)
       setPdfPhysicalSize(null)
-      await loadImageMeta(url)
     },
-    [loadImageMeta]
+    []
   )
 
   const restoreUploadedAssetForEdit = useCallback(
@@ -823,6 +908,8 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
       pdfAnalysisRef.current = null
     pdfSpotReferenceRgbsRef.current = []
     pdfPantoneSpotNamesRef.current = []
+    imageSpotReferenceRgbsRef.current = []
+    imagePantoneSpotNamesRef.current = []
     sourceColorSpaceRef.current = 'rgb'
     pdfCmykOperatorSamplesRef.current = []
     setFileColorProfile(null)
@@ -964,9 +1051,13 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
     const estimateOptions = buildEstimarTintasEstimateOptions({
       ...params,
       spotReferenceRgbs:
-        sourceKind === 'pdf' ? pdfSpotReferenceRgbsRef.current : undefined,
+        sourceKind === 'pdf'
+          ? pdfSpotReferenceRgbsRef.current
+          : imageSpotReferenceRgbsRef.current,
       pantoneSpotNames:
-        sourceKind === 'pdf' ? pdfPantoneSpotNamesRef.current : undefined,
+        sourceKind === 'pdf'
+          ? pdfPantoneSpotNamesRef.current
+          : imagePantoneSpotNamesRef.current,
       sourceColorSpace: sourceColorSpaceRef.current,
       cmykOperatorSamples:
         sourceKind === 'pdf' ? pdfCmykOperatorSamplesRef.current : undefined,
@@ -1830,7 +1921,21 @@ const ProductionImpresionMuestraPanel: React.FC<ProductionImpresionMuestraPanelP
                 >
                   <div className="production-impresion-estimar-tintas-hud" aria-live="polite">
                     <div className="production-impresion-estimar-tintas-hud__fx" aria-hidden />
-                    <EstimarTintasConsumoPalette result={result} />
+                    <EstimarTintasConsumoPalette
+                      result={result}
+                      pantoneSpotNames={
+                        fileColorProfile?.pantoneSpotNames ??
+                        (sourceKind === 'pdf'
+                          ? pdfPantoneSpotNamesRef.current
+                          : imagePantoneSpotNamesRef.current)
+                      }
+                      spotReferenceRgbs={
+                        fileColorProfile?.spotReferenceRgbs ??
+                        (sourceKind === 'pdf'
+                          ? pdfSpotReferenceRgbsRef.current
+                          : imageSpotReferenceRgbsRef.current)
+                      }
+                    />
 
                     <EstimarTintasInkTotalsPanel
                       totals={

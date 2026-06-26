@@ -6,7 +6,7 @@ export const PRODUCTION_WORKFLOW_TABS = [
     description: 'Cliente, trabajo y cantidades',
   },
   {
-    id: 'prepensa',
+    id: 'preprensa',
     label: 'Preprensa',
     shortLabel: 'Pre',
     description: 'Planchas y montaje',

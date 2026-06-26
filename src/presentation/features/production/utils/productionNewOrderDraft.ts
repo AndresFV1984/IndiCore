@@ -65,13 +65,18 @@ export const resolveImpresionSubTabFromDraft = (draft: {
   return draft.impresionSubTab ?? 'tintas'
 }
 
+const normalizeDraftActiveTab = (tab: string): ProductionWorkflowTabId =>
+  tab === 'prepensa' ? 'preprensa' : (tab as ProductionWorkflowTabId)
+
 export const resolveActiveTabFromDraft = (draft: {
-  activeTab: ProductionWorkflowTabId
+  activeTab: ProductionWorkflowTabId | 'prepensa'
   cortePapelSubTab?: CortePapelSubTabId | 'tintas'
-}): ProductionWorkflowTabId =>
-  draft.activeTab === 'corte-papel' && draft.cortePapelSubTab === 'tintas'
+}): ProductionWorkflowTabId => {
+  const activeTab = normalizeDraftActiveTab(draft.activeTab)
+  return activeTab === 'corte-papel' && draft.cortePapelSubTab === 'tintas'
     ? 'impresion'
-    : draft.activeTab
+    : activeTab
+}
 
 const toSerializedMoney = (money: Money): SerializedMoney => ({
   value: money.getValue(),
@@ -137,6 +142,8 @@ export const hydrateOrderSpecsFromDraft = (raw: SerializedOrderSpecs): OrderSpec
     ...op,
     value: fromSerializedMoney(op.value),
   })),
+  cobroDescuentoModo: raw.cobroDescuentoModo === 'valor' ? 'valor' : 'porcentaje',
+  cobroDescuentoValor: Math.max(0, Math.round(raw.cobroDescuentoValor ?? 0)),
 })
 
 export const buildProductionNewOrderDraft = (input: {

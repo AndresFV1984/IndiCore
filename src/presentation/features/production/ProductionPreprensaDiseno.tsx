@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import {
   DisenoColorPlanchaItem,
   PreprensaDisenoSpecs,
@@ -12,7 +12,6 @@ import DisenoColoresPlanchasPanel from './DisenoColoresPlanchasPanel'
 import DisenoTotalesResumen from './DisenoTotalesResumen'
 import { buildColoresPlanchasPatchWithSuministro } from './utils/preprensaClienteSuministraPlanchasChange'
 import DisenoCrearCostoPanel from './DisenoCrearCostoPanel'
-import DisenoPdfUpload from './DisenoPdfUpload'
 import DisenoClientePicker from './DisenoClientePicker'
 import ProductionPrecioMontajePicker from './ProductionPrecioMontajePicker'
 import { ClienteDisenoOption } from './utils/buildClienteDisenos'
@@ -20,8 +19,6 @@ import { clearPreprensaHistorialSelection } from './utils/applyPreprensaFromHist
 import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import type { ProductionWorkspaceTone } from './constants/productionWorkspaceColors'
 import { PREPRENSA_DISENO_COPY as copy } from './constants/preprensaDisenoCopy'
-
-const MAX_PDF_MB = 15
 
 const parseDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
@@ -51,7 +48,6 @@ export type DisenoSectionTone =
   | 'trabajo'
   | 'identidad'
   | 'costo'
-  | 'archivo'
   | 'especificaciones'
   | 'acabados'
   | 'montaje'
@@ -60,7 +56,6 @@ const SECTION_TAG_LABELS: Record<DisenoSectionTone, string> = {
   trabajo: copy.sectionTags.trabajo,
   identidad: copy.sectionTags.identidad,
   costo: copy.sectionTags.costo,
-  archivo: copy.sectionTags.archivo,
   especificaciones: copy.sectionTags.especificaciones,
   acabados: copy.sectionTags.acabados,
   montaje: copy.sectionTags.montaje,
@@ -70,7 +65,6 @@ const SECTION_TONE: Record<DisenoSectionTone, ProductionWorkspaceTone> = {
   trabajo: 0,
   identidad: 1,
   costo: 2,
-  archivo: 0,
   especificaciones: 1,
   acabados: 2,
   montaje: 0,
@@ -141,10 +135,6 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
   onGoToClienteTab,
   onGoToDetalleOpTab,
 }) => {
-  const clearPdfSelection = useCallback(() => {
-    onChange({ designPdfFileName: '' })
-  }, [onChange])
-
   const showDetalleExistente = diseno.designNuevo === 'no'
   const historialSeleccionado = Boolean(diseno.disenoExistenteId.trim())
   const detalleDesdeTrabajoAnterior = showDetalleExistente && historialSeleccionado
@@ -152,11 +142,9 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
     diseno.designNuevo === 'si' || detalleDesdeTrabajoAnterior
   const handleClienteDisenoSelect = (option: ClienteDisenoOption | null) => {
     if (!option) {
-      clearPdfSelection()
       onChange(clearPreprensaHistorialSelection())
       return
     }
-    clearPdfSelection()
     onHistorialSelect(option)
   }
 
@@ -184,11 +172,6 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
   ) => {
     onChange({ [key]: !diseno[key] })
   }
-
-  const handlePdfFileNameChange = useCallback(
-    (designPdfFileName: string) => onChange({ designPdfFileName }),
-    [onChange]
-  )
 
   const handlePrecioMontajeSelect = (item: PrecioMontaje | null) => {
     if (!item) {
@@ -327,15 +310,6 @@ const ProductionPreprensaDiseno: React.FC<ProductionPreprensaDisenoProps> = ({
                     onChange({ crearDisenoCost: parseDigits(e.target.value) })
                   }
                   onCostoKeyDown={blockNonDigitKey}
-                />
-              </DisenoSection>
-
-              <DisenoSection title={n.pdfTitulo} variant="flat">
-                <DisenoPdfUpload
-                  fileName={diseno.designPdfFileName}
-                  maxMb={MAX_PDF_MB}
-                  historialSinPreview={detalleDesdeTrabajoAnterior}
-                  onFileNameChange={handlePdfFileNameChange}
                 />
               </DisenoSection>
               </div>

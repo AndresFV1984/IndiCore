@@ -6,7 +6,6 @@ import type {
   PaperRow,
 } from '../../../../core/domain/entities/Order'
 import type { DisenoColorPlanchaItem } from '../../../../core/domain/entities/PreprensaDiseno'
-import { DISENO_INK_PANTONE_INDEX } from '../constants/preprensaDisenoColors'
 import type { TipoPapel } from '../../../../core/domain/entities/TipoPapel'
 import { despieceAsociadoMedida } from '../../../../core/domain/entities/CortePapel'
 import { formatMedidaDisplayFrom } from '../../catalog/cortePapelUtils'
@@ -20,7 +19,7 @@ import type {
   CmykCoverage,
   EstimarTintasResult,
   EstimarTintasSourceKind,
-} from './estimarTintasUtils'
+} from './estimarTintasTypes'
 import {
   CMYK_CHANNELS,
   buildEstimarTintasInkTotalsBreakdown,
@@ -32,7 +31,7 @@ import {
   quantizeEstimarTintasInkTotalsBreakdown,
   type CmykChannel,
   type EstimarTintasInkTotalsSnapshot,
-} from './estimarTintasUtils'
+} from './estimarTintasInkTotalsUtils'
 
 export const ESTIMAR_TINTAS_ENTRADAS_POR_PLANCHA_MAX = 1
 
@@ -68,7 +67,7 @@ const normalizeDetectedColors = (
     )
     .map(item => ({
       index: item.index,
-      name: item.index === DISENO_INK_PANTONE_INDEX ? 'Pantone' : item.name.trim(),
+      name: item.name.trim(),
       category: item.category,
       swatch: item.swatch.trim(),
       representativeSwatch:

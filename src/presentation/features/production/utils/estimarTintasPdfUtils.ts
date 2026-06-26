@@ -13,6 +13,7 @@ import {
 import {
   extractPantoneSpotNamesFromPdfBytes,
   loadPdfSpotReferenceRgbs,
+  resolveEffectivePantoneSpotNames,
   type EstimarTintasSpotRgb,
 } from './estimarTintasPdfSpotUtils'
 
@@ -157,6 +158,7 @@ export async function prepareEstimarTintasPdfSource(url: string): Promise<Estima
     pantoneSpotNames = extractPantoneSpotNamesFromPdfBytes(pdfData)
     if (pantoneSpotNames.length > 0) {
       spotReferenceRgbs = await loadPdfSpotReferenceRgbs(pdf, 1)
+      pantoneSpotNames = resolveEffectivePantoneSpotNames(pantoneSpotNames, spotReferenceRgbs)
     }
     cmykOperatorSamples = await extractCmykSamplesFromPdfPage(page)
   } catch {

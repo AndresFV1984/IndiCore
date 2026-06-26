@@ -1,5 +1,5 @@
 export const COBRO_SUB_TABS = [
-  { id: 'factura', label: 'Factura' },
+  { id: 'factura', label: 'Costeo' },
   { id: 'responsable', label: 'Responsable' },
 ] as const
 

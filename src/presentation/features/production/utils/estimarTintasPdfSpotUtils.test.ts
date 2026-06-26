@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   clusterSpotReferenceCandidatesForPantoneNames,
+  discoverRasterPantoneSpotsFromImageData,
   extractPantoneSpotNamesFromPdfBytes,
   filterRgbForDeclaredPantoneSpots,
   isNearProcessPrimaryRgb,
@@ -9,12 +10,32 @@ import {
   isSecondaryInkLikeRgb,
   isYellowFamilyRgb,
   resolveActivePantoneNamesForReferences,
+  resolveEffectivePantoneSpotNames,
   resolveKnownPantoneDisplaySwatch,
+  resolvePantoneCatalogNameForSpotReference,
+  resolvePantoneDisplaySwatchForName,
   resolvePdfSpotReferenceRgbs,
   shouldExtractSpotReferenceRgbsFromImage,
 } from './estimarTintasPdfSpotUtils'
 
+const mockImageData = (width: number, height: number, rgba: number[]): ImageData =>
+  ({
+    width,
+    height,
+    data: new Uint8ClampedArray(rgba),
+  }) as ImageData
+
 describe('estimarTintasPdfSpotUtils', () => {
+  it('rechaza fragmentos y colores de proceso como nombres Pantone', () => {
+    expect(isPantoneSpotInkName('PANTONE')).toBe(false)
+    expect(isPantoneSpotInkName('PANTONE P')).toBe(false)
+    expect(isPantoneSpotInkName('PANTONE Warm R')).toBe(false)
+    expect(isPantoneSpotInkName('PANTONE Process B')).toBe(false)
+    expect(isPantoneSpotInkName('PANTONE P Process Yellow C')).toBe(false)
+    expect(isPantoneSpotInkName('PANTONE 187 C')).toBe(true)
+    expect(isPantoneSpotInkName('PANTONE Yellow C')).toBe(true)
+  })
+
   it('detecta nombres Pantone spot y excluye process yellow', () => {
     const bytes = new TextEncoder().encode(
       '<< /Separation/PANTONE#20Yellow#20C >> PANTONE P Process Yellow C'
@@ -91,9 +112,42 @@ describe('estimarTintasPdfSpotUtils', () => {
     expect(references.some(([r, g, b]) => r === 0 && g === 169)).toBe(false)
   })
 
-  it('expone swatch sólido de catálogo para Pantone 485 C y Yellow C', () => {
+  it('expone swatch sólido de catálogo para Pantone 485 C, 187 C y Yellow C', () => {
     expect(resolveKnownPantoneDisplaySwatch('PANTONE 485 C')).toBe('#da291c')
+    expect(resolveKnownPantoneDisplaySwatch('PANTONE 187 C')).toBe('#a6192e')
     expect(resolveKnownPantoneDisplaySwatch('PANTONE Yellow C')).toBe('#fedd00')
+  })
+
+  it('prioriza catálogo sobre RGB del PDF al mostrar un Pantone conocido', () => {
+    expect(
+      resolvePantoneDisplaySwatchForName(
+        'PANTONE 187 C',
+        [[248, 124, 20]],
+        ['PANTONE 187 C'],
+        '#f87c14'
+      )
+    ).toBe('#a6192e')
+    expect(
+      resolvePantoneDisplaySwatchForName(
+        'PANTONE 1655 C',
+        [[100, 100, 100]],
+        ['PANTONE 1655 C'],
+        '#f87c14'
+      )
+    ).toBe('#f87c14')
+  })
+
+  it('incluye referencias 187 C y las distingue de colores ajenos al spot', () => {
+    expect(filterRgbForDeclaredPantoneSpots(166, 25, 46, ['PANTONE 187 C'])).toBe(true)
+    expect(filterRgbForDeclaredPantoneSpots(0, 169, 224, ['PANTONE 187 C'])).toBe(false)
+
+    const references = resolvePdfSpotReferenceRgbs(['PANTONE 187 C'], [
+      [166, 25, 46],
+      [0, 169, 224],
+    ])
+
+    expect(references).toContainEqual([166, 25, 46])
+    expect(references.some(([r, g, b]) => r === 0 && g === 169)).toBe(false)
   })
 
   it('incluye referencias 485 C y las distingue de secundarios genéricos', () => {
@@ -150,6 +204,13 @@ describe('estimarTintasPdfSpotUtils', () => {
     expect(activeNames).toHaveLength(2)
   })
 
+  it('barrer la imagen cuando el PDF declara un Pantone sin catálogo ni referencias RGB', () => {
+    expect(shouldExtractSpotReferenceRgbsFromImage(['PANTONE 1655 C'], [])).toBe(true)
+    expect(
+      shouldExtractSpotReferenceRgbsFromImage(['PANTONE 1655 C', 'PANTONE 485 C'], [[218, 41, 28]])
+    ).toBe(true)
+  })
+
   it('no barrer la imagen cuando el PDF ya evidencia varios spots activos', () => {
     const declaredNames = ['PANTONE Yellow C', 'PANTONE 485 C']
     const references = resolvePdfSpotReferenceRgbs(declaredNames, [
@@ -172,5 +233,70 @@ describe('estimarTintasPdfSpotUtils', () => {
     expect(
       shouldExtractSpotReferenceRgbsFromImage(declaredNames, [[218, 41, 28]])
     ).toBe(false)
+  })
+
+  it('filtra placas Pantone a las referencias de color activas en el PDF', () => {
+    const declaredNames = [
+      'PANTONE 187 C',
+      'PANTONE 7628 C',
+      'PANTONE 485 C',
+      'PANTONE 206 C',
+    ]
+    const references = [
+      [166, 25, 46],
+      [170, 30, 50],
+    ] as const
+
+    expect(resolveEffectivePantoneSpotNames(declaredNames, references)).toEqual(['PANTONE 187 C'])
+  })
+
+  it('resuelve nombre de catálogo para referencias RGB conocidas', () => {
+    expect(resolvePantoneCatalogNameForSpotReference([166, 25, 46])).toBe('PANTONE 187 C')
+    expect(resolvePantoneCatalogNameForSpotReference([255, 217, 0])).toBe('PANTONE Yellow C')
+  })
+
+  it('detecta un solo spot cuando un color Pantone domina la imagen', () => {
+    const width = 20
+    const height = 10
+    const rgba: number[] = []
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (x < 19) {
+          rgba.push(166, 25, 46, 255)
+        } else {
+          rgba.push(255, 255, 255, 255)
+        }
+      }
+    }
+
+    const discovered = discoverRasterPantoneSpotsFromImageData(
+      mockImageData(width, height, rgba)
+    )
+
+    expect(discovered.names).toEqual(['PANTONE 187 C'])
+  })
+
+  it('descubre varios colores spot en una imagen sin metadatos Pantone', () => {
+    const width = 24
+    const height = 12
+    const rgba: number[] = []
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (x < width / 2) {
+          rgba.push(134, 49, 143, 255)
+        } else {
+          rgba.push(0, 150, 80, 255)
+        }
+      }
+    }
+
+    const discovered = discoverRasterPantoneSpotsFromImageData(
+      mockImageData(width, height, rgba)
+    )
+
+    expect(discovered.names.length).toBeGreaterThanOrEqual(2)
+    expect(discovered.references.length).toBeGreaterThan(0)
   })
 })

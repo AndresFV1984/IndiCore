@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ProductionWorkflowNav from './ProductionWorkflowNav'
-import StatusBadge from '../../components/ui/StatusBadge'
+import ProductionWorkflowPanel from './ProductionWorkflowPanel'
+import ProductionOrderStatusControl from './ProductionOrderStatusControl'
+import ProductionPhaseStatusAction from './ProductionPhaseStatusAction'
 import { useOrdersHook } from '../../hooks/useOrders'
+import { useAuth } from '../../hooks/useAuth'
+import { userCanSuperviseProductionStatus } from '../../../core/domain/policies/productionOrderStatusPolicy'
 import { Container } from '../../../di/container'
 import { Money } from '../../../core/domain/value-objects/Money'
 import { CreateOrderDTO, OrderSpecs, type PaperRow, type ImpresionTintasRegistro, type ImpresionEstimarTintasRegistro, type TerminadosProduccionRegistro, type AcabadosProduccionRegistro } from '../../../core/domain/entities/Order'
@@ -15,7 +19,6 @@ import {
 import '../remissions/Remissions.css'
 import '../orders/Orders.css'
 import './Production.css'
-import ProductionKpiGrid from './ProductionKpiGrid'
 import ProductionSpecsSubNav from './ProductionSpecsSubNav'
 import ProductionPreprensaSubNav from './ProductionPreprensaSubNav'
 import ProductionImpresionSubNav from './ProductionImpresionSubNav'
@@ -23,15 +26,22 @@ import ProductionCortePapelSubNav from './ProductionCortePapelSubNav'
 import ProductionTerminadosSubNav from './ProductionTerminadosSubNav'
 import ProductionAcabadosSubNav from './ProductionAcabadosSubNav'
 import ProductionCobroSubNav from './ProductionCobroSubNav'
-import ProductionImpresionTintasPanel from './ProductionImpresionTintasPanel'
-import ProductionImpresionMuestraPanel from './ProductionImpresionMuestraPanel'
-import ProductionImpresionConversionImagenPanel from './ProductionImpresionConversionImagenPanel'
-import ProductionTerminadosPanel from './ProductionTerminadosPanel'
-import ProductionAcabadosPanel from './ProductionAcabadosPanel'
-import ProductionOrderCobroPanel from './ProductionOrderCobroPanel'
 import ProductionClientPicker from './ProductionClientPicker'
-import ProductionDetalleOpPanel from './ProductionDetalleOpPanel'
 import ProductionOperadorAssignmentSection from './ProductionOperadorAssignmentSection'
+import {
+  LazyProductionAcabadosPanel,
+  LazyProductionCortePapelForm,
+  LazyProductionDetalleOpPanel,
+  LazyProductionImpresionConversionImagenPanel,
+  LazyProductionImpresionMuestraPanel,
+  LazyProductionImpresionTintasPanel,
+  LazyProductionOrderCobroPanel,
+  LazyProductionTerminadosPanel,
+  prefetchPreprensaWorkspacePanels,
+  withProductionPanelSuspense,
+} from './productionWorkspaceLazyPanels'
+import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
+import ProductionPreprensaDiseno from './ProductionPreprensaDiseno'
 import { SpecsSubTabId } from './productionSpecsSubTabs'
 import { PreprensaSubTabId } from './productionPreprensaSubTabs'
 import { CortePapelSubTabId } from './productionCortePapelSubTabs'
@@ -61,8 +71,6 @@ import {
   buildColoresPlanchasPatch,
 } from './utils/coloresPlanchasUtils'
 import { ClienteDisenoOption } from './utils/buildClienteDisenos'
-import ProductionPreprensaDiseno from './ProductionPreprensaDiseno'
-import PreprensaDisenoModoShell from './PreprensaDisenoModoShell'
 import { patchPreprensaDesignNuevo, preprensaDisenoHasRegisteredContent } from './utils/preprensaDesignNuevoChange'
 import { PREPRENSA_DISENO_COPY } from './constants/preprensaDisenoCopy'
 import { patchCorteClienteSuministraPapel } from './utils/corteClienteSuministraPapelChange'
@@ -72,7 +80,6 @@ import { buildClienteDisenosFromOrders } from './utils/buildClienteDisenos'
 import { useTipoPapelHook } from '../../hooks/useTipoPapel'
 import { useTerminadosHook } from '../../hooks/useTerminados'
 import { useOperacionesHook } from '../../hooks/useOperaciones'
-import ProductionCortePapelForm from './ProductionCortePapelForm'
 import { emptyPaperRow, normalizeTipoPapelList, syncPaperRowsWithTipoPapelCatalog } from './utils/tipoPapelDisplay'
 import { DEFAULT_MARGEN_REDONDEO, normalizeMargenRedondeo } from './utils/cortePapelCalculations'
 import {
@@ -91,7 +98,6 @@ import {
 import { CORTE_PAPEL_COPY as cortePapelCopy } from './constants/cortePapelCopy'
 import { PRODUCTION_COBRO_COPY } from './constants/productionCobroCopy'
 import {
-  buildProductionNewOrderDraft,
   hydrateOrderSpecsFromDraft,
   productionDraftHasContent,
   resolveActiveTabFromDraft,
@@ -125,7 +131,10 @@ import {
   syncAcabadosRegistros,
   acabadosRegistrosEqual,
 } from './utils/acabadosUtils'
+import type { ProductionStatusPhaseId } from '../../../core/domain/policies/productionOrderStatusPolicy'
+import { DEFAULT_PRODUCTION_ORDER_STATUS } from '../../../core/domain/value-objects/ProductionOrderStatus'
 import { confirmAction } from '../../utils/actionFeedback'
+import { useProductionNewOrderDraftAutosave } from './hooks/useProductionNewOrderDraftAutosave'
 
 const parseQuantityDigits = (value: string): number => {
   const digits = value.replace(/\D/g, '')
@@ -175,13 +184,16 @@ const emptySpecs = (): OrderSpecs => ({
   chapoliado: false,
   finishes: [],
   operations: [],
+  cobroDescuentoModo: 'porcentaje',
+  cobroDescuentoValor: 0,
 })
 
 const ProductionOrderWorkspace: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>()
   const navigate = useNavigate()
   const isNew = orderId === 'new'
-  const { orders, loading: ordersLoading, createOrder } = useOrdersHook()
+  const { orders, loading: ordersLoading, createOrder, updateProductionOrderStatus } = useOrdersHook()
+  const { session } = useAuth()
   const { items: tiposPapelStore, loading: loadingTiposPapel } = useTipoPapelHook()
   const { items: terminadosCatalog, quickAccessItems: quickAccessTerminados } = useTerminadosHook()
   const { items: acabadosCatalog, quickAccessItems: quickAccessAcabados } = useOperacionesHook()
@@ -197,6 +209,9 @@ const ProductionOrderWorkspace: React.FC = () => {
   )
 
   const [activeTab, setActiveTab] = useState<ProductionWorkflowTabId>('especificaciones')
+  const [visitedWorkflowTabs, setVisitedWorkflowTabs] = useState<Set<ProductionWorkflowTabId>>(
+    () => new Set(['especificaciones'])
+  )
   const [specsSubTab, setSpecsSubTab] = useState<SpecsSubTabId>('cliente')
   const [preprensaSubTab, setPreprensaSubTab] = useState<PreprensaSubTabId>('diseno')
   const [cortePapelSubTab, setCortePapelSubTab] = useState<CortePapelSubTabId>('corte')
@@ -224,6 +239,11 @@ const ProductionOrderWorkspace: React.FC = () => {
   const [clientId, setClientId] = useState('')
   const [workName, setWorkName] = useState('')
   const [specs, setSpecs] = useState<OrderSpecs>(emptySpecs)
+
+  useEffect(() => {
+    if (!isNew) return
+    prefetchPreprensaWorkspacePanels()
+  }, [isNew])
 
   useEffect(() => {
     const container = Container.getInstance()
@@ -262,6 +282,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   }, [tiposPapelStore])
 
   const draftHydratedRef = useRef(false)
+  const [draftHydrated, setDraftHydrated] = useState(false)
   const setDraft = useProductionNewOrderDraftStore(s => s.setDraft)
   const clearDraft = useProductionNewOrderDraftStore(s => s.clearDraft)
   const hasDraft = useProductionNewOrderDraftStore(
@@ -300,13 +321,29 @@ const ProductionOrderWorkspace: React.FC = () => {
     [tiposPapel]
   )
 
+  const ensureWorkflowTabVisited = useCallback((tabId: ProductionWorkflowTabId) => {
+    setVisitedWorkflowTabs(prev => {
+      if (prev.has(tabId)) return prev
+      const next = new Set(prev)
+      next.add(tabId)
+      return next
+    })
+  }, [])
+
   const hydrateFromPersistedDraft = useCallback(() => {
     const draft = useProductionNewOrderDraftStore.getState().draft
     if (!draft || !productionDraftHasContent(draft)) return false
+    const restoredTab = resolveActiveTabFromDraft(draft)
     setClientId(draft.clientId)
     setVendedorId(draft.vendedorId)
     setWorkName(draft.workName)
-    setActiveTab(resolveActiveTabFromDraft(draft))
+    setActiveTab(restoredTab)
+    setVisitedWorkflowTabs(prev => {
+      const next = new Set(prev)
+      next.add('especificaciones')
+      next.add(restoredTab)
+      return next
+    })
     setSpecsSubTab(draft.specsSubTab)
     setPreprensaSubTab(resolvePreprensaSubTabFromDraft(draft.preprensaSubTab))
     setCortePapelSubTab(resolveCortePapelSubTabFromDraft(draft.cortePapelSubTab))
@@ -336,6 +373,7 @@ const ProductionOrderWorkspace: React.FC = () => {
   useEffect(() => {
     if (!isNew) {
       draftHydratedRef.current = false
+      setDraftHydrated(false)
       return
     }
     if (draftHydratedRef.current) return
@@ -343,29 +381,10 @@ const ProductionOrderWorkspace: React.FC = () => {
     if (!hydrateFromPersistedDraft()) {
       resetNewOrderForm()
     }
+    setDraftHydrated(true)
   }, [isNew, orderId, hydrateFromPersistedDraft, resetNewOrderForm])
 
-  useEffect(() => {
-    if (!isNew || !draftHydratedRef.current) return
-    const snapshot = buildProductionNewOrderDraft({
-      clientId,
-      workName,
-      vendedorId,
-      specs,
-      activeTab,
-      specsSubTab,
-      preprensaSubTab,
-      cortePapelSubTab,
-      impresionSubTab,
-      activeCorteColorPlanchaId,
-    })
-    if (productionDraftHasContent(snapshot)) {
-      setDraft(snapshot)
-    } else {
-      clearDraft()
-    }
-  }, [
-    isNew,
+  useProductionNewOrderDraftAutosave(isNew, draftHydrated, {
     clientId,
     workName,
     vendedorId,
@@ -376,9 +395,7 @@ const ProductionOrderWorkspace: React.FC = () => {
     cortePapelSubTab,
     impresionSubTab,
     activeCorteColorPlanchaId,
-    setDraft,
-    clearDraft,
-  ])
+  })
 
   const impresionColoresPlanchas = useMemo(
     () => normalizePreprensaSnapshot(specs.preprensaDiseno).coloresPlanchas,
@@ -627,6 +644,22 @@ const ProductionOrderWorkspace: React.FC = () => {
     [specs, isNew, orderId, workName, existingOrder?.status]
   )
 
+  const renderPhaseStatusAction = (phase: ProductionStatusPhaseId) => {
+    if (!session || isNew || !existingOrder) return null
+
+    return (
+      <ProductionPhaseStatusAction
+        phase={phase}
+        currentStatus={existingOrder?.productionStatus ?? DEFAULT_PRODUCTION_ORDER_STATUS}
+        specs={specs}
+        permissions={session.permissions}
+        userId={session.userId}
+        disabled={saving}
+        onChange={status => updateProductionOrderStatus(orderId!, status)}
+      />
+    )
+  }
+
   const renderOperadorSection = (
     phase: ProductionAssignmentPhaseId,
     etapa: string,
@@ -836,9 +869,13 @@ const ProductionOrderWorkspace: React.FC = () => {
   }
 
   const goToTab = (id: ProductionWorkflowTabId) => {
+    if (id === 'preprensa') {
+      prefetchPreprensaWorkspacePanels()
+    }
+    ensureWorkflowTabVisited(id)
     setActiveTab(id)
     setError(null)
-    if (id === 'prepensa') {
+    if (id === 'preprensa') {
       setPreprensaSubTab('diseno')
     }
     if (id === 'corte-papel') {
@@ -926,6 +963,54 @@ const ProductionOrderWorkspace: React.FC = () => {
     }
   }
 
+  const productionStatus =
+    existingOrder?.productionStatus ?? DEFAULT_PRODUCTION_ORDER_STATUS
+
+  const workflowStatusPanel = useMemo(() => {
+    if (isNew) {
+      if (!session || !userCanSuperviseProductionStatus(session.permissions)) return null
+      return (
+        <ProductionOrderStatusControl
+          status={DEFAULT_PRODUCTION_ORDER_STATUS}
+          specs={specs}
+          permissions={session.permissions}
+          userId={session.userId}
+          pendingCreation
+          editable={false}
+          onChange={async () => {}}
+        />
+      )
+    }
+
+    if (!existingOrder) return null
+
+    if (session) {
+      return (
+        <ProductionOrderStatusControl
+          status={productionStatus}
+          specs={existingOrder.specs}
+          permissions={session.permissions}
+          userId={session.userId}
+          disabled={saving}
+          editable
+          onChange={status => updateProductionOrderStatus(existingOrder.id, status)}
+          onSaved={() => navigate(ROUTES.production.path)}
+        />
+      )
+    }
+
+    return (
+      <ProductionOrderStatusControl
+        status={productionStatus}
+        specs={existingOrder.specs}
+        permissions={[]}
+        userId=""
+        editable={false}
+        onChange={async () => {}}
+      />
+    )
+  }, [existingOrder, isNew, navigate, productionStatus, saving, session, specs, updateProductionOrderStatus])
+
   if (!isNew && !ordersLoading && orders.length > 0 && !existingOrder) {
     return (
       <div className="orders-container production-workspace">
@@ -985,21 +1070,19 @@ const ProductionOrderWorkspace: React.FC = () => {
             >
               Eliminar borrador
             </button>
-          ) : (
-            existingOrder && <StatusBadge status={existingOrder.status} />
-          )}
+          ) : null}
         </div>
       </div>
 
-      <ProductionKpiGrid orders={orders} />
-
       <section className="production-workspace-tabs-card" aria-label="Etapas de producción">
-        <ProductionWorkflowNav active={activeTab} onChange={goToTab} />
+        <ProductionWorkflowNav
+          active={activeTab}
+          onChange={goToTab}
+          productionStatus={!isNew ? productionStatus : undefined}
+          statusPanel={workflowStatusPanel}
+        />
         <div
           className="production-workspace-panel"
-          role="tabpanel"
-          id={`production-panel-${activeTab}`}
-          aria-labelledby={`production-tab-${activeTab}`}
         >
           {error && (
             <p className="orders-error" style={{ marginBottom: '1rem' }} role="alert">
@@ -1007,7 +1090,11 @@ const ProductionOrderWorkspace: React.FC = () => {
             </p>
           )}
 
-          {activeTab === 'especificaciones' && (
+          <ProductionWorkflowPanel
+            tabId="especificaciones"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('especificaciones')}
+          >
             <>
               <h2 className="production-workspace-panel-title production-specs-title">Especificaciones</h2>
 
@@ -1047,27 +1134,33 @@ const ProductionOrderWorkspace: React.FC = () => {
                   id="production-specs-panel-detalle-op"
                   aria-labelledby="production-specs-subtab-detalle-op"
                 >
-                  <ProductionDetalleOpPanel
-                    workName={workName}
-                    onWorkNameChange={setWorkName}
-                    quantity={specs.quantity}
-                    onQuantityChange={value => updateSpecs('quantity', value)}
-                    onQuantityPaste={text =>
-                      updateSpecs('quantity', parseQuantityDigits(text))
-                    }
-                    onQuantityKeyDown={blockNonDigitKey}
-                    vendedores={vendedores}
-                    vendedorId={vendedorId}
-                    onVendedorSelect={v => setVendedorId(v?.id ?? '')}
-                  />
+                  {withProductionPanelSuspense(
+                    <LazyProductionDetalleOpPanel
+                      workName={workName}
+                      onWorkNameChange={setWorkName}
+                      quantity={specs.quantity}
+                      onQuantityChange={value => updateSpecs('quantity', value)}
+                      onQuantityPaste={text =>
+                        updateSpecs('quantity', parseQuantityDigits(text))
+                      }
+                      onQuantityKeyDown={blockNonDigitKey}
+                      vendedores={vendedores}
+                      vendedorId={vendedorId}
+                      onVendedorSelect={v => setVendedorId(v?.id ?? '')}
+                    />
+                  )}
                 </div>
               )}
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
-          {activeTab === 'prepensa' && (
+          <ProductionWorkflowPanel
+            tabId="preprensa"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('preprensa')}
+          >
             <>
               <h2 className="production-workspace-panel-title production-specs-title">Preprensa</h2>
 
@@ -1083,6 +1176,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       aria-labelledby="production-preprensa-subtab-responsable"
                     >
                       {renderOperadorSection('preprensa', 'Preprensa', 'preprensa-operador')}
+                      {renderPhaseStatusAction('preprensa')}
                     </div>
                   )}
                   {preprensaSubTab === 'diseno' && (
@@ -1131,9 +1225,13 @@ const ProductionOrderWorkspace: React.FC = () => {
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
-          {activeTab === 'corte-papel' && (
+          <ProductionWorkflowPanel
+            tabId="corte-papel"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('corte-papel')}
+          >
             <>
               <h2 className="production-workspace-panel-title production-specs-title">
                 Corte de papel
@@ -1154,6 +1252,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       aria-labelledby="production-corte-papel-subtab-responsable"
                     >
                       {renderOperadorSection('corte-papel', 'Corte de papel', 'corte-operador')}
+                      {renderPhaseStatusAction('corte-papel')}
                     </div>
                   )}
                   {cortePapelSubTab === 'corte' && (
@@ -1163,7 +1262,8 @@ const ProductionOrderWorkspace: React.FC = () => {
                     id="production-corte-papel-panel-corte"
                     aria-labelledby="production-corte-papel-subtab-corte"
                   >
-                    <ProductionCortePapelForm
+                    {withProductionPanelSuspense(
+                      <LazyProductionCortePapelForm
                         row={paperRow}
                         paperRows={specs.paperRows}
                         tiposPapel={tiposPapel}
@@ -1185,14 +1285,19 @@ const ProductionOrderWorkspace: React.FC = () => {
                           )
                         }
                       />
+                    )}
                     </div>
                   )}
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
-          {activeTab === 'impresion' && (
+          <ProductionWorkflowPanel
+            tabId="impresion"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('impresion')}
+          >
             <>
               <h2 className="production-workspace-panel-title">Impresión</h2>
 
@@ -1211,6 +1316,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       aria-labelledby="production-impresion-subtab-responsable"
                     >
                       {renderOperadorSection('impresion', 'Impresión', 'impresion-operador')}
+                      {renderPhaseStatusAction('impresion')}
                     </div>
                   )}
                   {impresionSubTab === 'tintas' && (
@@ -1220,13 +1326,15 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-impresion-panel-tintas"
                       aria-labelledby="production-impresion-subtab-tintas"
                     >
-                      <ProductionImpresionTintasPanel
-                        coloresPlanchas={impresionColoresPlanchas}
-                        registros={specs.impresionTintasRegistros ?? []}
-                        activeColorPlanchaId={activeImpresionColorPlanchaId}
-                        onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
-                        onRegistroChange={handleImpresionTintasRegistroChange}
-                      />
+                      {withProductionPanelSuspense(
+                        <LazyProductionImpresionTintasPanel
+                          coloresPlanchas={impresionColoresPlanchas}
+                          registros={specs.impresionTintasRegistros ?? []}
+                          activeColorPlanchaId={activeImpresionColorPlanchaId}
+                          onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
+                          onRegistroChange={handleImpresionTintasRegistroChange}
+                        />
+                      )}
                     </div>
                   )}
                   {impresionSubTab === 'muestra' && (
@@ -1236,16 +1344,18 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-impresion-panel-muestra"
                       aria-labelledby="production-impresion-subtab-muestra"
                     >
-                      <ProductionImpresionMuestraPanel
-                        coloresPlanchas={impresionColoresPlanchas}
-                        paperRows={specs.paperRows}
-                        tiposPapel={tiposPapel}
-                        activeColorPlanchaId={activeImpresionColorPlanchaId}
-                        onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
-                        completedPlanchaIds={completedEstimarTintasPlanchaIds}
-                        registros={specs.impresionEstimarTintasRegistros ?? []}
-                        onRegistroChange={handleEstimarTintasRegistroChange}
-                      />
+                      {withProductionPanelSuspense(
+                        <LazyProductionImpresionMuestraPanel
+                          coloresPlanchas={impresionColoresPlanchas}
+                          paperRows={specs.paperRows}
+                          tiposPapel={tiposPapel}
+                          activeColorPlanchaId={activeImpresionColorPlanchaId}
+                          onActiveColorPlanchaIdChange={setActiveImpresionColorPlanchaId}
+                          completedPlanchaIds={completedEstimarTintasPlanchaIds}
+                          registros={specs.impresionEstimarTintasRegistros ?? []}
+                          onRegistroChange={handleEstimarTintasRegistroChange}
+                        />
+                      )}
                     </div>
                   )}
                   {impresionSubTab === 'conversionImagen' && (
@@ -1255,15 +1365,19 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-impresion-panel-conversion-imagen"
                       aria-labelledby="production-impresion-subtab-conversionImagen"
                     >
-                      <ProductionImpresionConversionImagenPanel />
+                      {withProductionPanelSuspense(<LazyProductionImpresionConversionImagenPanel />)}
                     </div>
                   )}
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
-          {activeTab === 'terminados' && (
+          <ProductionWorkflowPanel
+            tabId="terminados"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('terminados')}
+          >
             <>
               <h2 className="production-workspace-panel-title">Terminados</h2>
 
@@ -1283,6 +1397,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       aria-labelledby="production-terminados-subtab-responsable"
                     >
                       {renderOperadorSection('terminados', 'Terminados', 'terminados-operador')}
+                      {renderPhaseStatusAction('terminados')}
                     </div>
                   )}
                   {terminadosSubTab === 'asignacion' && (
@@ -1292,27 +1407,33 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-terminados-panel-asignacion"
                       aria-labelledby="production-terminados-subtab-asignacion"
                     >
-                      <ProductionTerminadosPanel
-                        coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
-                        paperRows={specs.paperRows}
-                        tiposPapel={tiposPapel}
-                        margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
-                        clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
-                        terminadosCatalog={terminadosCatalog}
-                        quickAccessTerminados={quickAccessTerminados}
-                        registros={specs.terminadosRegistros ?? []}
-                        activeCorteRowKey={activeTerminadosCorteRowKey}
-                        onActiveCorteRowKeyChange={setActiveTerminadosCorteRowKey}
-                        onRegistrosChange={handleTerminadosRegistrosChange}
-                      />
+                      {withProductionPanelSuspense(
+                        <LazyProductionTerminadosPanel
+                          coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
+                          paperRows={specs.paperRows}
+                          tiposPapel={tiposPapel}
+                          margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
+                          clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
+                          terminadosCatalog={terminadosCatalog}
+                          quickAccessTerminados={quickAccessTerminados}
+                          registros={specs.terminadosRegistros ?? []}
+                          activeCorteRowKey={activeTerminadosCorteRowKey}
+                          onActiveCorteRowKeyChange={setActiveTerminadosCorteRowKey}
+                          onRegistrosChange={handleTerminadosRegistrosChange}
+                        />
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
-          {activeTab === 'acabados' && (
+          <ProductionWorkflowPanel
+            tabId="acabados"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('acabados')}
+          >
             <>
               <h2 className="production-workspace-panel-title">Acabados</h2>
 
@@ -1328,6 +1449,7 @@ const ProductionOrderWorkspace: React.FC = () => {
                       aria-labelledby="production-acabados-subtab-responsable"
                     >
                       {renderOperadorSection('acabados', 'Acabados', 'acabados-operador')}
+                      {renderPhaseStatusAction('acabados')}
                     </div>
                   )}
                   {acabadosSubTab === 'acabado' && (
@@ -1337,27 +1459,33 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-acabados-panel-acabado"
                       aria-labelledby="production-acabados-subtab-acabado"
                     >
-                      <ProductionAcabadosPanel
-                        coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
-                        paperRows={specs.paperRows}
-                        tiposPapel={tiposPapel}
-                        margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
-                        clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
-                        acabadosCatalog={acabadosCatalog}
-                        quickAccessAcabados={quickAccessAcabados}
-                        registros={specs.acabadosRegistros ?? []}
-                        activeCorteRowKey={activeAcabadosCorteRowKey}
-                        onActiveCorteRowKeyChange={setActiveAcabadosCorteRowKey}
-                        onRegistrosChange={handleAcabadosRegistrosChange}
-                      />
+                      {withProductionPanelSuspense(
+                        <LazyProductionAcabadosPanel
+                          coloresPlanchas={specs.preprensaDiseno.coloresPlanchas}
+                          paperRows={specs.paperRows}
+                          tiposPapel={tiposPapel}
+                          margenRedondeo={normalizeMargenRedondeo(specs.margenRedondeo)}
+                          clienteSuministraPapel={specs.clienteSuministraPapel ?? 'no'}
+                          acabadosCatalog={acabadosCatalog}
+                          quickAccessAcabados={quickAccessAcabados}
+                          registros={specs.acabadosRegistros ?? []}
+                          activeCorteRowKey={activeAcabadosCorteRowKey}
+                          onActiveCorteRowKeyChange={setActiveAcabadosCorteRowKey}
+                          onRegistrosChange={handleAcabadosRegistrosChange}
+                        />
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
-          {activeTab === 'cobro' && (
+          <ProductionWorkflowPanel
+            tabId="cobro"
+            activeTab={activeTab}
+            visited={visitedWorkflowTabs.has('cobro')}
+          >
             <>
               <h2 className="production-workspace-panel-title">{PRODUCTION_COBRO_COPY.title}</h2>
 
@@ -1382,19 +1510,26 @@ const ProductionOrderWorkspace: React.FC = () => {
                       id="production-cobro-panel-factura"
                       aria-labelledby="production-cobro-subtab-factura"
                     >
-                      <ProductionOrderCobroPanel
-                        clientName={clientName}
-                        workName={workName}
-                        quantity={specs.quantity}
-                        specs={specs}
-                        tiposPapel={tiposPapel}
-                      />
+                      {withProductionPanelSuspense(
+                        <LazyProductionOrderCobroPanel
+                          clientName={clientName}
+                          workName={workName}
+                          quantity={specs.quantity}
+                          specs={specs}
+                          tiposPapel={tiposPapel}
+                          cobroDescuentoModo={specs.cobroDescuentoModo ?? 'porcentaje'}
+                          cobroDescuentoValor={specs.cobroDescuentoValor ?? 0}
+                          onCobroDescuentoChange={patch =>
+                            setSpecs(prev => ({ ...prev, ...patch }))
+                          }
+                        />
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             </>
-          )}
+          </ProductionWorkflowPanel>
 
           <footer className="production-workspace-footer">
             <button

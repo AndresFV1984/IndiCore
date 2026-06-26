@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import clsx from 'clsx'
 import { DisenoColorPlanchaItem, DisenoColoresOption } from '../../../core/domain/entities/PreprensaDiseno'
 import { createId } from '../../../core/utils/createId'
 import { TamanoPlancha } from '../../../core/domain/entities/TamanoPlancha'
@@ -1880,33 +1881,37 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
             <DetalleOpRequiredGate onGoToDetalleOpTab={onGoToDetalleOpTab} />
           )}
 
-          {coloresListaEditable && (
-          <section className="production-plancha-workspace__composer" aria-labelledby="diseno-colores-add-label">
-              <>
-            {!editingItemId ? (
-            <div
-              className={[
-                'production-plancha-workspace__picker-zone',
-                showDraftForm ? 'production-plancha-workspace__picker-zone--selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              <span className="production-plancha-workspace__zone-label" id="diseno-colores-add-label">
-                1. Cantidad de colores
-              </span>
-              <DisenoColoresPicker
-                id="diseno-colores-add"
-                labelId="diseno-colores-add-label"
-                placeholder={coloresCopy.colorPickerPlaceholder}
-                value={draftColor}
-                disabled={!detalleOpCantidadLista}
-                onChange={handleDraftColorChange}
-              />
-            </div>
-            ) : null}
+          <section
+            className={clsx('production-plancha-workspace__composer', {
+              'production-plancha-workspace__composer--locked': !coloresListaEditable,
+            })}
+            aria-labelledby="diseno-colores-add-label"
+          >
+            <>
+              {!editingItemId ? (
+                <div
+                  className={[
+                    'production-plancha-workspace__picker-zone',
+                    showDraftForm ? 'production-plancha-workspace__picker-zone--selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <span className="production-plancha-workspace__zone-label" id="diseno-colores-add-label">
+                    1. Cantidad de colores
+                  </span>
+                  <DisenoColoresPicker
+                    id="diseno-colores-add"
+                    labelId="diseno-colores-add-label"
+                    placeholder={coloresCopy.colorPickerPlaceholder}
+                    value={draftColor}
+                    disabled={!detalleOpCantidadLista}
+                    onChange={handleDraftColorChange}
+                  />
+                </div>
+              ) : null}
 
-            {showDraftForm && draftMeta && (
+              {coloresListaEditable && showDraftForm && draftMeta && (
               <div
                 ref={draftZoneRef}
                 className={[
@@ -1988,12 +1993,11 @@ const DisenoColoresPlanchasPanel: React.FC<DisenoColoresPlanchasPanelProps> = ({
               </div>
             )}
 
-            {activePlanchas.length === 0 && (
+            {activePlanchas.length === 0 && coloresListaEditable && (
               <p className="production-plancha-workspace__hint">Sin tipos de plancha activos.</p>
             )}
-              </>
+            </>
           </section>
-          )}
 
           {items.length > 0 && (
             <section

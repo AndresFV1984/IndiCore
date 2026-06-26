@@ -3,6 +3,7 @@ import { useClientsStore } from '../stores/clientsStore'
 import { useOrdersStore } from '../stores/ordersStore'
 import { useUsersStore } from '../stores/usersStore'
 import { useVendedoresStore } from '../stores/vendedoresStore'
+import { useAuthStore } from '../stores/authStore'
 import { dedupedFetch } from '../utils/dedupedFetch'
 import { scheduleIdle } from '../utils/scheduleIdle'
 import { prefetchAllRoutes } from './routePrefetch'
@@ -23,6 +24,15 @@ function prefetchClients(): void {
   void dedupedFetch('store:clients', () => container.getClientUseCases().getClients()).then(fetched => {
     if (useClientsStore.getState().clients.length === 0) {
       useClientsStore.getState().setClients(fetched)
+    }
+  })
+}
+
+function prefetchAuthSession(): void {
+  if (useAuthStore.getState().session) return
+  void dedupedFetch('auth:session', () => container.getAuthUseCases().getSession()).then(fetched => {
+    if (!useAuthStore.getState().session) {
+      useAuthStore.getState().setSession(fetched)
     }
   })
 }
@@ -62,6 +72,7 @@ export function bootstrapApp(): void {
   }, { timeout: 1500, delayMs: 100 })
 
   scheduleIdle(() => {
+    prefetchAuthSession()
     prefetchUsers()
     prefetchVendedores()
   }, { timeout: 3000, delayMs: 400 })

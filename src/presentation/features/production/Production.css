@@ -195,6 +195,341 @@
   transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.production-workflow-nav__status {
+  margin-bottom: 0.9rem;
+}
+
+.production-flow-status {
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 18%, var(--border));
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--corp-primary) 5%, var(--surface)) 0%,
+    var(--surface) 55%
+  );
+}
+
+.production-flow-status--pending {
+  border-color: color-mix(in srgb, #6b7280 22%, var(--border));
+  background: linear-gradient(135deg, #f8fafc 0%, var(--surface) 70%);
+}
+
+.production-flow-status--readonly {
+  padding-bottom: 0.75rem;
+}
+
+.production-flow-status--saving {
+  opacity: 0.85;
+}
+
+.production-flow-status--dirty {
+  border-color: color-mix(in srgb, var(--corp-primary) 28%, var(--border));
+}
+
+.production-flow-status__hint--dirty {
+  color: var(--corp-primary-strong);
+  font-weight: 500;
+}
+
+.production-flow-status__editor {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.production-flow-status__save {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  opacity: 1;
+  color: var(--txt-3);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.production-flow-status__save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.production-flow-status__save:not(:disabled) {
+  border-color: color-mix(in srgb, var(--corp-primary) 32%, var(--border));
+  background: var(--corp-primary-soft);
+  color: var(--corp-primary-strong);
+}
+
+.production-flow-status__save:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--corp-primary) 50%, var(--border));
+  background: color-mix(in srgb, var(--corp-primary) 10%, var(--surface));
+  color: var(--corp-primary-strong);
+}
+
+.production-flow-status__save:not(:disabled):active {
+  background: color-mix(in srgb, var(--corp-primary) 14%, var(--surface));
+}
+
+.production-flow-status__save:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--corp-primary) 18%, transparent);
+}
+
+.production-flow-status__toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.production-flow-status__head-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.production-flow-status__control {
+  flex: 0 0 auto;
+  min-width: min(100%, 22rem);
+  max-width: 28rem;
+}
+
+.production-flow-status__eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt-3);
+}
+
+.production-flow-status__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+.production-flow-status__current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.production-flow-status__pulse {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 color-mix(in srgb, #22c55e 45%, transparent);
+  animation: production-flow-status-pulse 1.8s ease-out infinite;
+}
+
+@keyframes production-flow-status-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, #22c55e 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.production-flow-status__select-shell {
+  position: relative;
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.production-flow-status__select-shell::before {
+  content: '';
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: currentColor;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.production-flow-status__select-shell::after {
+  content: '';
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 8px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%2364748b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.production-flow-status__select {
+  width: 100%;
+  min-width: 13.5rem;
+  padding: 0.52rem 2rem 0.52rem 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.production-flow-status__select-shell.production-order-status-pendiente {
+  color: #4b5563;
+}
+
+.production-flow-status__select-shell.production-order-status-pendiente .production-flow-status__select {
+  border-color: #d1d5db;
+  color: #4b5563;
+}
+
+.production-flow-status__select-shell.production-order-status-pausada {
+  color: #c2410c;
+}
+
+.production-flow-status__select-shell.production-order-status-pausada .production-flow-status__select {
+  border-color: #fdba74;
+  color: #c2410c;
+}
+
+.production-flow-status__select-shell.production-order-status-revision {
+  color: #6c5ce7;
+}
+
+.production-flow-status__select-shell.production-order-status-revision .production-flow-status__select {
+  border-color: #a5b4fc;
+  color: #6c5ce7;
+}
+
+.production-flow-status__select-shell.production-order-status-en-proceso {
+  color: #1d4ed8;
+}
+
+.production-flow-status__select-shell.production-order-status-en-proceso .production-flow-status__select {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.production-flow-status__select-shell.production-order-status-finalizada {
+  color: #047857;
+}
+
+.production-flow-status__select-shell.production-order-status-finalizada .production-flow-status__select {
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+.production-flow-status__select-shell.production-order-status-cancelada {
+  color: #b42318;
+}
+
+.production-flow-status__select-shell.production-order-status-cancelada .production-flow-status__select {
+  border-color: #fca5a5;
+  color: #b42318;
+}
+
+.production-flow-status__select-shell.production-order-status-preprensa,
+.production-flow-status__select-shell.production-order-status-corte-papel,
+.production-flow-status__select-shell.production-order-status-impresion,
+.production-flow-status__select-shell.production-order-status-terminados,
+.production-flow-status__select-shell.production-order-status-acabados {
+  color: #4338ca;
+}
+
+.production-flow-status__select-shell.production-order-status-preprensa .production-flow-status__select,
+.production-flow-status__select-shell.production-order-status-corte-papel .production-flow-status__select,
+.production-flow-status__select-shell.production-order-status-impresion .production-flow-status__select,
+.production-flow-status__select-shell.production-order-status-terminados .production-flow-status__select,
+.production-flow-status__select-shell.production-order-status-acabados .production-flow-status__select {
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+
+.production-flow-status__select:hover:not(:disabled) {
+  border-color: color-mix(in srgb, currentColor 40%, var(--border));
+}
+
+.production-flow-status__select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.production-flow-status__select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.production-flow-status__select option {
+  background-color: var(--surface);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.production-workflow-step--production {
+  border-color: color-mix(in srgb, #22c55e 35%, var(--corp-primary-border));
+  background: color-mix(in srgb, #22c55e 6%, var(--surface));
+}
+
+.production-workflow-step--production .production-workflow-step__marker {
+  border-color: #16a34a;
+  background: #ecfdf5;
+  color: #15803d;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 18%, transparent);
+}
+
+.production-workflow-step--production .production-workflow-step__label {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.production-workflow-step--finished {
+  border-color: color-mix(in srgb, #047857 30%, var(--border));
+  background: color-mix(in srgb, #047857 5%, var(--surface));
+}
+
+.production-workflow-step--finished .production-workflow-step__marker {
+  border-color: #047857;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.production-workflow-step__live {
+  margin-top: 0.15rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.production-workflow-step__live--done {
+  color: #047857;
+  background: #d1fae5;
+}
+
 .production-workflow-steps {
   min-width: 0;
 }
@@ -405,6 +740,28 @@
 
   .production-workflow-nav__current {
     font-size: 0.9375rem;
+  }
+
+  .production-flow-status__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .production-flow-status__control {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .production-flow-status__editor {
+    flex-wrap: wrap;
+  }
+
+  .production-flow-status__save {
+    flex: 1 1 auto;
+  }
+
+  .production-flow-status__select {
+    min-width: 0;
   }
 
   .production-workflow-step {
@@ -4748,6 +5105,109 @@
   color: var(--txt-2);
 }
 
+.production-order-status-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.production-order-status-control--readonly {
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.production-order-status-control--supervise {
+  flex-wrap: wrap;
+}
+
+.production-order-status-control__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 12rem;
+}
+
+.production-order-status-control__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt-2);
+}
+
+.production-order-status-control__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--txt-2);
+}
+
+.production-order-status-control__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.production-order-status-control__field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.production-order-status-control__field-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--txt-2);
+}
+
+.production-order-status-control__select {
+  min-width: 14rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-1);
+  color: var(--txt-1);
+  font-size: 0.875rem;
+}
+
+.production-workspace-status-bar {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-1) 92%, #4338ca 8%);
+}
+
+.production-workspace-status-bar--readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: fit-content;
+}
+
+.production-workspace-status-bar--pending {
+  background: color-mix(in srgb, var(--bg-1) 94%, #6b7280 6%);
+}
+
+.production-workflow-panel-section[hidden] {
+  display: none !important;
+}
+
+.production-phase-status-action {
+  margin-top: 1rem;
+}
+
+.production-phase-status-action__btn--active {
+  border-color: color-mix(in srgb, #4338ca 35%, var(--border));
+  background: color-mix(in srgb, #4338ca 8%, var(--bg-1));
+  color: #4338ca;
+}
+
 .production-btn-secondary--danger {
   color: var(--red, #b42318);
   border-color: color-mix(in srgb, var(--red, #b42318) 40%, var(--border));
@@ -6782,6 +7242,14 @@
 
 .production-workspace--new-order .production-plancha-workspace__composer {
   border-color: #d4e4dc;
+}
+
+.production-plancha-workspace__composer--locked {
+  opacity: 0.72;
+}
+
+.production-plancha-workspace__composer--locked .production-colores-picker--disabled {
+  opacity: 1;
 }
 
 .production-plancha-detalle-op-gate {
@@ -13148,10 +13616,49 @@
 
 .production-impresion-estimar-tintas__color-profile-spot-list {
   margin: 0;
-  padding-left: 1rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.production-impresion-estimar-tintas__color-profile-spot-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.production-impresion-estimar-tintas__color-profile-spot-swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgb(15 23 42 / 0.14);
+  flex-shrink: 0;
+}
+
+.production-impresion-estimar-tintas__color-profile-spot-swatch--unknown {
+  background: conic-gradient(
+    from 135deg,
+    #00a9e0,
+    #d6007a,
+    #ffd400,
+    #1a1a1a,
+    #e4002b,
+    #005eb8,
+    #00a651,
+    #00a9e0
+  );
+}
+
+.production-impresion-estimar-tintas__color-profile-spot-name {
   font-size: 0.625rem;
-  line-height: 1.45;
+  line-height: 1.35;
   color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .production-impresion-estimar-tintas__color-profile-meta {
@@ -18678,6 +19185,134 @@
   letter-spacing: -0.02em;
   color: var(--corp-primary-strong);
   font-variant-numeric: tabular-nums;
+}
+
+.production-order-cobro-summary__total--discounted {
+  background: color-mix(in srgb, #64748b 6%, #fff);
+  border-color: color-mix(in srgb, #64748b 18%, #dbe3ec);
+}
+
+.production-order-cobro-summary__total--discounted .production-order-cobro-summary__total-label {
+  color: #475569;
+}
+
+.production-order-cobro-summary__total--discounted .production-order-cobro-summary__total-value {
+  color: #334155;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.production-order-cobro-summary__total--discounted-active {
+  background: color-mix(in srgb, #166534 10%, #fff);
+  border-color: color-mix(in srgb, #166534 24%, #c5ddd2);
+}
+
+.production-order-cobro-summary__total--discounted-active .production-order-cobro-summary__total-label {
+  color: #166534;
+}
+
+.production-order-cobro-summary__total--discounted-active .production-order-cobro-summary__total-value {
+  color: #14532d;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.production-order-cobro-discount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, #f8fafc 88%, #fff);
+  border: 1px dashed color-mix(in srgb, var(--corp-primary) 18%, #dbe3ec);
+}
+
+.production-order-cobro-discount__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.production-order-cobro-discount__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.production-order-cobro-discount__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--txt-2);
+}
+
+.production-order-cobro-discount__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.production-order-cobro-discount__mode {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--corp-primary) 16%, #dbe3ec);
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--txt-2);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.production-order-cobro-discount__mode:hover {
+  border-color: color-mix(in srgb, var(--corp-primary) 30%, #dbe3ec);
+  color: var(--ink);
+}
+
+.production-order-cobro-discount__mode--active {
+  border-color: color-mix(in srgb, var(--corp-primary) 42%, #dbe3ec);
+  background: color-mix(in srgb, var(--corp-primary-soft) 42%, #fff);
+  color: var(--corp-primary-strong);
+}
+
+.production-order-cobro-discount__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.production-order-cobro-discount__field-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--txt-2);
+}
+
+.production-order-cobro-discount__input {
+  width: 100%;
+}
+
+.production-order-cobro-discount__applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin: 0;
+  padding-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--txt-2);
+}
+
+.production-order-cobro-discount__applied strong {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #b45309;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .production-order-cobro-summary__footer-hint {

@@ -279,6 +279,8 @@ describe('estimarTintasImageColorsUtils', () => {
 
     expect(colors).toHaveLength(1)
     expect(colors[0]?.name).toBe('Pantone 375 C')
+    expect(colors[0]?.representativeSwatch).toBe('#86318f')
+    expect(resolveEstimarTintasPantoneDisplaySwatch(colors[0]!)).toBe('#86318f')
   })
 
   it('marca Pantone solo cuando el píxel coincide con un spot declarado en el PDF', () => {
@@ -314,6 +316,84 @@ describe('estimarTintasImageColorsUtils', () => {
     expect(colors[0]?.name).toBe('Pantone 485 C')
     expect(colors[0]?.representativeSwatch).toBe('#da291c')
     expect(resolveEstimarTintasPantoneDisplaySwatch(colors[0]!)).toBe('#da291c')
+  })
+
+  it('usa el catálogo Pantone para mostrar colores de referencias conocidas', () => {
+    const color = {
+      index: DISENO_INK_PANTONE_INDEX,
+      name: 'Pantone Yellow C',
+      category: 'pantone' as const,
+      swatch: 'pantone-mix',
+      representativeSwatch: '#f7c944',
+      coverage: 0.2,
+      inkG: 0.4,
+      matchedPixels: 100,
+    }
+
+    expect(resolveEstimarTintasPantoneDisplaySwatch(color)).toBe('#fedd00')
+  })
+
+  it('prioriza el catálogo Pantone sobre el color de píxeles del archivo', () => {
+    const color = {
+      index: DISENO_INK_PANTONE_INDEX,
+      name: 'Pantone 187 C',
+      category: 'pantone' as const,
+      swatch: '#00ff00',
+      representativeSwatch: '#00ff00',
+      coverage: 0.2,
+      inkG: 0.4,
+      matchedPixels: 100,
+    }
+
+    expect(resolveEstimarTintasPantoneDisplaySwatch(color)).toBe('#a6192e')
+  })
+
+  it('detecta Pantone 187 C con color del archivo aunque no esté en catálogo fijo', () => {
+    const imageData = mockImageData(2, 1, [
+      166, 25, 46, 255,
+      255, 255, 255, 255,
+    ])
+
+    const colors = computeDetectedInkColorsFromImageData(
+      imageData,
+      {
+        widthCm: 10,
+        heightCm: 10,
+        conversionFactorG: DEFAULT_FACTOR,
+        spotReferenceRgbs: [[166, 25, 46]],
+        pantoneSpotNames: ['PANTONE 187 C'],
+      },
+      0
+    )
+
+    expect(colors).toHaveLength(1)
+    expect(colors[0]?.name).toBe('Pantone 187 C')
+    expect(colors[0]?.representativeSwatch).toBe('#a6192e')
+    expect(resolveEstimarTintasPantoneDisplaySwatch(colors[0]!)).toBe('#a6192e')
+  })
+
+  it('detecta Pantone 1655 C sin catálogo fijo usando referencias del archivo', () => {
+    const imageData = mockImageData(2, 1, [
+      248, 124, 20, 255,
+      255, 255, 255, 255,
+    ])
+
+    const colors = computeDetectedInkColorsFromImageData(
+      imageData,
+      {
+        widthCm: 10,
+        heightCm: 10,
+        conversionFactorG: DEFAULT_FACTOR,
+        spotReferenceRgbs: [[248, 124, 20]],
+        pantoneSpotNames: ['PANTONE 1655 C'],
+      },
+      0
+    )
+
+    expect(colors).toHaveLength(1)
+    expect(colors[0]?.name).toBe('Pantone 1655 C')
+    expect(colors[0]?.representativeSwatch).toBe('#f87c14')
+    expect(resolveEstimarTintasPantoneDisplaySwatch(colors[0]!)).toBe('#f87c14')
   })
 
   it('colapsa ruido de antialiasing pero conserva varios Pantone reales', () => {

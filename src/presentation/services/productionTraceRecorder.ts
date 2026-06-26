@@ -1,5 +1,6 @@
 import { Container } from '../../di/container'
 import type { OrderStatus } from '../../../core/domain/value-objects/OrderStatus'
+import type { ProductionOrderStatus } from '../../../core/domain/value-objects/ProductionOrderStatus'
 import type {
   ProductionTracePauseReasonId,
   ProductionTracePhaseId,
@@ -24,6 +25,26 @@ export const productionTraceRecorder = {
       userId: input.userId,
       type: 'asignacion',
       orderStatus: input.orderStatus,
+    })
+  },
+
+  async recordProductionStatusChange(input: {
+    orderId: string
+    workName: string
+    phase: ProductionTracePhaseId
+    userId: string
+    productionStatus: ProductionOrderStatus
+    orderStatus?: OrderStatus
+  }) {
+    const trace = container.getProductionTraceUseCases()
+    await trace.recordEvent({
+      orderId: input.orderId,
+      workName: input.workName,
+      phase: input.phase,
+      userId: input.userId,
+      type: 'cambio_estado_orden',
+      orderStatus: input.orderStatus,
+      productionStatus: input.productionStatus,
     })
   },
 

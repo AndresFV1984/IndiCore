@@ -8,17 +8,22 @@ import {
   dedupeCanonicalPantoneSpotNames,
   canonicalizePantoneSpotName,
   isNearProcessPrimaryRgb,
+  isPantoneSpotInkName,
   isSecondaryInkLikeRgb,
   matchesKnownCatalogSpotRgbFromReferences,
   resolveActivePantoneNamesForReferences,
   resolveKnownPantoneDisplaySwatch,
   resolveKnownPantoneReferenceRgbs,
+  resolvePantoneDisplaySwatchForName,
   resolvePantoneDisplayLabel,
   resolvePantoneLabelAsCatalogName,
   resolveSpotNameForReference,
+  resolveSpotReferencesCentroidSwatch,
+  resolveSpotReferencesForCanonicalPantoneName,
   matchesKnownCatalogSpotRgb,
   type EstimarTintasSpotRgb,
 } from './estimarTintasPdfSpotUtils'
+import { resolvePantoneDisplayHexFromName } from './estimarTintasPantoneDisplayCatalog'
 import {
   ESTIMAR_TINTAS_ALPHA_MIN,
   ESTIMAR_TINTAS_WHITE_THRESHOLD,
@@ -181,9 +186,17 @@ export const buildEstimarTintasPixelClassifier = (
     if (minSpotDistanceSquared > relaxedSpotDistanceSquared) return false
 
     if (matchesKnownCatalogSpotRgbFromReferences(r, g, b, catalogReferences)) return true
-    if (isNearProcessPrimaryRgb(r, g, b) || isSecondaryInkLikeRgb(r, g, b)) return false
 
     const { distanceSquared: nearestStandardDistanceSquared } = findNearestStandardInk(r, g, b)
+    const matchesDeclaredSpotReference =
+      canonicalSpotNames.length > 0 &&
+      minSpotDistanceSquared <= relaxedSpotDistanceSquared &&
+      minSpotDistanceSquared < nearestStandardDistanceSquared
+
+    if (matchesDeclaredSpotReference) return true
+
+    if (isNearProcessPrimaryRgb(r, g, b) || isSecondaryInkLikeRgb(r, g, b)) return false
+
     return minSpotDistanceSquared < nearestStandardDistanceSquared
   }
 
@@ -223,6 +236,26 @@ export interface EstimarTintasInkPixelAnalysis {
 /** Cobertura mínima relativa dentro de los píxeles Pantone para listar un segundo color. */
 export const ESTIMAR_TINTAS_DETECTED_PANTONE_MIN_RELATIVE_SHARE = 0.06
 
+const resolvePantoneInkCatalogSwatchForLabel = (label: string): string | undefined =>
+  resolvePantoneDisplayHexFromName(resolvePantoneLabelAsCatalogName(label))
+
+const resolvePantoneInkDisplaySwatchForLabel = (
+  label: string,
+  fileSwatch?: string
+): string | undefined => {
+  const catalogName = resolvePantoneLabelAsCatalogName(label)
+  const catalogHex = resolvePantoneDisplayHexFromName(catalogName)
+  if (catalogHex) return catalogHex
+  if (isPantoneSpotInkName(catalogName)) return undefined
+
+  const trimmedFileSwatch = fileSwatch?.trim()
+  if (trimmedFileSwatch && trimmedFileSwatch.startsWith('#')) {
+    return trimmedFileSwatch
+  }
+
+  return undefined
+}
+
 export const consolidateDetectedPantoneColors = (
   colors: EstimarTintasDetectedColor[],
   totalPixels: number,
@@ -234,7 +267,6 @@ export const consolidateDetectedPantoneColors = (
   const totalPantonePixels = sorted.reduce((total, item) => total + item.matchedPixels, 0)
   if (totalPantonePixels <= 0) return []
 
-  const entry = DISENO_INK_PALETTE[DISENO_INK_PANTONE_INDEX]
   const normalizeKey = (name: string) =>
     canonicalizePantoneSpotName(resolvePantoneLabelAsCatalogName(name)).toLowerCase()
 
@@ -248,13 +280,23 @@ export const consolidateDetectedPantoneColors = (
     representative: EstimarTintasDetectedColor
   ): EstimarTintasDetectedColor[] => {
     const mergedCoverage = totalPantonePixels / totalPixels
+    const displaySwatch =
+      resolvePantoneInkCatalogSwatchForLabel(representative.name) ??
+      resolvePantoneInkDisplaySwatchForLabel(
+        representative.name,
+        representative.representativeSwatch ?? representative.swatch
+      ) ??
+      (isPantoneSpotInkName(resolvePantoneLabelAsCatalogName(representative.name))
+        ? 'pantone-mix'
+        : representative.representativeSwatch ?? representative.swatch ?? 'pantone-mix')
     return [
       {
         ...representative,
         index: DISENO_INK_PANTONE_INDEX,
         name: representative.name,
         category: 'pantone',
-        swatch: entry?.swatch ?? representative.swatch,
+        swatch: displaySwatch,
+        representativeSwatch: displaySwatch,
         coverage: mergedCoverage,
         inkG: mergedCoverage * areaBase,
         matchedPixels: totalPantonePixels,
@@ -277,10 +319,23 @@ export const consolidateDetectedPantoneColors = (
 
   return significant
     .filter(item => item.coverage >= ESTIMAR_TINTAS_DETECTED_COLOR_MIN_COVERAGE)
-    .map((item, index) => ({
-      ...item,
-      index: DISENO_INK_PANTONE_INDEX + index,
-    }))
+    .map((item, index) => {
+      const displaySwatch =
+        resolvePantoneInkCatalogSwatchForLabel(item.name) ??
+        resolvePantoneInkDisplaySwatchForLabel(
+          item.name,
+          item.representativeSwatch ?? item.swatch
+        ) ??
+        (isPantoneSpotInkName(resolvePantoneLabelAsCatalogName(item.name))
+          ? 'pantone-mix'
+          : item.representativeSwatch ?? item.swatch ?? 'pantone-mix')
+      return {
+        ...item,
+        index: DISENO_INK_PANTONE_INDEX + index,
+        swatch: displaySwatch,
+        representativeSwatch: displaySwatch,
+      }
+    })
 }
 
 export const analyzeInkPixelsFromImageData = (
@@ -306,7 +361,6 @@ export const analyzeInkPixelsFromImageData = (
   let tacSum = 0
 
   const spotGroupsByName = new Map<string, Map<string, PantoneBucket>>()
-  const entry = DISENO_INK_PALETTE[DISENO_INK_PANTONE_INDEX]
 
   for (let index = 0; index < data.length; index += 4) {
     const alpha = data[index + 3] ?? 255
@@ -360,7 +414,7 @@ export const analyzeInkPixelsFromImageData = (
       : { c: 0, m: 0, y: 0, k: 0 }
 
   const detectedColors: EstimarTintasDetectedColor[] = []
-  if (entry && totalPixels > 0) {
+  if (spotGroupsByName.size > 0 && totalPixels > 0) {
     ;[...spotGroupsByName.entries()]
       .sort((left, right) => {
         const leftPixels = [...left[1].values()].reduce((total, bucket) => total + bucket.count, 0)
@@ -375,21 +429,34 @@ export const analyzeInkPixelsFromImageData = (
         const canonicalName =
           classifier.canonicalSpotNames.find(name => name.toLowerCase() === nameKey) ??
           classifier.canonicalSpotNames[0]
-        const catalogSwatch = canonicalName
-          ? resolveKnownPantoneDisplaySwatch(canonicalName)
-          : undefined
-        const representativeSwatch =
-          catalogSwatch ?? resolvePantoneDominantSwatch(buckets, classifier.spotReferenceRgbs)
+        const representativeSwatch = resolvePantoneRepresentativeSwatch({
+          buckets,
+          spotReferences: classifier.spotReferenceRgbs,
+          catalogName: canonicalName,
+          pantoneSpotNames: classifier.pantoneSpotNames,
+        })
+        const displaySwatch =
+          (canonicalName
+            ? resolvePantoneDisplayHexFromName(canonicalName)
+            : undefined) ??
+          (canonicalName && isPantoneSpotInkName(canonicalName)
+            ? undefined
+            : representativeSwatch)
         const name = canonicalName
           ? resolvePantoneDisplayLabel(canonicalName)
           : resolvePantoneDisplayLabel('', groupIndex)
+        const resolvedSwatch =
+          displaySwatch ??
+          (canonicalName && isPantoneSpotInkName(canonicalName)
+            ? 'pantone-mix'
+            : representativeSwatch ?? 'pantone-mix')
 
         detectedColors.push({
           index: DISENO_INK_PANTONE_INDEX + groupIndex,
           name,
           category: 'pantone',
-          swatch: entry.swatch,
-          representativeSwatch,
+          swatch: resolvedSwatch,
+          representativeSwatch: resolvedSwatch,
           coverage: coverageValue,
           inkG: coverageValue * areaBase,
           matchedPixels,
@@ -425,9 +492,16 @@ const matchesDeclaredPantoneSpotPixel = (
 
   if (matchesKnownCatalogSpotRgb(r, g, b, pantoneSpotNames)) return true
 
+  const { distanceSquared: nearestStandardDistanceSquared } = findNearestStandardInk(r, g, b)
+  const matchesDeclaredSpotReference =
+    pantoneSpotNames.length > 0 &&
+    minSpotDistanceSquared <= relaxedSpotDistanceSquared &&
+    minSpotDistanceSquared < nearestStandardDistanceSquared
+
+  if (matchesDeclaredSpotReference) return true
+
   if (isNearProcessPrimaryRgb(r, g, b) || isSecondaryInkLikeRgb(r, g, b)) return false
 
-  const { distanceSquared: nearestStandardDistanceSquared } = findNearestStandardInk(r, g, b)
   return minSpotDistanceSquared < nearestStandardDistanceSquared
 }
 
@@ -528,6 +602,51 @@ const resolvePantoneDominantSwatch = (
   )
 }
 
+export const resolvePantoneRepresentativeSwatch = (params: {
+  buckets?: Map<string, PantoneBucket>
+  spotReferences?: readonly EstimarTintasSpotRgb[]
+  catalogName?: string
+  pantoneSpotNames?: readonly string[]
+}): string | undefined => {
+  const spotReferences = params.spotReferences ?? []
+  const fileSwatch = params.buckets
+    ? resolvePantoneDominantSwatch(params.buckets, spotReferences)
+    : resolveSpotReferencesCentroidSwatch(spotReferences)
+
+  if (params.catalogName?.trim()) {
+    return resolvePantoneDisplaySwatchForName(
+      params.catalogName,
+      spotReferences,
+      params.pantoneSpotNames ?? [params.catalogName],
+      fileSwatch
+    )
+  }
+
+  return fileSwatch
+}
+
+export const enrichDetectedPantoneColors = (
+  colors: EstimarTintasDetectedColor[],
+  pantoneSpotNames: readonly string[],
+  spotReferenceRgbs: readonly EstimarTintasSpotRgb[]
+): EstimarTintasDetectedColor[] =>
+  colors.map(color => {
+    if (color.category !== 'pantone') return color
+
+    const swatch =
+      resolvePantoneInkCatalogSwatchForLabel(color.name) ??
+      resolvePantoneDisplaySwatchForName(
+        resolvePantoneLabelAsCatalogName(color.name),
+        spotReferenceRgbs,
+        pantoneSpotNames,
+        color.representativeSwatch?.trim() || color.swatch?.trim()
+      )
+
+    if (!swatch) return color
+
+    return { ...color, swatch, representativeSwatch: swatch }
+  })
+
 /** Devuelve entradas Pantone (1 o varias). Primarios y secundarios van al desglose CMYK. */
 export function computeDetectedInkColorsFromImageData(
   imageData: ImageData,
@@ -551,18 +670,34 @@ export function computeDetectedInkColorsFromImageData(
   ).detectedColors
 }
 
+const isEstimarTintasHexSwatch = (value: string | undefined): value is string =>
+  Boolean(value?.trim() && !isDisenoInkPantoneMix(value))
+
 export const resolveEstimarTintasPantoneDisplaySwatch = (
-  color: Pick<EstimarTintasDetectedColor, 'name' | 'representativeSwatch' | 'swatch'>
+  color: Pick<EstimarTintasDetectedColor, 'name' | 'representativeSwatch' | 'swatch'>,
+  context?: {
+    spotReferenceRgbs?: readonly EstimarTintasSpotRgb[]
+    pantoneSpotNames?: readonly string[]
+  }
 ): string => {
-  const catalogSwatch = resolveKnownPantoneDisplaySwatch(
-    resolvePantoneLabelAsCatalogName(color.name)
+  const catalogName = resolvePantoneLabelAsCatalogName(color.name)
+  const catalogHex = resolvePantoneDisplayHexFromName(catalogName)
+  if (catalogHex) return catalogHex
+
+  if (isPantoneSpotInkName(catalogName)) {
+    return 'pantone-mix'
+  }
+
+  const resolved = resolvePantoneDisplaySwatchForName(
+    catalogName,
+    context?.spotReferenceRgbs ?? [],
+    context?.pantoneSpotNames ?? [catalogName],
+    color.representativeSwatch?.trim() || color.swatch?.trim()
   )
-  if (catalogSwatch) return catalogSwatch
 
-  const candidate = color.representativeSwatch ?? color.swatch
-  if (!isDisenoInkPantoneMix(candidate)) return candidate
+  if (resolved) return resolved
 
-  return candidate
+  return color.representativeSwatch ?? color.swatch ?? 'pantone-mix'
 }
 
 export const resolveEstimarTintasInkDisplayName = (index: number): string => {

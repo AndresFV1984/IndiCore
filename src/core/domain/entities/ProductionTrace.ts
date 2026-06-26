@@ -1,4 +1,5 @@
 import type { OrderStatus } from '../value-objects/OrderStatus'
+import type { ProductionOrderStatus } from '../value-objects/ProductionOrderStatus'
 
 export type ProductionTracePhaseId =
   | 'preprensa'
@@ -38,6 +39,7 @@ export interface ProductionTraceEvent {
   type: ProductionTraceEventType
   at: string
   orderStatus?: OrderStatus
+  productionStatus?: ProductionOrderStatus
   unidades?: number
   nota?: string
   pauseReason?: ProductionTracePauseReasonId
@@ -51,6 +53,7 @@ export interface RecordProductionTraceEventDTO {
   type: ProductionTraceEventType
   at?: string
   orderStatus?: OrderStatus
+  productionStatus?: ProductionOrderStatus
   unidades?: number
   nota?: string
   pauseReason?: ProductionTracePauseReasonId
@@ -71,6 +74,7 @@ export interface RegisterPartialDeliveryDTO {
   userId: string
   unidades: number
   orderStatus?: OrderStatus
+  productionStatus?: ProductionOrderStatus
   nota?: string
 }
 
@@ -81,6 +85,7 @@ export interface RegisterProductionPauseDTO {
   userId: string
   pauseReason: ProductionTracePauseReasonId
   orderStatus?: OrderStatus
+  productionStatus?: ProductionOrderStatus
   nota?: string
 }
 
@@ -90,5 +95,6 @@ export interface RegisterProductionResumeDTO {
   phase: ProductionTracePhaseId
   userId: string
   orderStatus?: OrderStatus
+  productionStatus?: ProductionOrderStatus
   nota?: string
 }

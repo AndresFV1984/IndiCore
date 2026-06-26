@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildDeclaredSpotPreviewsFromDetectedColors,
   buildEstimarTintasFileColorProfile,
   detectJpegColorSpaceFromBytes,
   detectPdfColorSpaceFromBytes,
   resolveEstimarTintasColorAnalysisAlgorithm,
+  syncFileColorProfileSpotsFromEstimate,
 } from './estimarTintasColorSpaceUtils'
 
 describe('estimarTintasColorSpaceUtils', () => {
@@ -42,5 +44,22 @@ describe('estimarTintasColorSpaceUtils', () => {
     expect(profile.hasSpotMetadata).toBe(true)
     expect(profile.hasCmykOperatorSamples).toBe(true)
     expect(profile.spotReferenceCount).toBe(3)
+  })
+
+  it('sincroniza spots del perfil desde colores Pantone detectados', () => {
+    const profile = buildEstimarTintasFileColorProfile({
+      sourceColorSpace: 'rgb',
+    })
+
+    const synced = syncFileColorProfileSpotsFromEstimate(profile, [
+      { name: 'Pantone Raster Spot 1', category: 'pantone', representativeSwatch: '#862f8f' },
+      { name: 'Pantone Raster Spot 2', category: 'pantone', representativeSwatch: '#009650' },
+      { name: 'Cyan', category: 'cmyk', representativeSwatch: '#00a9e0' },
+    ])
+
+    expect(synced.hasSpotMetadata).toBe(true)
+    expect(synced.declaredSpots).toHaveLength(2)
+    expect(buildDeclaredSpotPreviewsFromDetectedColors(undefined)).toEqual([])
+    expect(buildDeclaredSpotPreviewsFromDetectedColors(undefined, [], [])).toEqual([])
   })
 })

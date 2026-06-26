@@ -3,7 +3,11 @@ import type { EstimarTintasDetectedColor } from './estimarTintasImageColorsUtils
 import type { EstimarTintasSpotRgb } from './estimarTintasPdfSpotUtils'
 import {
   buildEstimarTintasSpotReferences,
+  dedupeCanonicalPantoneSpotNames,
+  discoverRasterPantoneSpotsFromImageData,
   extractSpotReferenceRgbsFromImageData,
+  isPantoneSpotInkName,
+  resolveEffectivePantoneSpotNames,
   shouldExtractSpotReferenceRgbsFromImage,
 } from './estimarTintasPdfSpotUtils'
 import {
@@ -11,20 +15,57 @@ import {
   type EstimarTintasColorAnalysisAlgorithm,
   type EstimarTintasSourceColorSpace,
 } from './estimarTintasColorSpaceUtils'
-
-export type CmykChannel = 'c' | 'm' | 'y' | 'k'
-
-export interface EstimarTintasPrintAreaCm {
-  widthCm: number
-  heightCm: number
-}
-
-export interface CmykCoverage {
-  c: number
-  m: number
-  y: number
-  k: number
-}
+import type {
+  CmykChannel,
+  CmykCoverage,
+  EstimarTintasInkTotalsBreakdown,
+  EstimarTintasPrintAreaCm,
+  EstimarTintasResult,
+  EstimarTintasSourceKind,
+} from './estimarTintasTypes'
+import {
+  CMYK_CHANNELS,
+  computeDistinctInkCount,
+  computeEstimarTintasInkTotalsSnapshot,
+  computeEstimarTintasPantoneInkGPerPliego,
+  computeEstimarTintasProcessInkGPerPliego,
+  computeEstimarTintasTotalInkGPerPliego,
+  ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G,
+  ESTIMAR_TINTAS_INK_DENSITY_G_ML,
+  ESTIMAR_TINTAS_VOLUME_FACTOR_ML_CM2,
+  quantizeEstimarTintasInkTotalsBreakdown,
+  quantizeEstimarTintasWeightG,
+  sumCmykCoverage,
+  sumDetectedPantoneInkG,
+} from './estimarTintasInkTotalsUtils'
+export type {
+  CmykChannel,
+  CmykCoverage,
+  EstimarTintasInkTotalsBreakdown,
+  EstimarTintasInkTotalsSnapshot,
+  EstimarTintasPrintAreaCm,
+  EstimarTintasResult,
+  EstimarTintasSourceKind,
+} from './estimarTintasTypes'
+export type { EstimarTintasDetectedColor } from './estimarTintasImageColorsUtils'
+export {
+  CMYK_CHANNELS,
+  ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G,
+  ESTIMAR_TINTAS_INK_DENSITY_G_ML,
+  ESTIMAR_TINTAS_VOLUME_FACTOR_ML_CM2,
+  buildEstimarTintasInkTotalsBreakdown,
+  computeDistinctInkCount,
+  computeEstimarTintasInkTotalsSnapshot,
+  computeEstimarTintasPantoneInkGPerPliego,
+  computeEstimarTintasProcessInkGPerPliego,
+  computeEstimarTintasTotalInkGPerPliego,
+  quantizeEstimarTintasInkTotalsBreakdown,
+  quantizeEstimarTintasWeightG,
+  resolvePedidoInkTotalsBreakdown,
+  scaleEstimarTintasInkTotalsBreakdown,
+  sumCmykCoverage,
+  sumDetectedPantoneInkG,
+} from './estimarTintasInkTotalsUtils'
 
 export interface EstimarTintasEstimateOptions {
   widthCm: number
@@ -44,26 +85,6 @@ export interface EstimarTintasEstimateOptions {
   cmykOperatorSamples?: readonly CmykCoverage[]
 }
 
-export interface EstimarTintasResult {
-  coverage: CmykCoverage
-  inkG: CmykCoverage
-  sampledPixels: number
-  inkedPixels: number
-  sampleWidth: number
-  sampleHeight: number
-  imageWidthPx: number
-  imageHeightPx: number
-  averageTac: number
-  /** Colores distintos detectados en el archivo analizado. */
-  detectedColors?: EstimarTintasDetectedColor[]
-  /** Espacio de color del archivo analizado. */
-  sourceColorSpace: EstimarTintasSourceColorSpace
-  /** Algoritmo aplicado según el espacio de color detectado. */
-  colorAnalysisAlgorithm: EstimarTintasColorAnalysisAlgorithm
-  /** Tintas distintas: CMYK (proceso) + Pantone(s) detectados. */
-  distinctInkCount: number
-}
-
 export const ESTIMAR_TINTAS_MAX_FILE_MB = 25
 /** Borde máximo del muestreo de píxeles (mayor = cobertura CMYK más precisa). */
 export const ESTIMAR_TINTAS_MAX_SAMPLE_EDGE = 1024
@@ -73,13 +94,6 @@ export const ESTIMAR_TINTAS_DEFAULT_DPI = 300
 /** Plancha / pliego offset más usado en litografía colombiana (70 × 100 cm). */
 export const ESTIMAR_TINTAS_DEFAULT_WIDTH_CM = 70
 export const ESTIMAR_TINTAS_DEFAULT_HEIGHT_CM = 100
-/** Volumen de referencia (ml/cm² al 100 % de cobertura sólida, offset). */
-export const ESTIMAR_TINTAS_VOLUME_FACTOR_ML_CM2 = 0.0002
-/** Densidad media de tinta offset (g/ml). */
-export const ESTIMAR_TINTAS_INK_DENSITY_G_ML = 1.05
-/** g/cm² = ml/cm² × densidad. */
-export const ESTIMAR_TINTAS_DEFAULT_CONVERSION_FACTOR_G =
-  ESTIMAR_TINTAS_VOLUME_FACTOR_ML_CM2 * ESTIMAR_TINTAS_INK_DENSITY_G_ML
 export const ESTIMAR_TINTAS_ALPHA_MIN = 64
 /** Umbral más bajo solo para comprobar si hay contenido visible (PDFs con transparencia). */
 export const ESTIMAR_TINTAS_VISIBLE_INK_ALPHA_MIN = 16
@@ -101,8 +115,6 @@ const ACCEPTED_IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|gif)$/i
 const ACCEPTED_PDF_MIME_TYPE = 'application/pdf'
 const ACCEPTED_PDF_EXTENSION = /\.pdf$/i
 
-export type EstimarTintasSourceKind = 'image' | 'pdf'
-
 export type EstimarTintasProgressPhase = 'preparing' | 'rendering' | 'analyzing' | 'finishing'
 
 export interface EstimarTintasProgressUpdate {
@@ -112,8 +124,6 @@ export interface EstimarTintasProgressUpdate {
 }
 
 export type EstimarTintasProgressCallback = (update: EstimarTintasProgressUpdate) => void
-
-export const CMYK_CHANNELS: CmykChannel[] = ['c', 'm', 'y', 'k']
 
 export interface EstimarTintasDefaultPrintArea {
   widthCm: number
@@ -475,102 +485,6 @@ export function computeInkGFromCoverage(
   }
 }
 
-export function sumCmykCoverage(values: CmykCoverage): number {
-  return values.c + values.m + values.y + values.k
-}
-
-export const sumDetectedPantoneInkG = (
-  colors: EstimarTintasDetectedColor[] | undefined
-): number =>
-  (colors ?? [])
-    .filter(color => color.category === 'pantone')
-    .reduce((total, color) => total + color.inkG, 0)
-
-export const countDistinctProcessInks = (coverage: CmykCoverage, minCoverage = 0.001): number =>
-  CMYK_CHANNELS.filter(channel => coverage[channel] >= minCoverage).length
-
-export const computeDistinctInkCount = (
-  coverage: CmykCoverage,
-  detectedColors: EstimarTintasDetectedColor[] | undefined
-): number => {
-  const processCount = countDistinctProcessInks(coverage)
-  const pantoneCount = (detectedColors ?? []).filter(color => color.category === 'pantone').length
-  const hasProcess = processCount > 0
-  return (hasProcess ? 1 : 0) + pantoneCount
-}
-
-/** Total estimado por pliego: CMYK (primarios + secundarios descompuestos) + Pantone. */
-export function computeEstimarTintasTotalInkGPerPliego(
-  result: Pick<EstimarTintasResult, 'inkG' | 'detectedColors'>
-): number {
-  return sumCmykCoverage(result.inkG) + sumDetectedPantoneInkG(result.detectedColors)
-}
-
-export interface EstimarTintasInkTotalsBreakdown {
-  processInkG: number
-  pantoneInkG: number
-  totalInkG: number
-}
-
-export interface EstimarTintasInkTotalsSnapshot {
-  perPliego: EstimarTintasInkTotalsBreakdown
-  pedido: EstimarTintasInkTotalsBreakdown | null
-}
-
-export const computeEstimarTintasProcessInkGPerPliego = (
-  result: Pick<EstimarTintasResult, 'inkG'>
-): number => sumCmykCoverage(result.inkG)
-
-export const computeEstimarTintasPantoneInkGPerPliego = (
-  result: Pick<EstimarTintasResult, 'detectedColors'>
-): number => sumDetectedPantoneInkG(result.detectedColors)
-
-export const buildEstimarTintasInkTotalsBreakdown = (
-  processInkG: number,
-  pantoneInkG: number
-): EstimarTintasInkTotalsBreakdown => ({
-  processInkG,
-  pantoneInkG,
-  totalInkG: processInkG + pantoneInkG,
-})
-
-export const scaleEstimarTintasInkTotalsBreakdown = (
-  breakdown: EstimarTintasInkTotalsBreakdown,
-  multiplier: number
-): EstimarTintasInkTotalsBreakdown => {
-  const factor = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 0
-  return buildEstimarTintasInkTotalsBreakdown(
-    breakdown.processInkG * factor,
-    breakdown.pantoneInkG * factor
-  )
-}
-
-export function resolvePedidoInkTotalsBreakdown(
-  perPliego: EstimarTintasInkTotalsBreakdown,
-  totalPliegos?: number
-): EstimarTintasInkTotalsBreakdown | null {
-  const pliegos = Number.isFinite(totalPliegos) && (totalPliegos ?? 0) > 0 ? totalPliegos! : 0
-  if (pliegos <= 0) return null
-  return scaleEstimarTintasInkTotalsBreakdown(perPliego, pliegos)
-}
-
-export function computeEstimarTintasInkTotalsSnapshot(
-  result: Pick<EstimarTintasResult, 'inkG' | 'detectedColors'>,
-  totalPliegos?: number
-): EstimarTintasInkTotalsSnapshot {
-  const rawPerPliego = buildEstimarTintasInkTotalsBreakdown(
-    computeEstimarTintasProcessInkGPerPliego(result),
-    computeEstimarTintasPantoneInkGPerPliego(result)
-  )
-  const perPliego = quantizeEstimarTintasInkTotalsBreakdown(rawPerPliego)
-  const rawPedido = resolvePedidoInkTotalsBreakdown(perPliego, totalPliegos)
-
-  return {
-    perPliego,
-    pedido: rawPedido ? quantizeEstimarTintasInkTotalsBreakdown(rawPedido) : null,
-  }
-}
-
 /** factor = g_medidos / (área_cm² × Σ coberturas CMYK) */
 export function computeConversionFactorFromTiraje(params: {
   coverage: CmykCoverage
@@ -719,23 +633,6 @@ export function formatEstimarTintasWeightG(value: number): string {
   return `${value.toFixed(1)} grm`
 }
 
-/** Misma precisión que `formatEstimarTintasWeightG`, para que pedido = estimado mostrado × pliegos. */
-export function quantizeEstimarTintasWeightG(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return 0
-  if (value < 0.01) return Number(value.toFixed(4))
-  if (value < 1) return Number(value.toFixed(3))
-  if (value < 100) return Number(value.toFixed(2))
-  return Number(value.toFixed(1))
-}
-
-export function quantizeEstimarTintasInkTotalsBreakdown(
-  breakdown: EstimarTintasInkTotalsBreakdown
-): EstimarTintasInkTotalsBreakdown {
-  const processInkG = quantizeEstimarTintasWeightG(breakdown.processInkG)
-  const pantoneInkG = quantizeEstimarTintasWeightG(breakdown.pantoneInkG)
-  return buildEstimarTintasInkTotalsBreakdown(processInkG, pantoneInkG)
-}
-
 export async function loadEstimarTintasImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -762,6 +659,67 @@ const reportProgress = (
   update: EstimarTintasProgressUpdate
 ): void => {
   onProgress?.(update)
+}
+
+export interface EstimarTintasPantoneSpotContext {
+  pantoneSpotNames: string[]
+  spotReferenceRgbs: EstimarTintasSpotRgb[]
+}
+
+export const resolveEstimarTintasPantoneSpotContext = (params: {
+  pantoneSpotNames?: readonly string[]
+  spotReferenceRgbs?: readonly EstimarTintasSpotRgb[]
+  imageData?: ImageData
+  alphaMin?: number
+  whiteThreshold?: number
+}): EstimarTintasPantoneSpotContext => {
+  const alphaMin = params.alphaMin ?? ESTIMAR_TINTAS_ALPHA_MIN
+  const whiteThreshold = params.whiteThreshold ?? ESTIMAR_TINTAS_WHITE_THRESHOLD
+
+  const declaredNames = dedupeCanonicalPantoneSpotNames(
+    (params.pantoneSpotNames ?? []).filter(name => isPantoneSpotInkName(name))
+  )
+  let sourceReferences = [...(params.spotReferenceRgbs ?? [])]
+  let workingNames = declaredNames
+
+  if (workingNames.length === 0 && params.imageData) {
+    const discovered = discoverRasterPantoneSpotsFromImageData(
+      params.imageData,
+      alphaMin,
+      whiteThreshold
+    )
+    workingNames = discovered.names
+    if (sourceReferences.length === 0) {
+      sourceReferences = discovered.references
+    }
+  }
+
+  let effectiveNames = resolveEffectivePantoneSpotNames(workingNames, sourceReferences)
+
+  const imageReferences =
+    params.imageData &&
+    effectiveNames.length > 0 &&
+    shouldExtractSpotReferenceRgbsFromImage(effectiveNames, sourceReferences)
+      ? extractSpotReferenceRgbsFromImageData(
+          params.imageData,
+          effectiveNames,
+          alphaMin,
+          whiteThreshold
+        )
+      : []
+
+  const spotReferenceRgbs = buildEstimarTintasSpotReferences(
+    effectiveNames,
+    sourceReferences,
+    imageReferences
+  )
+
+  effectiveNames = resolveEffectivePantoneSpotNames(effectiveNames, spotReferenceRgbs)
+
+  return {
+    pantoneSpotNames: effectiveNames,
+    spotReferenceRgbs,
+  }
 }
 
 export async function estimateInkFromCanvas(
@@ -826,23 +784,15 @@ async function finalizeInkEstimateFromImageData(
   const pantoneSpotNames = options.pantoneSpotNames ?? []
   const sourceColorSpace = options.sourceColorSpace ?? 'rgb'
   const cmykOperatorSamples = options.cmykOperatorSamples ?? []
-  const pdfSpotReferences = options.spotReferenceRgbs ?? []
-  const imageSpotReferences = shouldExtractSpotReferenceRgbsFromImage(
+  const spotContext = resolveEstimarTintasPantoneSpotContext({
     pantoneSpotNames,
-    pdfSpotReferences
-  )
-    ? extractSpotReferenceRgbsFromImageData(
-        imageData,
-        pantoneSpotNames,
-        alphaMin,
-        ESTIMAR_TINTAS_WHITE_THRESHOLD
-      )
-    : []
-  const spotReferenceRgbs = buildEstimarTintasSpotReferences(
-    pantoneSpotNames,
-    pdfSpotReferences,
-    imageSpotReferences
-  )
+    spotReferenceRgbs: options.spotReferenceRgbs,
+    imageData,
+    alphaMin,
+    whiteThreshold: ESTIMAR_TINTAS_WHITE_THRESHOLD,
+  })
+  const effectivePantoneNames = spotContext.pantoneSpotNames
+  const spotReferenceRgbs = spotContext.spotReferenceRgbs
 
   reportProgress(onProgress, { phase: 'analyzing', percent: 58, label: 'computing-cmyk' })
   await yieldToUi()
@@ -850,10 +800,16 @@ async function finalizeInkEstimateFromImageData(
   const {
     buildEstimarTintasPixelClassifier,
     analyzeInkPixelsFromImageData,
+    enrichDetectedPantoneColors,
   } = await import('./estimarTintasImageColorsUtils')
 
-  const classifier = buildEstimarTintasPixelClassifier({ spotReferenceRgbs, pantoneSpotNames })
+  const classifier = buildEstimarTintasPixelClassifier({ spotReferenceRgbs, pantoneSpotNames: effectivePantoneNames })
   const pixelAnalysis = analyzeInkPixelsFromImageData(imageData, classifier, options, alphaMin)
+  const detectedColors = enrichDetectedPantoneColors(
+    pixelAnalysis.detectedColors,
+    effectivePantoneNames,
+    spotReferenceRgbs
+  )
 
   reportProgress(onProgress, { phase: 'analyzing', percent: 82, label: 'detecting-pantone' })
   await yieldToUi()
@@ -882,7 +838,6 @@ async function finalizeInkEstimateFromImageData(
       }
 
   const inkG = computeInkGFromCoverage(coverageResult.coverage, options)
-  const detectedColors = pixelAnalysis.detectedColors
 
   const visibleInkedPixels = countVisibleInkedPixelsFromImageData(
     imageData,

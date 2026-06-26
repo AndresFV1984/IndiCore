@@ -39,3 +39,42 @@
   background: #ffebee;
   color: #f44336;
 }
+
+.production-order-status-pendiente {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.production-order-status-pausada {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.production-order-status-revision {
+  background: #e3f2fd;
+  color: #6c5ce7;
+}
+
+.production-order-status-en-proceso {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.production-order-status-finalizada {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.production-order-status-cancelada {
+  background: #ffebee;
+  color: #b42318;
+}
+
+.production-order-status-preprensa,
+.production-order-status-corte-papel,
+.production-order-status-impresion,
+.production-order-status-terminados,
+.production-order-status-acabados {
+  background: #eef2ff;
+  color: #4338ca;
+}

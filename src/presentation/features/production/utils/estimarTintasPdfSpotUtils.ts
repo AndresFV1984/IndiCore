@@ -5,10 +5,12 @@ import {
   DISENO_INK_PANTONE_INDEX,
   DISENO_INK_PRIMARIES_COUNT,
 } from '../constants/preprensaDisenoColors'
+import {
+  resolvePantoneDisplayCatalogNameForRgb,
+  resolvePantoneDisplayHexFromName,
+} from './estimarTintasPantoneDisplayCatalog'
 
 export type EstimarTintasSpotRgb = readonly [number, number, number]
-
-/** Distancia RGB para emparejar píxeles con un spot detectado en el PDF. */
 export const ESTIMAR_TINTAS_SPOT_REFERENCE_MATCH_DISTANCE = 110
 
 export const ESTIMAR_TINTAS_SPOT_REFERENCE_MATCH_DISTANCE_SQUARED =
@@ -40,6 +42,7 @@ export const KNOWN_PANTONE_REFERENCE_RGBS: Readonly<Record<string, readonly Esti
   'rubine red c': [[206, 0, 88], [210, 10, 90], [199, 0, 85], [220, 0, 95]],
   'strong red c': [[255, 0, 60], [239, 0, 54], [245, 0, 50], [228, 0, 43]],
   '185 c': [[228, 0, 43], [230, 0, 38], [200, 16, 46]],
+  '187 c': [[166, 25, 46], [161, 19, 46], [170, 30, 50], [155, 20, 42]],
   '286 c': [[0, 56, 168], [0, 48, 135], [0, 94, 184]],
   '348 c': [[0, 122, 51], [0, 104, 56], [0, 166, 81]],
   '021 c': [[254, 80, 0], [255, 88, 15], [255, 128, 0]],
@@ -51,7 +54,26 @@ const spotRgbToHex = (r: number, g: number, b: number): string =>
     .map(channel => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0'))
     .join('')}`
 
-const PANTONE_NAME_PATTERN = /PANTONE\s+[^<\r\n)\]]{1,48}/gi
+export const estimarTintasSpotRgbToHex = spotRgbToHex
+
+export const resolveSpotReferencesCentroidSwatch = (
+  references: readonly EstimarTintasSpotRgb[]
+): string | undefined => {
+  if (references.length === 0) return undefined
+
+  let totalR = 0
+  let totalG = 0
+  let totalB = 0
+
+  for (const [r, g, b] of references) {
+    totalR += r
+    totalG += g
+    totalB += b
+  }
+
+  const count = references.length
+  return spotRgbToHex(totalR / count, totalG / count, totalB / count)
+}
 
 const normalizePantoneName = (raw: string): string =>
   raw
@@ -59,11 +81,19 @@ const normalizePantoneName = (raw: string): string =>
     .replace(/\s+/g, ' ')
     .trim()
 
+const NAMED_PANTONE_SPOT_PATTERN =
+  /^PANTONE\s+(?:Yellow|Violet|Rubine\s+Red|Strong\s+Red)\s+C$/i
+
+const NUMBERED_PANTONE_SPOT_PATTERN = /^PANTONE\s+\d{1,4}\s+[A-Z]{1,3}$/i
+
 export const isPantoneSpotInkName = (name: string): boolean => {
   const normalized = normalizePantoneName(name)
   if (!/^PANTONE\b/i.test(normalized)) return false
-  if (/process\s+yellow/i.test(normalized)) return false
-  return true
+  if (/^PANTONE$/i.test(normalized)) return false
+  if (/process/i.test(normalized)) return false
+  if (NUMBERED_PANTONE_SPOT_PATTERN.test(normalized)) return true
+  if (NAMED_PANTONE_SPOT_PATTERN.test(normalized)) return true
+  return false
 }
 
 const trimPantoneCandidate = (raw: string): string => {
@@ -72,18 +102,50 @@ const trimPantoneCandidate = (raw: string): string => {
   return head.trim()
 }
 
+const decodePdfNameEscapes = (raw: string): string =>
+  normalizePantoneName(
+    raw.replace(/#([0-9A-Fa-f]{2})/g, (_, hex) => {
+      const code = Number.parseInt(hex, 16)
+      return Number.isFinite(code) ? String.fromCharCode(code) : ' '
+    })
+  )
+
+const addPantoneCandidate = (names: Set<string>, raw: string): void => {
+  const normalized = trimPantoneCandidate(decodePdfNameEscapes(raw))
+  if (isPantoneSpotInkName(normalized)) {
+    names.add(canonicalizePantoneSpotName(normalized))
+  }
+}
+
 export const extractPantoneSpotNamesFromPdfBytes = (data: Uint8Array): string[] => {
-  const text = normalizePantoneName(new TextDecoder('latin1').decode(data))
+  const text = new TextDecoder('latin1').decode(data)
   const names = new Set<string>()
 
-  for (const match of text.matchAll(PANTONE_NAME_PATTERN)) {
-    const normalized = trimPantoneCandidate(match[0] ?? '')
-    if (isPantoneSpotInkName(normalized)) {
-      names.add(canonicalizePantoneSpotName(normalized))
-    }
+  for (const match of text.matchAll(/\/Separation\s*\/\s*([^>\s\[\]()]+)/gi)) {
+    addPantoneCandidate(names, match[1] ?? '')
   }
 
-  return dedupeCanonicalPantoneSpotNames([...names])
+  const separationNames = dedupeCanonicalPantoneSpotNames([...names])
+  if (separationNames.length > 0) return separationNames
+
+  const normalized = normalizePantoneName(text)
+  const fallback = new Set<string>()
+
+  for (const match of normalized.matchAll(/\bPANTONE\s+\d{1,4}\s+[A-Z]{1,3}\b/gi)) {
+    addPantoneCandidate(fallback, match[0] ?? '')
+  }
+
+  for (const match of normalized.matchAll(
+    /\bPANTONE\s+(?:Yellow|Violet|Rubine\s+Red|Strong\s+Red)\s+C\b/gi
+  )) {
+    addPantoneCandidate(fallback, match[0] ?? '')
+  }
+
+  for (const match of text.matchAll(/PANTONE(?:#20)+[\d]+(?:#20[A-Za-z]+)?/gi)) {
+    addPantoneCandidate(fallback, match[0] ?? '')
+  }
+
+  return dedupeCanonicalPantoneSpotNames([...fallback])
 }
 
 const readRgbChannel = (args: unknown, index: number): number | null => {
@@ -208,9 +270,9 @@ const resolveKnownPantoneCatalogKey = (name: string): string | null => {
   const normalized = normalizePantoneName(name).replace(/^PANTONE\s+/i, '').trim().toLowerCase()
   if (KNOWN_PANTONE_REFERENCE_RGBS[normalized]) return normalized
 
-  const suffixMatch = Object.keys(KNOWN_PANTONE_REFERENCE_RGBS).find(key =>
-    normalized.endsWith(` ${key}`)
-  )
+  const suffixMatch = Object.keys(KNOWN_PANTONE_REFERENCE_RGBS)
+    .filter(key => key !== normalized)
+    .find(key => normalized.endsWith(` ${key}`))
   return suffixMatch ?? null
 }
 
@@ -229,11 +291,36 @@ export const resolveKnownPantoneReferenceRgbs = (
 }
 
 /** Color sólido de referencia para mostrar un Pantone conocido en la UI. */
-export const resolveKnownPantoneDisplaySwatch = (name: string): string | undefined => {
-  const references = resolveKnownPantoneReferenceRgbs([name])
-  if (references.length === 0) return undefined
-  const [r, g, b] = references[0]!
-  return spotRgbToHex(r, g, b)
+export const resolveKnownPantoneDisplaySwatch = (name: string): string | undefined =>
+  resolvePantoneDisplayHexFromName(name)
+
+export const resolvePantoneDisplaySwatchForName = (
+  name: string,
+  allSpotReferenceRgbs: readonly EstimarTintasSpotRgb[] = [],
+  pantoneSpotNames: readonly string[] = [],
+  fileSwatch?: string
+): string | undefined => {
+  const catalogHex = resolvePantoneDisplayHexFromName(name)
+  if (catalogHex) return catalogHex
+
+  if (isPantoneSpotInkName(name)) return undefined
+
+  const trimmedFileSwatch = fileSwatch?.trim()
+  if (trimmedFileSwatch && trimmedFileSwatch.startsWith('#')) {
+    return trimmedFileSwatch
+  }
+
+  const canonicalNames =
+    pantoneSpotNames.length > 0
+      ? dedupeCanonicalPantoneSpotNames(pantoneSpotNames)
+      : dedupeCanonicalPantoneSpotNames([name])
+
+  const nameReferences =
+    allSpotReferenceRgbs.length > 0
+      ? resolveSpotReferencesForCanonicalPantoneName(name, canonicalNames, allSpotReferenceRgbs)
+      : []
+
+  return resolveSpotReferencesCentroidSwatch(nameReferences)
 }
 
 export const resolvePantoneLabelAsCatalogName = (label: string): string => {
@@ -350,7 +437,9 @@ export const filterRgbForDeclaredPantoneSpotsFast = (
   }
 
   if (isNearProcessPrimaryRgb(r, g, b)) return false
-  if (isSecondaryInkLikeRgb(r, g, b)) return false
+
+  // Con Pantone no catalogado aceptamos rojos/vinos para extraer el spot del archivo.
+  if (catalogReferences.length > 0 && isSecondaryInkLikeRgb(r, g, b)) return false
 
   return true
 }
@@ -374,9 +463,24 @@ export const shouldExtractSpotReferenceRgbsFromImage = (
 
   const mergedReferences = dedupeSpotReferences([...existingReferences])
   if (mergedReferences.length === 0) return true
-  if (canonicalNames.length === 1) return false
 
   const activeNames = resolveActivePantoneNamesForReferences(mergedReferences, canonicalNames)
+
+  if (canonicalNames.length === 1 && mergedReferences.length > 0) return false
+
+  const needsImageScanForUnknown = canonicalNames.some(name => {
+    const isActive = activeNames.some(
+      active =>
+        canonicalizePantoneSpotName(active).toLowerCase() ===
+        canonicalizePantoneSpotName(name).toLowerCase()
+    )
+    return !resolveKnownPantoneCatalogKey(name) && !isActive
+  })
+
+  if (needsImageScanForUnknown) {
+    return canonicalNames.length <= ESTIMAR_TINTAS_EXTRACT_IMAGE_SPOT_MAX_DECLARED
+  }
+
   if (activeNames.length >= 2) return false
 
   return (
@@ -432,6 +536,155 @@ export const filterSpotReferenceRgbsForDeclaredPantone = (
 ): EstimarTintasSpotRgb[] => dedupeSpotReferences([...references])
 
 const IMAGE_SPOT_BUCKET_STEP = 16
+
+export const ESTIMAR_TINTAS_MAX_RASTER_DISCOVERED_SPOTS = 6
+
+export const ESTIMAR_TINTAS_MIN_SIGNIFICANT_SPOT_PIXEL_SHARE = 0.06
+
+const CATALOG_SPOT_NAME_MATCH_DISTANCE_SQUARED = 60 * 60
+
+const CATALOG_KEY_TO_PANTONE_NAME: Readonly<Record<string, string>> = {
+  'yellow c': 'PANTONE Yellow C',
+  'violet c': 'PANTONE Violet C',
+  'rubine red c': 'PANTONE Rubine Red C',
+  'strong red c': 'PANTONE Strong Red C',
+}
+
+const formatNumberedCatalogKeyAsPantoneName = (key: string): string => {
+  const match = key.match(/^(\d{1,4})\s+([a-z]{1,3})$/i)
+  if (match) return `PANTONE ${match[1]} ${match[2]!.toUpperCase()}`
+  return `PANTONE ${key}`
+}
+
+export const resolvePantoneCatalogNameForSpotReference = (
+  reference: EstimarTintasSpotRgb
+): string | null => {
+  let bestKey: string | null = null
+  let bestScore = Number.POSITIVE_INFINITY
+
+  for (const [key, references] of Object.entries(KNOWN_PANTONE_REFERENCE_RGBS)) {
+    for (const known of references) {
+      const score = colorDistanceSquared(reference[0], reference[1], reference[2], known)
+      if (score < bestScore) {
+        bestScore = score
+        bestKey = key
+      }
+    }
+  }
+
+  if (!bestKey || bestScore > CATALOG_SPOT_NAME_MATCH_DISTANCE_SQUARED) {
+    return resolvePantoneDisplayCatalogNameForRgb(reference[0], reference[1], reference[2])
+  }
+
+  return CATALOG_KEY_TO_PANTONE_NAME[bestKey] ?? formatNumberedCatalogKeyAsPantoneName(bestKey)
+}
+
+type ChromaticSpotBucket = {
+  reference: EstimarTintasSpotRgb
+  pixelCount: number
+}
+
+const clusterDistinctSpotColorGroups = (
+  candidates: readonly EstimarTintasSpotRgb[]
+): EstimarTintasSpotRgb[] => {
+  const groups: EstimarTintasSpotRgb[] = []
+
+  for (const candidate of candidates) {
+    const isNearExisting = groups.some(
+      reference =>
+        colorDistanceSquared(candidate[0], candidate[1], candidate[2], reference) <=
+        SPOT_COLOR_CLUSTER_DISTANCE_SQUARED
+    )
+    if (!isNearExisting) {
+      groups.push(candidate)
+    }
+  }
+
+  return groups
+}
+
+const extractChromaticSpotBucketsFromImageData = (
+  imageData: ImageData,
+  alphaMin = 1,
+  whiteThreshold = 0.985
+): ChromaticSpotBucket[] => {
+  const buckets = new Map<string, { count: number; r: number; g: number; b: number }>()
+  const { data } = imageData
+
+  for (let index = 0; index < data.length; index += 4) {
+    const alpha = data[index + 3] ?? 255
+    if (alpha < alphaMin) continue
+
+    const r = data[index] ?? 0
+    const g = data[index + 1] ?? 0
+    const b = data[index + 2] ?? 0
+    if (Math.min(r, g, b) / 255 >= whiteThreshold) continue
+
+    if (!filterRgbForDeclaredPantoneSpotsFast(r, g, b, [])) continue
+
+    const bucketKey = `${Math.round(r / IMAGE_SPOT_BUCKET_STEP) * IMAGE_SPOT_BUCKET_STEP},${Math.round(g / IMAGE_SPOT_BUCKET_STEP) * IMAGE_SPOT_BUCKET_STEP},${Math.round(b / IMAGE_SPOT_BUCKET_STEP) * IMAGE_SPOT_BUCKET_STEP}`
+    const bucket = buckets.get(bucketKey) ?? { count: 0, r: 0, g: 0, b: 0 }
+    bucket.count += 1
+    bucket.r += r
+    bucket.g += g
+    bucket.b += b
+    buckets.set(bucketKey, bucket)
+  }
+
+  return [...buckets.values()]
+    .sort((left, right) => right.count - left.count)
+    .map(bucket => {
+      const count = bucket.count
+      return {
+        pixelCount: count,
+        reference: [
+          Math.round(bucket.r / count),
+          Math.round(bucket.g / count),
+          Math.round(bucket.b / count),
+        ] as EstimarTintasSpotRgb,
+      }
+    })
+}
+
+export const extractChromaticSpotClustersFromImageData = (
+  imageData: ImageData,
+  alphaMin = 1,
+  whiteThreshold = 0.985
+): EstimarTintasSpotRgb[] =>
+  extractChromaticSpotBucketsFromImageData(imageData, alphaMin, whiteThreshold).map(
+    bucket => bucket.reference
+  )
+
+export const discoverRasterPantoneSpotsFromImageData = (
+  imageData: ImageData,
+  alphaMin = 1,
+  whiteThreshold = 0.985
+): { names: string[]; references: EstimarTintasSpotRgb[] } => {
+  const buckets = extractChromaticSpotBucketsFromImageData(imageData, alphaMin, whiteThreshold)
+  if (buckets.length === 0) return { names: [], references: [] }
+
+  const totalSpotPixels = buckets.reduce((total, bucket) => total + bucket.pixelCount, 0)
+  let significant = buckets.filter(
+    bucket =>
+      bucket.pixelCount / totalSpotPixels >= ESTIMAR_TINTAS_MIN_SIGNIFICANT_SPOT_PIXEL_SHARE
+  )
+  if (significant.length === 0) significant = [buckets[0]!]
+
+  const clusteredReferences = clusterDistinctSpotColorGroups(
+    significant.map(bucket => bucket.reference)
+  ).slice(0, ESTIMAR_TINTAS_MAX_RASTER_DISCOVERED_SPOTS)
+
+  const rawNames = clusteredReferences.map((reference, index) => {
+    return (
+      resolvePantoneCatalogNameForSpotReference(reference) ??
+      `PANTONE Raster Spot ${index + 1}`
+    )
+  })
+  const names = resolveEffectivePantoneSpotNames(rawNames, clusteredReferences)
+  const references = buildEstimarTintasSpotReferences(names, clusteredReferences, [])
+
+  return { names, references }
+}
 
 export const extractSpotReferenceRgbsFromImageData = (
   imageData: ImageData,
@@ -504,6 +757,15 @@ export const resolveActivePantoneNamesForReferences = (
   return canonicalNames.filter(name => activeKeys.has(name.toLowerCase()))
 }
 
+export const resolveEffectivePantoneSpotNames = (
+  pantoneSpotNames: readonly string[],
+  spotReferenceRgbs: readonly EstimarTintasSpotRgb[]
+): string[] => {
+  const validNames = dedupeCanonicalPantoneSpotNames(pantoneSpotNames)
+  const activeNames = resolveActivePantoneNamesForReferences(spotReferenceRgbs, validNames)
+  return activeNames.length > 0 ? activeNames : validNames
+}
+
 export const buildEstimarTintasSpotReferences = (
   pantoneSpotNames: readonly string[],
   pdfSpotReferences: readonly EstimarTintasSpotRgb[],
@@ -559,21 +821,108 @@ export const resolveSpotNameForReference = (
 
   for (const name of canonicalNames) {
     const catalogKey = resolveKnownPantoneCatalogKey(name)
-    if (!catalogKey) continue
-    const catalogRefs = KNOWN_PANTONE_REFERENCE_RGBS[catalogKey] ?? []
-    const score = Math.min(...catalogRefs.map(ref => {
-      const dr = r - ref[0]
-      const dg = g - ref[1]
-      const db = b - ref[2]
-      return dr * dr + dg * dg + db * db
-    }))
+    const catalogRefs = catalogKey ? (KNOWN_PANTONE_REFERENCE_RGBS[catalogKey] ?? []) : []
+    const displayHex = resolvePantoneDisplayHexFromName(name)
+    const displayRef: EstimarTintasSpotRgb[] = displayHex
+      ? [
+          (() => {
+            const normalized = displayHex.replace('#', '')
+            const value = Number.parseInt(normalized, 16)
+            return [
+              (value >> 16) & 255,
+              (value >> 8) & 255,
+              value & 255,
+            ] as EstimarTintasSpotRgb
+          })(),
+        ]
+      : []
+    const refs = catalogRefs.length > 0 ? catalogRefs : displayRef
+    if (refs.length === 0) continue
+    const score = Math.min(
+      ...refs.map(ref => {
+        const dr = r - ref[0]
+        const dg = g - ref[1]
+        const db = b - ref[2]
+        return dr * dr + dg * dg + db * db
+      })
+    )
     if (score < bestScore) {
       bestScore = score
       bestName = name
     }
   }
 
+  if (bestScore < Number.POSITIVE_INFINITY) {
+    return resolvePantoneDisplayLabel(bestName)
+  }
+
+  if (canonicalNames.length === 1) {
+    return resolvePantoneDisplayLabel(canonicalNames[0]!)
+  }
+
   return resolvePantoneDisplayLabel(bestName)
+}
+
+export const resolveSpotReferencesForCanonicalPantoneName = (
+  canonicalName: string,
+  pantoneSpotNames: readonly string[],
+  spotReferenceRgbs: readonly EstimarTintasSpotRgb[]
+): EstimarTintasSpotRgb[] => {
+  const canonicalNames = dedupeCanonicalPantoneSpotNames(pantoneSpotNames)
+  if (canonicalNames.length === 0 || spotReferenceRgbs.length === 0) return []
+
+  const targetKey = canonicalizePantoneSpotName(canonicalName).toLowerCase()
+
+  if (canonicalNames.length === 1) {
+    const singleKey = canonicalizePantoneSpotName(canonicalNames[0]!).toLowerCase()
+    return singleKey === targetKey ? [...spotReferenceRgbs] : []
+  }
+
+  const matched = spotReferenceRgbs.filter(reference => {
+    const label = resolveSpotNameForReference(reference, canonicalNames)
+    return (
+      canonicalizePantoneSpotName(resolvePantoneLabelAsCatalogName(label)).toLowerCase() ===
+      targetKey
+    )
+  })
+
+  return matched
+}
+
+export interface EstimarTintasDeclaredSpotPreview {
+  name: string
+  displayLabel: string
+  swatch?: string
+}
+
+export const buildEstimarTintasDeclaredSpotPreviews = (
+  pantoneSpotNames: readonly string[],
+  spotReferenceRgbs: readonly EstimarTintasSpotRgb[] = []
+): EstimarTintasDeclaredSpotPreview[] => {
+  const canonicalNames = dedupeCanonicalPantoneSpotNames(pantoneSpotNames)
+
+  return canonicalNames.map(name => {
+    const nameReferences = resolveSpotReferencesForCanonicalPantoneName(
+      name,
+      canonicalNames,
+      spotReferenceRgbs
+    )
+    const fileSwatch = resolveSpotReferencesCentroidSwatch(nameReferences)
+    const swatch =
+      resolvePantoneDisplayHexFromName(name) ??
+      resolvePantoneDisplaySwatchForName(
+        name,
+        spotReferenceRgbs,
+        canonicalNames,
+        fileSwatch
+      )
+
+    return {
+      name,
+      displayLabel: resolvePantoneDisplayLabel(name),
+      swatch,
+    }
+  })
 }
 
 export const clusterSpotReferenceCandidatesForPantoneNames = (

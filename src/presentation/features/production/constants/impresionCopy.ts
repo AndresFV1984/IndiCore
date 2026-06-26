@@ -437,11 +437,18 @@ export const IMPRESION_COPY = {
         cmyk: 'CMYK',
         mixed: 'CMYK + spot (mixto)',
       },
-      spotStatusFound: 'Placas Pantone (spot) detectadas en el PDF',
+      spotStatusFound: (count: number) =>
+        count === 1
+          ? '1 placa Pantone (spot) detectada en el PDF'
+          : `${count.toLocaleString('es-CO')} placas Pantone (spot) detectadas en el PDF`,
+      spotStatusFoundImage: (count: number) =>
+        count === 1
+          ? '1 color Pantone detectado en la imagen'
+          : `${count.toLocaleString('es-CO')} colores Pantone detectados en la imagen`,
       spotStatusMissingPdf:
         'No se encontraron placas Pantone en el PDF. Solo se estimará tinta CMYK de proceso.',
       spotStatusMissingImage:
-        'Las imágenes no incluyen metadatos Pantone. Suba el PDF de preprensa para detectar spots.',
+        'No se detectaron colores Pantone en la imagen. Solo se estimará tinta CMYK de proceso.',
       spotNamesLabel: 'Spots encontrados',
       spotReferencesLabel: (count: number) =>
         `${count.toLocaleString('es-CO')} referencia${count === 1 ? '' : 's'} de color para el cálculo Pantone.`,

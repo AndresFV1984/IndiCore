@@ -23,6 +23,7 @@ import {
   ESTIMAR_TINTAS_MAX_SAMPLE_EDGE,
   getEstimarTintasDefaultPrintArea,
   getEstimarTintasSourceKind,
+  resolveEstimarTintasPantoneSpotContext,
   rescaleEstimarTintasInkG,
   parseConversionFactorInput,
   pixelsToCm,

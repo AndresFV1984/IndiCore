@@ -1,8 +1,20 @@
 import { ROUTES } from '../../config/appRoutes'
 
+let productionOrderWorkspacePrefetchStarted = false
+
+/** Precarga el formulario de orden (nueva o existente) sin esperar al clic. */
+export function prefetchProductionOrderWorkspace(): void {
+  if (productionOrderWorkspacePrefetchStarted) return
+  productionOrderWorkspacePrefetchStarted = true
+  void import('../features/production/ProductionOrderWorkspace')
+}
+
 /** Precarga el chunk de la ruta al pasar el mouse por el menú (navegación más rápida). */
 export const routePrefetchers: Record<string, () => Promise<unknown>> = {
-  [ROUTES.production.path]: () => import('../features/production/Production'),
+  [ROUTES.production.path]: () =>
+    import('../features/production/Production').then(() => {
+      prefetchProductionOrderWorkspace()
+    }),
   [ROUTES.orders.path]: () => import('../features/orders/Orders'),
   [ROUTES.clients.path]: () => import('../features/clients/Clients'),
   [ROUTES.users.path]: () => import('../features/users/Users'),

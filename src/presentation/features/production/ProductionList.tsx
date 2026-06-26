@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import StatusBadge from '../../components/ui/StatusBadge'
+import ProductionOrderStatusBadge from '../../components/ui/ProductionOrderStatusBadge'
+import { DEFAULT_PRODUCTION_ORDER_STATUS } from '../../../core/domain/value-objects/ProductionOrderStatus'
 import SearchBox from '../../components/ui/SearchBox'
 import ListRecordActions from '../../components/ui/ListRecordActions'
 import { useOrdersHook } from '../../hooks/useOrders'
@@ -18,6 +19,7 @@ import RecordCell from '../../components/directory/RecordCell'
 import { confirmAction, confirmExport } from '../../utils/actionFeedback'
 import { productionDraftHasContent } from './utils/productionNewOrderDraft'
 import { useProductionNewOrderDraftStore } from '../../stores/productionNewOrderDraftStore'
+import { prefetchProductionOrderWorkspace } from '../../config/routePrefetch'
 
 const ProductionList: React.FC = () => {
   const navigate = useNavigate()
@@ -27,6 +29,10 @@ const ProductionList: React.FC = () => {
   const clearDraft = useProductionNewOrderDraftStore(s => s.clearDraft)
   const [searchQuery, setSearchQuery] = useState('')
   const hasDraft = Boolean(draft && productionDraftHasContent(draft))
+
+  useEffect(() => {
+    prefetchProductionOrderWorkspace()
+  }, [])
 
   const clientsMap = useMemo(() => {
     const map: Record<string, string> = {}
@@ -99,7 +105,7 @@ const ProductionList: React.FC = () => {
         { label: 'Trabajo', value: o => o.workName, width: 40 },
         { label: 'Fecha', value: o => new Date(o.date).toLocaleDateString('es-CO') },
         { label: 'Cantidad', value: o => String(o.specs?.quantity ?? o.specs?.thousands ?? 0) },
-        { label: 'Estado', value: o => o.status },
+        { label: 'Estado', value: o => o.productionStatus ?? DEFAULT_PRODUCTION_ORDER_STATUS },
       ], filteredOrders)
     })
   }
@@ -117,7 +123,13 @@ const ProductionList: React.FC = () => {
         </div>
         <div className="orders-header-right">
           <SearchBox placeholder="Buscar…" onSearch={handleSearch} debounceMs={300} />
-          <button type="button" className="orders-btn-new" onClick={handleNewOrder}>
+          <button
+            type="button"
+            className="orders-btn-new"
+            onClick={handleNewOrder}
+            onMouseEnter={prefetchProductionOrderWorkspace}
+            onFocus={prefetchProductionOrderWorkspace}
+          >
             + Nueva orden
           </button>
         </div>
@@ -185,7 +197,7 @@ const ProductionList: React.FC = () => {
               {paginatedItems.length > 0 ? (
                 paginatedItems.map(row => {
                   const totalQty = row.specs?.quantity || row.specs?.thousands || 0
-                  const delivered = row.status === 'Listo' ? totalQty : 0
+                  const delivered = row.productionStatus === 'Finalizada' ? totalQty : 0
                   const percent = totalQty > 0 ? Math.round((delivered / totalQty) * 100) : 0
 
                   return (
@@ -217,7 +229,9 @@ const ProductionList: React.FC = () => {
                         </div>
                       </td>
                       <td className="orders-td-estado" data-label="Estado">
-                        <StatusBadge status={row.status} />
+                        <ProductionOrderStatusBadge
+                          status={row.productionStatus ?? DEFAULT_PRODUCTION_ORDER_STATUS}
+                        />
                       </td>
                       <td className="orders-td-acciones" data-label="Acciones">
                         <ListRecordActions

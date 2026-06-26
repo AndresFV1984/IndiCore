@@ -23,6 +23,7 @@ import { InMemoryRemissionRepository } from '../infrastructure/repositories/InMe
 
 import { CreateOrderUseCase } from '../core/use-cases/orders/CreateOrderUseCase.js';
 import { UpdateOrderStatusUseCase } from '../core/use-cases/orders/UpdateOrderStatusUseCase.js';
+import { UpdateProductionOrderStatusUseCase } from '../core/use-cases/orders/UpdateProductionOrderStatusUseCase.js';
 import { CreateClientUseCase } from '../core/use-cases/clients/CreateClientUseCase.js';
 import { CreateUserUseCase } from '../core/use-cases/users/CreateUserUseCase.js';
 import { InMemoryUserRepository } from '../infrastructure/repositories/InMemoryUserRepository.js';
@@ -48,12 +49,15 @@ import { CreateCortePapelUseCase } from '../core/use-cases/corte-papel/CreateCor
 import type { IProductionTraceUseCases } from '../core/ports/in/IProductionTraceUseCases';
 import { InMemoryProductionTraceRepository } from '../infrastructure/repositories/InMemoryProductionTraceRepository.js';
 import { ProductionTraceUseCases } from '../core/use-cases/production-trace/ProductionTraceUseCases.js';
+import type { IAuthUseCases } from '../core/ports/in/IAuthUseCases.js';
+import { InMemoryAuthUseCases } from '../infrastructure/auth/InMemoryAuthUseCases.js';
 
 // Implement the use cases classes that implement the interfaces
 class OrderUseCases implements IOrderUseCases {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly updateOrderStatusUseCase: UpdateOrderStatusUseCase,
+    private readonly updateProductionOrderStatusUseCase: UpdateProductionOrderStatusUseCase,
     private readonly orderRepository: IOrderRepository
   ) {}
 
@@ -71,6 +75,14 @@ class OrderUseCases implements IOrderUseCases {
 
   async updateOrderStatus(id: string, status: any): Promise<void> {
     return this.updateOrderStatusUseCase.execute(id, status);
+  }
+
+  async updateProductionOrderStatus(id: string, status: any, actor: any): Promise<any> {
+    return this.updateProductionOrderStatusUseCase.execute({
+      orderId: id,
+      status,
+      actor,
+    });
   }
 
   async deleteOrder(id: string): Promise<void> {
@@ -375,6 +387,7 @@ export class Container {
   private despiecePliegoUseCases: IDespiecePliegoUseCases;
   private cortePapelUseCases: ICortePapelUseCases;
   private productionTraceUseCases: IProductionTraceUseCases;
+  private authUseCases: IAuthUseCases;
 
   private constructor() {
     this.orderRepository = new InMemoryOrderRepository();
@@ -392,6 +405,7 @@ export class Container {
     this.orderUseCases = new OrderUseCases(
       new CreateOrderUseCase(this.orderRepository),
       new UpdateOrderStatusUseCase(this.orderRepository),
+      new UpdateProductionOrderStatusUseCase(this.orderRepository),
       this.orderRepository
     );
 
@@ -450,6 +464,8 @@ export class Container {
     this.productionTraceUseCases = new ProductionTraceUseCases(
       new InMemoryProductionTraceRepository()
     );
+
+    this.authUseCases = new InMemoryAuthUseCases(this.userRepository);
   }
 
   static getInstance(): Container {
@@ -509,5 +525,9 @@ export class Container {
 
   getProductionTraceUseCases(): IProductionTraceUseCases {
     return this.productionTraceUseCases;
+  }
+
+  getAuthUseCases(): IAuthUseCases {
+    return this.authUseCases;
   }
 }

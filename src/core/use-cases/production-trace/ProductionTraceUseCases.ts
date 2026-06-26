@@ -25,6 +25,7 @@ export class ProductionTraceUseCases implements IProductionTraceUseCases {
       type: dto.type,
       at: dto.at ?? new Date().toISOString(),
       orderStatus: dto.orderStatus,
+      productionStatus: dto.productionStatus,
       unidades: dto.unidades,
       nota: dto.nota,
       pauseReason: dto.pauseReason,

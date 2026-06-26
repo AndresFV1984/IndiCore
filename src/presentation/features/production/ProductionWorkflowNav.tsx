@@ -1,5 +1,7 @@
 import React from 'react'
 import clsx from 'clsx'
+import type { ProductionOrderStatus } from '@/core/domain/value-objects/ProductionOrderStatus'
+import { PRODUCTION_STATUS_TO_PHASE } from '@/core/domain/policies/productionOrderStatusPolicy'
 import {
   PRODUCTION_WORKFLOW_TABS,
   ProductionWorkflowTabId,
@@ -8,6 +10,8 @@ import {
 interface ProductionWorkflowNavProps {
   active: ProductionWorkflowTabId
   onChange: (id: ProductionWorkflowTabId) => void
+  productionStatus?: ProductionOrderStatus
+  statusPanel?: React.ReactNode
 }
 
 const CheckIcon = () => (
@@ -38,7 +42,7 @@ const StepIcon: React.FC<{ id: ProductionWorkflowTabId }> = ({ id }) => {
           <rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.75" />
         </svg>
       )
-    case 'prepensa':
+    case 'preprensa':
       return (
         <svg {...props}>
           <path d="M12 4l6 3.5v9L12 20l-6-3.5v-9L12 4z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
@@ -88,11 +92,18 @@ const StepIcon: React.FC<{ id: ProductionWorkflowTabId }> = ({ id }) => {
   }
 }
 
-const ProductionWorkflowNav: React.FC<ProductionWorkflowNavProps> = ({ active, onChange }) => {
+const ProductionWorkflowNav: React.FC<ProductionWorkflowNavProps> = ({
+  active,
+  onChange,
+  productionStatus,
+  statusPanel,
+}) => {
   const activeIndex = PRODUCTION_WORKFLOW_TABS.findIndex(t => t.id === active)
   const activeTab = PRODUCTION_WORKFLOW_TABS[activeIndex]
   const total = PRODUCTION_WORKFLOW_TABS.length
   const progressPct = Math.round(((activeIndex + 1) / total) * 100)
+  const productionPhase = productionStatus ? PRODUCTION_STATUS_TO_PHASE[productionStatus] : undefined
+  const isFinished = productionStatus === 'Finalizada'
 
   return (
     <div className="production-workflow-nav" role="presentation">
@@ -108,6 +119,10 @@ const ProductionWorkflowNav: React.FC<ProductionWorkflowNavProps> = ({ active, o
           {activeIndex + 1}/{total}
         </span>
       </div>
+
+      {statusPanel ? (
+        <div className="production-workflow-nav__status">{statusPanel}</div>
+      ) : null}
 
       <div
         className="production-workflow-nav__track"
@@ -130,6 +145,8 @@ const ProductionWorkflowNav: React.FC<ProductionWorkflowNavProps> = ({ active, o
             const isActive = tab.id === active
             const isCompleted = index < activeIndex
             const isUpcoming = index > activeIndex
+            const isProductionStep = productionPhase === tab.id
+            const isFinishedStep = isFinished && tab.id === 'cobro'
 
             return (
               <button
@@ -144,6 +161,8 @@ const ProductionWorkflowNav: React.FC<ProductionWorkflowNavProps> = ({ active, o
                   'production-workflow-step--active': isActive,
                   'production-workflow-step--completed': isCompleted,
                   'production-workflow-step--upcoming': isUpcoming,
+                  'production-workflow-step--production': isProductionStep,
+                  'production-workflow-step--finished': isFinishedStep,
                 })}
                 onClick={() => onChange(tab.id)}
               >
@@ -168,6 +187,14 @@ const ProductionWorkflowNav: React.FC<ProductionWorkflowNavProps> = ({ active, o
                   </span>
                   <span className="production-workflow-step__label">{tab.label}</span>
                   <span className="production-workflow-step__desc">{tab.description}</span>
+                  {isProductionStep && (
+                    <span className="production-workflow-step__live">En planta</span>
+                  )}
+                  {isFinishedStep && (
+                    <span className="production-workflow-step__live production-workflow-step__live--done">
+                      Finalizada
+                    </span>
+                  )}
                 </span>
               </button>
             )

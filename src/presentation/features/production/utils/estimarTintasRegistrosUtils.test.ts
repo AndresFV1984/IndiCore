@@ -265,4 +265,36 @@ describe('estimarTintasRegistrosUtils', () => {
     expect(entrada.totalPantoneInkPedidoG).toBeCloseTo(80, 6)
     expect(entrada.totalInkPedidoG).toBeCloseTo(480, 6)
   })
+
+  it('conserva el nombre Pantone específico al normalizar entradas guardadas', () => {
+    const entrada = normalizeImpresionEstimarTintasEntrada({
+      id: 'pantone-name-1',
+      fileName: 'arte.pdf',
+      sourceKind: 'pdf',
+      widthCm: 21,
+      heightCm: 29.7,
+      dpi: 300,
+      conversionFactorG: 0.00021,
+      coverage: sampleResult.coverage,
+      inkG: sampleResult.inkG,
+      totalInkG: 1,
+      totalPliegos: 0,
+      averageTac: 0.35,
+      calculatedAt: '2026-01-01T00:00:00.000Z',
+      detectedColors: [
+        {
+          index: 7,
+          name: 'Pantone 485 C',
+          category: 'pantone',
+          swatch: 'pantone-mix',
+          representativeSwatch: '#da291c',
+          coverage: 0.12,
+          inkG: 0.8,
+        },
+      ],
+    })
+
+    expect(entrada.detectedColors?.[0]?.name).toBe('Pantone 485 C')
+    expect(entrada.detectedColors?.[0]?.representativeSwatch).toBe('#da291c')
+  })
 })

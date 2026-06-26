@@ -3,7 +3,10 @@ import { useOrdersStore } from '../stores/ordersStore.js'
 import { Container } from '../../di/container.js'
 import { dedupedFetch } from '../utils/dedupedFetch.js'
 import type { OrderStatus } from '../../core/domain/value-objects/OrderStatus'
+import type { ProductionOrderStatus } from '../../core/domain/value-objects/ProductionOrderStatus'
+import { PRODUCTION_STATUS_TO_PHASE } from '../../core/domain/policies/productionOrderStatusPolicy'
 import { productionTraceRecorder } from '../services/productionTraceRecorder'
+import { getAuthSessionSnapshot } from './useAuth'
 import {
   OPERADOR_ASSIGNMENT_FIELDS,
   type ProductionAssignmentPhaseId,
@@ -79,11 +82,49 @@ export const useOrdersHook = () => {
     }
   }
 
+  const updateProductionOrderStatus = async (id: string, status: ProductionOrderStatus) => {
+    if (!id || id === 'new') {
+      const message = 'Guarde la orden antes de cambiar su estado de producción'
+      setError(message)
+      throw new Error(message)
+    }
+
+    const session = getAuthSessionSnapshot()
+    if (!session) {
+      setError('No hay sesión activa')
+      throw new Error('No hay sesión activa')
+    }
+
+    try {
+      const updatedOrder = await container.getOrderUseCases().updateProductionOrderStatus(id, status, {
+        userId: session.userId,
+        permissions: session.permissions,
+      })
+      updateOrder(updatedOrder)
+
+      const phase = PRODUCTION_STATUS_TO_PHASE[status] ?? 'preprensa'
+      void productionTraceRecorder.recordProductionStatusChange({
+        orderId: updatedOrder.id,
+        workName: updatedOrder.workName,
+        phase,
+        userId: session.userId,
+        productionStatus: status,
+        orderStatus: updatedOrder.status,
+      })
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Error actualizando estado de producción'
+      setError(message)
+      throw err
+    }
+  }
+
   return {
     orders,
     loading,
     error,
     createOrder,
     updateOrderStatus,
+    updateProductionOrderStatus,
   }
 }

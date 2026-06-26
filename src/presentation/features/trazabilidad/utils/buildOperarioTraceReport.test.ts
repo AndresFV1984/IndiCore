@@ -34,7 +34,9 @@ const baseOrder = (): Order =>
       operadorPreprensaId: 'user-1',
     },
     'En curso',
-    new Money(0)
+    new Money(0),
+    '',
+    'Pendiente'
   )
 
 describe('buildOperarioTraceReport', () => {
