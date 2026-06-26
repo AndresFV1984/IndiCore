@@ -1,25 +1,69 @@
 import {
   normalizeUserPermissions,
   normalizeUserRole,
-  type UserPermission,
-  type UserRole,
 } from '../../core/domain/auth/userPermissions.js'
-import type { AuthSession, IAuthUseCases } from '../../core/ports/in/IAuthUseCases.js'
+import type {
+  AuthSession,
+  AuthSignInInput,
+  AuthSignInResult,
+  IAuthUseCases,
+} from '../../core/ports/in/IAuthUseCases.js'
 import type { IUserRepository } from '../../core/ports/out/IUserRepository.js'
-
-/** Usuario demo hasta conectar login real con el backend. */
-export const DEMO_AUTH_USER_ID = 'user-3'
+import { verifyPassword } from '../../presentation/utils/passwordHash.js'
+import {
+  clearPersistedAuthUserId,
+  persistAuthUserId,
+  readPersistedAuthUserId,
+} from './authSessionStorage.js'
 
 export class InMemoryAuthUseCases implements IAuthUseCases {
-  constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly sessionUserId: string = DEMO_AUTH_USER_ID
-  ) {}
+  constructor(private readonly userRepository: IUserRepository) {}
 
-  async getSession(): Promise<AuthSession> {
-    const user = await this.userRepository.findById(this.sessionUserId)
+  async getSession(): Promise<AuthSession | null> {
+    const userId = readPersistedAuthUserId()
+    if (!userId) return null
+    return this.buildSessionForUserId(userId)
+  }
+
+  async signIn(input: AuthSignInInput): Promise<AuthSignInResult> {
+    const email = input.email.trim()
+    const password = input.password
+    if (!email || !password) {
+      return { ok: false, error: 'invalid_credentials' }
+    }
+
+    const user = await this.userRepository.findByEmail(email)
     if (!user) {
-      return this.fallbackSession()
+      return { ok: false, error: 'invalid_credentials' }
+    }
+
+    if (!user.state) {
+      return { ok: false, error: 'inactive_user' }
+    }
+
+    const passwordMatches = await verifyPassword(password, user.password_hash)
+    if (!passwordMatches) {
+      return { ok: false, error: 'invalid_credentials' }
+    }
+
+    persistAuthUserId(user.id)
+    const session = await this.buildSessionForUserId(user.id)
+    if (!session) {
+      return { ok: false, error: 'invalid_credentials' }
+    }
+
+    return { ok: true, session }
+  }
+
+  async signOut(): Promise<void> {
+    clearPersistedAuthUserId()
+  }
+
+  private async buildSessionForUserId(userId: string): Promise<AuthSession | null> {
+    const user = await this.userRepository.findById(userId)
+    if (!user || !user.state) {
+      clearPersistedAuthUserId()
+      return null
     }
 
     const role = normalizeUserRole(user.role)
@@ -31,15 +75,6 @@ export class InMemoryAuthUseCases implements IAuthUseCases {
       permissions,
     }
   }
-
-  private fallbackSession(): AuthSession {
-    const role: UserRole = 'Supervisor'
-    return {
-      userId: DEMO_AUTH_USER_ID,
-      role,
-      permissions: normalizeUserPermissions(undefined, role),
-    }
-  }
 }
 
-export type { AuthSession, UserPermission }
+export type { AuthSession }

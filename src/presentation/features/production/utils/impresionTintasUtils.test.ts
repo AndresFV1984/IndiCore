@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   applyImpresionLadoCantidadChange,
   applyImpresionLadoCantidadWithLimit,
+  replicateNewRetiroSlotsFromTiro,
+  replicateTiroSlotInkToRetiro,
+  replicateTiroTintasChangesToRetiro,
+  replicateTiroTintasToRetiro,
   buildLadoInkDefaults,
   clampImpresionEntradaDraftSides,
   clampImpresionEntradaToPlanchaColores,
@@ -147,6 +151,175 @@ describe('updateImpresionLadoTinta', () => {
   it('conserva Verde al asignar el índice 6', () => {
     const lado = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 5)
     expect(updateImpresionLadoTinta(lado, 4, 6).tintas).toEqual([0, 1, 2, 3, 6])
+  })
+})
+
+describe('replicateTiroTintasToRetiro', () => {
+  it('copia tintas de tiro en los slots homólogos de retiro', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 3),
+      2,
+      5
+    )
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+
+    expect(replicateTiroTintasToRetiro(tiro, retiro)).toEqual({
+      cantidad: 2,
+      tintas: [0, 1],
+    })
+  })
+
+  it('no altera retiro cuando tiro o retiro no tienen cantidad', () => {
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    expect(replicateTiroTintasToRetiro(emptyImpresionLadoTintas(), retiro)).toBe(retiro)
+    expect(
+      replicateTiroTintasToRetiro(
+        applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+        emptyImpresionLadoTintas()
+      )
+    ).toEqual(emptyImpresionLadoTintas())
+  })
+
+  it('conserva slots extra de retiro cuando tiro tiene menos tintas', () => {
+    const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1)
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 3),
+      2,
+      6
+    )
+
+    expect(replicateTiroTintasToRetiro(tiro, retiro)).toEqual({
+      cantidad: 3,
+      tintas: [0, 1, 6],
+    })
+  })
+})
+
+describe('replicateTiroTintasChangesToRetiro', () => {
+  it('replica solo el slot de tiro que cambió', () => {
+    const prevTiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    const nextTiro = updateImpresionLadoTinta(prevTiro, 0, 4)
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      1,
+      6
+    )
+
+    expect(replicateTiroTintasChangesToRetiro(prevTiro, nextTiro, retiro, 4)).toEqual({
+      cantidad: 2,
+      tintas: [4, 6],
+    })
+  })
+
+  it('no sobrescribe retiro si tiro no cambió en ese slot', () => {
+    const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      0,
+      5
+    )
+
+    expect(replicateTiroTintasChangesToRetiro(tiro, tiro, retiro, 4)).toBe(retiro)
+  })
+
+  it('replica slots nuevos cuando aumenta la cantidad en tiro', () => {
+    const prevTiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    const nextTiro = applyImpresionLadoCantidadChange(prevTiro, 3)
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 3)
+
+    expect(replicateTiroTintasChangesToRetiro(prevTiro, nextTiro, retiro, 4)).toEqual({
+      cantidad: 3,
+      tintas: [0, 1, 2],
+    })
+  })
+
+  it('limpia retiro cuando tiro queda sin tintas', () => {
+    const prevTiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+    const retiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
+
+    expect(
+      replicateTiroTintasChangesToRetiro(
+        prevTiro,
+        emptyImpresionLadoTintas(),
+        retiro,
+        4
+      )
+    ).toEqual(emptyImpresionLadoTintas())
+  })
+
+  it('reduce retiro al mismo tiempo que se quitan tintas en tiro', () => {
+    const prevTiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      1,
+      6
+    )
+    const nextTiro = applyImpresionLadoCantidadChange(prevTiro, 1)
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      1,
+      6
+    )
+
+    expect(replicateTiroTintasChangesToRetiro(prevTiro, nextTiro, retiro, 4)).toEqual({
+      cantidad: 1,
+      tintas: [0],
+    })
+  })
+})
+
+describe('replicateTiroSlotInkToRetiro', () => {
+  it('amplía retiro y copia tintas cuando aún no hay slots en retiro', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      0,
+      4
+    )
+
+    expect(
+      replicateTiroSlotInkToRetiro(tiro, emptyImpresionLadoTintas(), 0, 4)
+    ).toEqual({
+      cantidad: 1,
+      tintas: [4],
+    })
+  })
+
+  it('copia un slot existente sin tocar los demás', () => {
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      0,
+      4
+    )
+    const retiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      1,
+      6
+    )
+
+    expect(replicateTiroSlotInkToRetiro(tiro, retiro, 0, 4)).toEqual({
+      cantidad: 2,
+      tintas: [4, 6],
+    })
+  })
+})
+
+describe('replicateNewRetiroSlotsFromTiro', () => {
+  it('precarga solo los slots nuevos de retiro desde tiro', () => {
+    const prevRetiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 1),
+      0,
+      5
+    )
+    const nextRetiro = applyImpresionLadoCantidadChange(prevRetiro, 2)
+    const tiro = updateImpresionLadoTinta(
+      applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2),
+      1,
+      6
+    )
+
+    expect(replicateNewRetiroSlotsFromTiro(prevRetiro, nextRetiro, tiro)).toEqual({
+      cantidad: 2,
+      tintas: [5, 6],
+    })
   })
 })
 

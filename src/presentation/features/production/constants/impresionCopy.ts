@@ -129,7 +129,7 @@ export const IMPRESION_COPY = {
       tiro: 'Tiro',
       tiroHint: 'Tintas en el frente de impresión.',
       retiro: 'Retiro',
-      retiroHint: 'Tintas en el reverso.',
+      retiroHint: 'Tintas en el reverso. Se replican desde tiro; puede cambiarlas en cualquier momento.',
       cantidadLabel: 'Cantidad de tintas',
       limiteLado: (max: number, maxPlancha: number) =>
         max <= 0
@@ -345,6 +345,8 @@ export const IMPRESION_COPY = {
       totalValores: (tiro: number, retiro: number) => `${tiro} - ${retiro}`,
       validationError: (max: number) =>
         `La suma de tiro y retiro debe ser exactamente ${max} tintas. Complete todos los colores asignados en cada lado.`,
+      tarifasAwaitPlanchaCompleta: (max: number) =>
+        `Complete las ${max} tintas de la plancha en tiro y/o retiro antes de calcular Color básico o Pantone.`,
     },
     miles: {
       title: 'Miles',

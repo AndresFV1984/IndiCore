@@ -90,6 +90,7 @@ import {
   syncFaltanteLitografiaForParent,
   upsertPaperRow,
 } from './utils/cortePapelFaltante'
+import { resolveCorteActivePlanchaId } from './utils/resolveCorteActivePlanchaId'
 import {
   paperRowsMatchColoresPlanchas,
   resolveOrderCortePapelMetrics,
@@ -413,17 +414,13 @@ const ProductionOrderWorkspace: React.FC = () => {
   )
 
   useEffect(() => {
-    const preprensaIds = specs.preprensaDiseno.coloresPlanchas.map(item => item.id)
-    const faltanteCorteIds = specs.paperRows
-      .filter(row => isFaltanteLitografiaRow(row) && row.corteRowId)
-      .map(row => row.corteRowId as string)
-    const allowedIds = new Set([...preprensaIds, ...faltanteCorteIds])
-    setActiveCorteColorPlanchaId(prev => {
-      if (prev && allowedIds.has(prev)) return prev
-      // Mantener sin selección tras commit o al iniciar; solo reasignar si el id activo quedó inválido.
-      if (prev) return preprensaIds[0] ?? ''
-      return ''
-    })
+    setActiveCorteColorPlanchaId(prev =>
+      resolveCorteActivePlanchaId(
+        prev,
+        specs.preprensaDiseno.coloresPlanchas,
+        specs.paperRows
+      )
+    )
   }, [specs.preprensaDiseno.coloresPlanchas, specs.paperRows])
 
   useEffect(() => {
@@ -880,6 +877,13 @@ const ProductionOrderWorkspace: React.FC = () => {
     }
     if (id === 'corte-papel') {
       setCortePapelSubTab('corte')
+      setActiveCorteColorPlanchaId(prev =>
+        resolveCorteActivePlanchaId(
+          prev,
+          specs.preprensaDiseno.coloresPlanchas,
+          specs.paperRows
+        )
+      )
     }
     if (id === 'cobro') {
       setCobroSubTab('factura')

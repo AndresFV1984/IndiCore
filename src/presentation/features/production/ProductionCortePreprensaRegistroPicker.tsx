@@ -1,19 +1,12 @@
-import React, { useId, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import type { PaperRow } from '../../../core/domain/entities/Order'
 import type { DisenoColorPlanchaItem, YesNoChoice } from '../../../core/domain/entities/PreprensaDiseno'
 import CortePlanchaDetalleFields from './CortePlanchaDetalleFields'
-import CortePlanchaSelect, { type CortePlanchaSelectOption } from './CortePlanchaSelect'
 import { CORTE_PAPEL_COPY as copy } from './constants/cortePapelCopy'
-import ProductionWorkspaceSection from './ProductionWorkspaceSection'
-import { formatImpresionPlanchaSelectLabel } from './utils/impresionTintasUtils'
+import ProductionPreprensaRegistroPickerSection from './ProductionPreprensaRegistroPickerSection'
+import type { ImpresionPlanchaSelectExtraOption } from './ImpresionPlanchaSelect'
 
-export interface CorteRegistroPickerOption {
-  id: string
-  label: string
-  completo: boolean
-  esFaltanteLitografia?: boolean
-  plancha?: DisenoColorPlanchaItem
-}
+export type CorteRegistroPickerOption = ImpresionPlanchaSelectExtraOption
 
 interface ProductionCortePreprensaRegistroPickerProps {
   coloresPlanchas: DisenoColorPlanchaItem[]
@@ -31,64 +24,27 @@ interface ProductionCortePreprensaRegistroPickerProps {
 const ProductionCortePreprensaRegistroPicker: React.FC<
   ProductionCortePreprensaRegistroPickerProps
 > = ({ coloresPlanchas, selectedId, processedIds, extraOptions = [], onChange, datosPlancha }) => {
-  const registro = copy.registroPreprensa
-  const planchaLabelId = useId()
-
-  const options = useMemo((): CortePlanchaSelectOption[] => {
-    const preprensa = coloresPlanchas.map(item => {
-      const completo = processedIds.has(item.id)
-      return {
-        id: item.id,
-        label: formatImpresionPlanchaSelectLabel(item),
-        completo,
-        esFaltanteLitografia: false as const,
-        plancha: item,
-      }
-    })
-    return [...preprensa, ...extraOptions]
-  }, [coloresPlanchas, processedIds, extraOptions])
-
-  const hasOptions = options.length > 0
+  const completedPlanchaIds = useMemo(() => [...processedIds], [processedIds])
 
   return (
-    <ProductionWorkspaceSection tag={registro.tag} title={registro.title} tone={0}>
-      {!hasOptions ? (
-        <p className="production-diseno-cliente-hint">{registro.emptySinRegistros}</p>
-      ) : (
-        <div className="production-plancha-workspace production-impresion-tintas-workspace">
-          <section
-            className="production-plancha-workspace__picker-zone production-plancha-workspace__picker-zone--selected"
-            aria-labelledby={planchaLabelId}
-          >
-            <label
-              className="production-form-label"
-              id={planchaLabelId}
-              htmlFor="prod-corte-plancha-select"
-            >
-              {registro.label}
-            </label>
-            <CortePlanchaSelect
-              id="prod-corte-plancha-select"
-              labelId={planchaLabelId}
-              options={options}
-              value={selectedId}
-              onChange={onChange}
-              placeholder={registro.placeholder}
-              faltanteGroupLabel={copy.faltante.registroPickerGrupo}
-            />
-            <span className="production-plancha-workspace__hint">{registro.hint}</span>
-          </section>
-
-          {selectedId && datosPlancha ? (
-            <CortePlanchaDetalleFields
-              row={datosPlancha.row}
-              coloresPlanchas={datosPlancha.coloresPlanchas}
-              clienteSuministraPapel={datosPlancha.clienteSuministraPapel}
-            />
-          ) : null}
-        </div>
-      )}
-    </ProductionWorkspaceSection>
+    <ProductionPreprensaRegistroPickerSection
+      copy={copy.registroPreprensa}
+      selectId="prod-corte-plancha-select"
+      coloresPlanchas={coloresPlanchas}
+      selectedId={selectedId}
+      onChange={onChange}
+      completedPlanchaIds={completedPlanchaIds}
+      extraOptions={extraOptions}
+      faltanteGroupLabel={copy.faltante.registroPickerGrupo}
+    >
+      {selectedId && datosPlancha ? (
+        <CortePlanchaDetalleFields
+          row={datosPlancha.row}
+          coloresPlanchas={datosPlancha.coloresPlanchas}
+          clienteSuministraPapel={datosPlancha.clienteSuministraPapel}
+        />
+      ) : null}
+    </ProductionPreprensaRegistroPickerSection>
   )
 }
 

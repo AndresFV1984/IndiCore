@@ -87,6 +87,10 @@ body {
   font-weight: 500;
 }
 
+.app-suspense--fullscreen {
+  min-height: 100vh;
+}
+
 .app-suspense-spinner {
   width: 36px;
   height: 36px;
@@ -1074,6 +1078,37 @@ body {
 .sidebar-nav::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(126, 214, 224, 0.35), rgba(94, 196, 212, 0.12));
   border-radius: 999px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 0.75rem 0.85rem 0.25rem;
+  border-top: 1px solid var(--sidebar-border-soft);
+}
+
+.sidebar-user {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  color: var(--sidebar-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-signout {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sidebar-text);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+
+.sidebar-signout:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-section {

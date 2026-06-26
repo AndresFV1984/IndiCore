@@ -14,6 +14,7 @@ export const USER_PERMISSION_CATALOG = [
   { id: 'production.status.phase.impresion', label: 'Marcar impresión en proceso' },
   { id: 'production.status.phase.terminados', label: 'Marcar terminados en proceso' },
   { id: 'production.status.phase.acabados', label: 'Marcar acabados en proceso' },
+  { id: 'production.operator.workspace', label: 'Gestionar mi trabajo en producción' },
   { id: 'orders.view', label: 'Ver pedidos' },
   { id: 'orders.edit', label: 'Gestionar pedidos' },
   { id: 'remissions.view', label: 'Ver remisiones' },
@@ -50,6 +51,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly UserPermission[]> = {
     'production.status.phase.impresion',
     'production.status.phase.terminados',
     'production.status.phase.acabados',
+    'production.operator.workspace',
     'orders.view',
     'orders.edit',
     'remissions.view',
@@ -69,6 +71,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly UserPermission[]> = {
     'production.status.phase.impresion',
     'production.status.phase.terminados',
     'production.status.phase.acabados',
+    'production.operator.workspace',
   ],
 }
 

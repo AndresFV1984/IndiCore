@@ -2066,6 +2066,68 @@
   color: var(--ink);
 }
 
+.production-diseno-modo-shell--compact.production-corte-suministro-shell {
+  padding: 0.5rem 0.65rem;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell
+  .production-diseno-modo-shell__compact-title {
+  margin-bottom: 0.4rem;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell .production-diseno-modo__grid {
+  gap: 0.45rem;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell .production-diseno-modo__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0.1rem 0.45rem;
+  padding: 0.42rem 0.55rem 0.42rem 0.5rem;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell .production-diseno-modo__icon-wrap {
+  grid-row: 1 / -1;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 6px;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell .production-diseno-modo__icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell .production-diseno-modo__title {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell .production-diseno-modo__desc {
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell
+  .production-diseno-modo__card--selected {
+  border-left-width: 3px;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell
+  .production-diseno-modo__card--selected::before {
+  top: 0.3rem;
+  bottom: 0.3rem;
+}
+
+.production-diseno-modo-shell--compact.production-corte-suministro-shell
+  .production-diseno-cliente-hint--aviso {
+  margin-top: 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .production-diseno-modo__desc {
   font-size: 0.75rem;
   line-height: 1.35;

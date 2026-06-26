@@ -3,6 +3,7 @@ import { TarifaMillar } from '../../../../core/domain/entities/TarifaMillar'
 import {
   applyImpresionLadoCantidadChange,
   emptyImpresionLadoTintas,
+  updateImpresionLadoTinta,
 } from './impresionTintasUtils'
 import {
   emptyImpresionTintasDraftTarifa,
@@ -15,9 +16,37 @@ const tarifaPantone = new TarifaMillar('tm-4', 'Pantone', 1000, 50000, 'Colores'
 const tarifas = [tarifaColorBasico, tarifaPantone]
 
 describe('syncImpresionTintasDraftTarifa', () => {
-  it('precarga PRECIO y deja volteo en sin volteo por defecto', () => {
+  it('no precarga tarifas si la plancha no está completa', () => {
     const tiro = applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2)
-    const next = syncImpresionTintasDraftTarifa(emptyImpresionTintasDraftTarifa(), tarifas, tiro, emptyImpresionLadoTintas())
+    const next = syncImpresionTintasDraftTarifa(
+      emptyImpresionTintasDraftTarifa(),
+      tarifas,
+      tiro,
+      emptyImpresionLadoTintas(),
+      4
+    )
+    expect(next.precioColorBasicoMillar).toBe(0)
+    expect(next.precioPantoneMillar).toBe(0)
+  })
+
+  it('precarga PRECIO cuando la plancha está completa con Color básico', () => {
+    const tiro = updateImpresionLadoTinta(
+      updateImpresionLadoTinta(applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2), 0, 0),
+      1,
+      1
+    )
+    const retiro = updateImpresionLadoTinta(
+      updateImpresionLadoTinta(applyImpresionLadoCantidadChange(emptyImpresionLadoTintas(), 2), 0, 2),
+      1,
+      3
+    )
+    const next = syncImpresionTintasDraftTarifa(
+      emptyImpresionTintasDraftTarifa(),
+      tarifas,
+      tiro,
+      retiro,
+      4
+    )
     expect(next.tipoBifronteColorBasico).toBe('diferente-plancha')
     expect(next.precioColorBasicoMillar).toBe(17500)
     expect(next.precioVolteoColorBasicoMillar).toBe(0)

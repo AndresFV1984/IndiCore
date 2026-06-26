@@ -13,6 +13,10 @@ const ladoCopy = copy.tintas.lado
 
 const CANTIDAD_CHIPS = [0, 1, 2, 3, 4, 5, 6, 7] as const
 
+export type ImpresionLadoTintasChangeMeta =
+  | { type: 'cantidad' }
+  | { type: 'tinta'; slotIndex: number }
+
 interface ImpresionLadoTintasFieldsProps {
   idPrefix: string
   title: string
@@ -20,7 +24,7 @@ interface ImpresionLadoTintasFieldsProps {
   lado: ImpresionLadoTintas
   maxColoresPlancha: number
   otherLadoCantidad: number
-  onChange: (lado: ImpresionLadoTintas) => void
+  onChange: (lado: ImpresionLadoTintas, meta?: ImpresionLadoTintasChangeMeta) => void
 }
 
 const ImpresionLadoTintasFields: React.FC<ImpresionLadoTintasFieldsProps> = ({
@@ -37,7 +41,8 @@ const ImpresionLadoTintasFields: React.FC<ImpresionLadoTintasFieldsProps> = ({
 
   const setCantidad = (next: number) => {
     onChange(
-      applyImpresionLadoCantidadWithLimit(lado, next, maxColoresPlancha, otherLadoCantidad)
+      applyImpresionLadoCantidadWithLimit(lado, next, maxColoresPlancha, otherLadoCantidad),
+      { type: 'cantidad' }
     )
   }
 
@@ -151,7 +156,10 @@ const ImpresionLadoTintasFields: React.FC<ImpresionLadoTintasFieldsProps> = ({
                 slotIndex={slotIndex}
                 value={lado.tintas[slotIndex] ?? -1}
                 onChange={inkIndex =>
-                  onChange(updateImpresionLadoTinta(lado, slotIndex, inkIndex))
+                  onChange(updateImpresionLadoTinta(lado, slotIndex, inkIndex), {
+                    type: 'tinta',
+                    slotIndex,
+                  })
                 }
               />
             ))}

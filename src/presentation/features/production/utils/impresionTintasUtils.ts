@@ -477,6 +477,106 @@ export const updateImpresionLadoTinta = (
   return { ...lado, tintas }
 }
 
+/** Copia las tintas de tiro en los slots homólogos de retiro (sin alterar cantidades). */
+export const replicateTiroTintasToRetiro = (
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas
+): ImpresionLadoTintas => {
+  if (retiro.cantidad <= 0 || tiro.cantidad <= 0) return retiro
+
+  const tintas = [...retiro.tintas]
+  const slotsToCopy = Math.min(tiro.cantidad, retiro.cantidad)
+  for (let slotIndex = 0; slotIndex < slotsToCopy; slotIndex += 1) {
+    tintas[slotIndex] = normalizeImpresionInkIndex(tiro.tintas[slotIndex] ?? -1)
+  }
+
+  return { cantidad: retiro.cantidad, tintas }
+}
+
+/** Copia la tinta de un slot de tiro al slot homólogo de retiro (amplía retiro si hay cupo). */
+export const replicateTiroSlotInkToRetiro = (
+  tiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas,
+  slotIndex: number,
+  maxColoresPlancha: number
+): ImpresionLadoTintas => {
+  if (slotIndex < 0 || slotIndex >= tiro.cantidad) return retiro
+
+  const maxRetiroCantidad = resolveImpresionLadoMaxCantidad(maxColoresPlancha, tiro.cantidad)
+  let nextRetiro = retiro
+
+  if (slotIndex >= nextRetiro.cantidad) {
+    const targetCantidad = Math.min(slotIndex + 1, maxRetiroCantidad)
+    if (targetCantidad <= nextRetiro.cantidad) return retiro
+    nextRetiro = applyImpresionLadoCantidadWithLimit(
+      nextRetiro,
+      targetCantidad,
+      maxColoresPlancha,
+      tiro.cantidad
+    )
+    return replicateTiroTintasToRetiro(tiro, nextRetiro)
+  }
+
+  const tintas = [...nextRetiro.tintas]
+  tintas[slotIndex] = normalizeImpresionInkIndex(tiro.tintas[slotIndex] ?? -1)
+  return { cantidad: nextRetiro.cantidad, tintas }
+}
+
+/** Replica en retiro solo los slots de tiro que cambiaron (tinta o cantidad en ese lado). */
+export const replicateTiroTintasChangesToRetiro = (
+  prevTiro: ImpresionLadoTintas,
+  nextTiro: ImpresionLadoTintas,
+  retiro: ImpresionLadoTintas,
+  maxColoresPlancha: number
+): ImpresionLadoTintas => {
+  if (nextTiro.cantidad <= 0) return emptyImpresionLadoTintas()
+
+  let nextRetiro = retiro
+  if (nextTiro.cantidad < prevTiro.cantidad) {
+    const targetCantidad = Math.min(retiro.cantidad, nextTiro.cantidad)
+    nextRetiro =
+      targetCantidad <= 0
+        ? emptyImpresionLadoTintas()
+        : applyImpresionLadoCantidadChange(retiro, targetCantidad)
+  }
+
+  const slotsToInspect = nextTiro.cantidad
+
+  for (let slotIndex = 0; slotIndex < slotsToInspect; slotIndex += 1) {
+    const prevInk =
+      slotIndex < prevTiro.cantidad
+        ? normalizeImpresionInkIndex(prevTiro.tintas[slotIndex] ?? -1)
+        : null
+    const nextInk = normalizeImpresionInkIndex(nextTiro.tintas[slotIndex] ?? -1)
+    const slotAppearedInTiro = slotIndex >= prevTiro.cantidad
+    const inkChangedInTiro = prevInk !== nextInk
+
+    if (slotAppearedInTiro || inkChangedInTiro) {
+      nextRetiro = replicateTiroSlotInkToRetiro(nextTiro, nextRetiro, slotIndex, maxColoresPlancha)
+    }
+  }
+
+  return nextRetiro
+}
+
+/** Al ampliar retiro, precarga los slots nuevos con las tintas homólogas de tiro. */
+export const replicateNewRetiroSlotsFromTiro = (
+  prevRetiro: ImpresionLadoTintas,
+  nextRetiro: ImpresionLadoTintas,
+  tiro: ImpresionLadoTintas
+): ImpresionLadoTintas => {
+  if (nextRetiro.cantidad <= prevRetiro.cantidad) return nextRetiro
+
+  const tintas = [...nextRetiro.tintas]
+  for (let slotIndex = prevRetiro.cantidad; slotIndex < nextRetiro.cantidad; slotIndex += 1) {
+    if (slotIndex < tiro.cantidad) {
+      tintas[slotIndex] = normalizeImpresionInkIndex(tiro.tintas[slotIndex] ?? -1)
+    }
+  }
+
+  return { cantidad: nextRetiro.cantidad, tintas }
+}
+
 export const isImpresionLadoComplete = (lado: ImpresionLadoTintas): boolean =>
   lado.cantidad <= 0 ||
   lado.tintas.slice(0, lado.cantidad).every(index => isValidImpresionTintaIndex(normalizeImpresionInkIndex(index)))

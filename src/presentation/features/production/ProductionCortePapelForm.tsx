@@ -21,6 +21,7 @@ import {
   isFaltanteLitografiaRow,
   listFaltantePaperRows,
 } from './utils/cortePapelFaltante'
+import { resolveCorteActivePlanchaId } from './utils/resolveCorteActivePlanchaId'
 import {
   clearTipoPapelFromRow,
   emptyPaperRow,
@@ -213,7 +214,7 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
       return {
         id,
         label: copy.faltante.registroPickerLabel(parentLabel),
-        completo: processedRegistroIds.has(id),
+        completada: processedRegistroIds.has(id),
         esFaltanteLitografia: true,
         plancha: parent,
       }
@@ -333,19 +334,26 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
   }
 
   const handleCancelRegistro = () => {
-    onActiveColorPlanchaIdChange('')
+    onActiveColorPlanchaIdChange(
+      resolveCorteActivePlanchaId('', coloresPlanchas, paperRows, processedRegistroIds)
+    )
   }
 
-  const resetDraftAfterCommit = () => {
+  const resetDraftAfterCommit = (committedId?: string) => {
+    const completed = new Set(processedRegistroIds)
+    if (committedId) completed.add(committedId)
     lastActiveRegistroId.current = ''
     setDraftRow(clearTipoPapelFromRow(emptyPaperRow()))
-    onActiveColorPlanchaIdChange('')
+    onActiveColorPlanchaIdChange(
+      resolveCorteActivePlanchaId('', coloresPlanchas, paperRows, completed)
+    )
   }
 
   const handleCommitRegistro = () => {
     if (!canCommitRegistro) return
+    const committedId = getCorteRowActiveId(draftRow) || activeColorPlanchaId
     onPaperRowCommit(draftRow)
-    resetDraftAfterCommit()
+    resetDraftAfterCommit(committedId)
   }
 
   const cantidadHojasDisplay =
@@ -426,22 +434,24 @@ const ProductionCortePapelForm: React.FC<ProductionCortePapelFormProps> = ({
         />
       ) : null}
 
-      <ProductionCortePreprensaRegistroPicker
-        coloresPlanchas={coloresPlanchas}
-        selectedId={activeColorPlanchaId}
-        processedIds={processedRegistroIds}
-        extraOptions={pickerExtraOptions}
-        onChange={onActiveColorPlanchaIdChange}
-        datosPlancha={
-          showRegistroForm
-            ? {
-                row: draftRow,
-                coloresPlanchas,
-                clienteSuministraPapel,
-              }
-            : null
-        }
-      />
+      <div className="production-ws-sections-stack">
+        <ProductionCortePreprensaRegistroPicker
+          coloresPlanchas={coloresPlanchas}
+          selectedId={activeColorPlanchaId}
+          processedIds={processedRegistroIds}
+          extraOptions={pickerExtraOptions}
+          onChange={onActiveColorPlanchaIdChange}
+          datosPlancha={
+            showRegistroForm
+              ? {
+                  row: draftRow,
+                  coloresPlanchas,
+                  clienteSuministraPapel,
+                }
+              : null
+          }
+        />
+      </div>
 
       <div className="production-diseno-form">
         <section

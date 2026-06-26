@@ -41,6 +41,7 @@ export interface ProductionTraceEvent {
   orderStatus?: OrderStatus
   productionStatus?: ProductionOrderStatus
   unidades?: number
+  processKey?: string
   nota?: string
   pauseReason?: ProductionTracePauseReasonId
 }
@@ -55,6 +56,7 @@ export interface RecordProductionTraceEventDTO {
   orderStatus?: OrderStatus
   productionStatus?: ProductionOrderStatus
   unidades?: number
+  processKey?: string
   nota?: string
   pauseReason?: ProductionTracePauseReasonId
 }
@@ -75,6 +77,7 @@ export interface RegisterPartialDeliveryDTO {
   unidades: number
   orderStatus?: OrderStatus
   productionStatus?: ProductionOrderStatus
+  processKey?: string
   nota?: string
 }
 
@@ -86,6 +89,7 @@ export interface RegisterProductionPauseDTO {
   pauseReason: ProductionTracePauseReasonId
   orderStatus?: OrderStatus
   productionStatus?: ProductionOrderStatus
+  processKey?: string
   nota?: string
 }
 
@@ -96,5 +100,6 @@ export interface RegisterProductionResumeDTO {
   userId: string
   orderStatus?: OrderStatus
   productionStatus?: ProductionOrderStatus
+  processKey?: string
   nota?: string
 }

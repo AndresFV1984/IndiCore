@@ -5,7 +5,6 @@ export const PRODUCTION_COBRO_COPY = {
   subtitle: 'Consolidado de valores configurados en la orden de producción',
   status: {
     ready: 'Lista para cobro',
-    pending: 'Pendiente de cargos',
   },
   header: {
     cliente: 'Cliente',

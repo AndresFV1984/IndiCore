@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useLocation, type LinkProps } from 'react-router-dom'
+import { Link, useLocation, useNavigate, type LinkProps } from 'react-router-dom'
 import { ROUTES } from '../../../config/appRoutes'
 import { APP_LOGO_SRC, APP_NAME, APP_TAGLINE } from '@/config/brand'
 import { useUIStore } from '../../stores/uiStore'
 import { prefetchRoute } from '../../config/routePrefetch'
+import { useAuth } from '../../hooks/useAuth'
+import { useUsersHook } from '../../hooks/useUsers'
+import { isOperatorOnlySession } from '../../../core/domain/auth/authRouting'
 
 const NavLink: React.FC<LinkProps> = ({ to, onMouseEnter, onFocus, ...rest }) => {
   const path = typeof to === 'string' ? to : (to.pathname ?? '')
@@ -27,10 +30,23 @@ const NavLink: React.FC<LinkProps> = ({ to, onMouseEnter, onFocus, ...rest }) =>
 const Sidebar: React.FC = () => {
   const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { session, hasPermission, signOut } = useAuth();
+  const { users } = useUsersHook();
   const [logoError, setLogoError] = useState(false)
+  const currentUser = users.find(user => user.id === session?.userId)
+  const operatorOnly = session ? isOperatorOnlySession(session) : false
+  const homePath = operatorOnly ? ROUTES.operatorWork.path : ROUTES.dashboard.path
   // Estado para controlar el despliegue de categorías
   // Por defecto abrimos las secciones en desarrollo para verificar el estilo del menú.
-  const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({ principal: true, documentos: true, gestion: true, catalogos: true, otros: true });
+  const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
+    principal: true,
+    documentos: true,
+    gestion: true,
+    catalogos: true,
+    otros: true,
+    operator: true,
+  });
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -82,7 +98,7 @@ const Sidebar: React.FC = () => {
       <div className="sidebar-header">
         <div className={`sidebar-logo-block ${sidebarOpen ? 'sidebar-logo-block--open' : ''}`}>
           <NavLink
-            to={ROUTES.dashboard.path}
+            to={homePath}
             className="sidebar-brand"
             title={APP_NAME}
             onClick={() => {
@@ -124,6 +140,40 @@ const Sidebar: React.FC = () => {
         </button>
       </div>
       <nav className="sidebar-nav">
+        {operatorOnly ? (
+          <>
+            <div
+              role="button"
+              tabIndex={0}
+              className="sidebar-section sidebar-section-trigger sidebar-open"
+              onClick={() => toggleSection('operator')}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  toggleSection('operator')
+                }
+              }}
+            >
+              Mi trabajo
+            </div>
+            {openSections.operator !== false ? (
+              <NavLink
+                to={ROUTES.operatorWork.path}
+                title={ROUTES.operatorWork.purpose}
+                className={`sidebar-link ${location.pathname.startsWith(ROUTES.operatorWork.path) ? 'sidebar-link-active' : ''}`}
+              >
+                <span className="sidebar-icon-wrapper">
+                  <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M12 3a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V8a5 5 0 0 1 5-5z" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M9 14h6M9 17h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </span>
+                {sidebarOpen && <span className="sidebar-label">{ROUTES.operatorWork.label}</span>}
+              </NavLink>
+            ) : null}
+          </>
+        ) : (
+          <>
         {/* Principal */}
         <div
           role="button"
@@ -186,6 +236,21 @@ const Sidebar: React.FC = () => {
               </span>
               {sidebarOpen && <span className="sidebar-label">Producción</span>}
             </NavLink>
+            {hasPermission('production.operator.workspace') ? (
+              <NavLink
+                to={ROUTES.operatorWork.path}
+                title={ROUTES.operatorWork.purpose}
+                className={`sidebar-link ${location.pathname.startsWith(ROUTES.operatorWork.path) ? 'sidebar-link-active' : ''}`}
+              >
+                <span className="sidebar-icon-wrapper">
+                  <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M12 3a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V8a5 5 0 0 1 5-5z" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M9 14h6M9 17h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </span>
+                {sidebarOpen && <span className="sidebar-label">{ROUTES.operatorWork.label}</span>}
+              </NavLink>
+            ) : null}
             <NavLink to={ROUTES.trazabilidad.path} title={ROUTES.trazabilidad.purpose} className={`sidebar-link ${location.pathname.startsWith(ROUTES.trazabilidad.path) ? 'sidebar-link-active' : ''}`}>
               <span className="sidebar-icon-wrapper">
                 <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
@@ -393,7 +458,26 @@ const Sidebar: React.FC = () => {
             </NavLink>
           </>
         )}
+          </>
+        )}
       </nav>
+      <div className="sidebar-footer">
+        {sidebarOpen && currentUser ? (
+          <p className="sidebar-user" title={currentUser.mail}>
+            {currentUser.name}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="sidebar-signout"
+          onClick={async () => {
+            await signOut()
+            navigate(ROUTES.login.path)
+          }}
+        >
+          {sidebarOpen ? 'Cerrar sesión' : 'Salir'}
+        </button>
+      </div>
     </aside>
     </>
   );

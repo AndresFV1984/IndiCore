@@ -353,16 +353,11 @@ const ProductionOrderCobroPanel: React.FC<ProductionOrderCobroPanelProps> = ({
                 </h3>
                 <p className="production-order-cobro-doc__subtitle">{copy.subtitle}</p>
               </div>
-              <span
-                className={clsx(
-                  'production-order-cobro-doc__status',
-                  cobro.hasCharges
-                    ? 'production-order-cobro-doc__status--ready'
-                    : 'production-order-cobro-doc__status--pending'
-                )}
-              >
-                {cobro.hasCharges ? copy.status.ready : copy.status.pending}
-              </span>
+              {cobro.hasCharges ? (
+                <span className="production-order-cobro-doc__status production-order-cobro-doc__status--ready">
+                  {copy.status.ready}
+                </span>
+              ) : null}
             </header>
 
             <div className="production-order-cobro-doc__meta-grid">

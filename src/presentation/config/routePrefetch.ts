@@ -29,6 +29,10 @@ export const routePrefetchers: Record<string, () => Promise<unknown>> = {
   [ROUTES.precioMontaje.path]: () => import('../features/precio-montaje/PrecioMontaje'),
   [ROUTES.tarifasMillar.path]: () => import('../features/tarifas-millar/TarifasMillar'),
   [ROUTES.trazabilidad.path]: () => import('../features/trazabilidad/TrazabilidadOperarios'),
+  [ROUTES.operatorWork.path]: () =>
+    import('../features/operator/ProductionOperatorOrderList').then(() =>
+      import('../features/operator/ProductionOperatorOrderPanel')
+    ),
 }
 
 export function prefetchRoute(path: string): void {

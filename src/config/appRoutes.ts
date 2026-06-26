@@ -131,11 +131,24 @@ export const ROUTES = {
     purpose:
       'Seguimiento por operario: órdenes asignadas, tiempos de trabajo, estados y entregas parciales.',
   },
+  operatorWork: {
+    id: 'OPERATOR_WORKSPACE',
+    path: '/mi-trabajo',
+    label: 'Mi trabajo',
+    purpose:
+      'Panel del operador: órdenes asignadas, procesos secuenciales, avances parciales, estados y tiempo laborado.',
+  },
   settings: {
     id: 'SETTINGS',
     path: '/settings',
     label: 'Configuración',
     purpose: 'Ajustes globales del sistema, usuarios e integraciones.',
+  },
+  login: {
+    id: 'LOGIN',
+    path: '/login',
+    label: 'Iniciar sesión',
+    purpose: 'Autenticación de usuarios del sistema.',
   },
 } as const satisfies Record<string, AppRouteDefinition>
 

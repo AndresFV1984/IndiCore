@@ -27,6 +27,7 @@ export class ProductionTraceUseCases implements IProductionTraceUseCases {
       orderStatus: dto.orderStatus,
       productionStatus: dto.productionStatus,
       unidades: dto.unidades,
+      processKey: dto.processKey,
       nota: dto.nota,
       pauseReason: dto.pauseReason,
     }
@@ -46,7 +47,9 @@ export class ProductionTraceUseCases implements IProductionTraceUseCases {
       userId: dto.userId,
       type: 'entrega_parcial',
       orderStatus: dto.orderStatus,
+      productionStatus: dto.productionStatus,
       unidades: dto.unidades,
+      processKey: dto.processKey,
       nota: dto.nota,
     })
   }
@@ -59,6 +62,8 @@ export class ProductionTraceUseCases implements IProductionTraceUseCases {
       userId: dto.userId,
       type: 'paro',
       orderStatus: dto.orderStatus,
+      productionStatus: dto.productionStatus,
+      processKey: dto.processKey,
       pauseReason: dto.pauseReason,
       nota: dto.nota,
     })
@@ -72,6 +77,8 @@ export class ProductionTraceUseCases implements IProductionTraceUseCases {
       userId: dto.userId,
       type: 'reanudacion',
       orderStatus: dto.orderStatus,
+      productionStatus: dto.productionStatus,
+      processKey: dto.processKey,
       nota: dto.nota,
     })
   }

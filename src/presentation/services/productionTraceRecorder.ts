@@ -35,6 +35,8 @@ export const productionTraceRecorder = {
     userId: string
     productionStatus: ProductionOrderStatus
     orderStatus?: OrderStatus
+    processKey?: string
+    nota?: string
   }) {
     const trace = container.getProductionTraceUseCases()
     await trace.recordEvent({
@@ -45,6 +47,8 @@ export const productionTraceRecorder = {
       type: 'cambio_estado_orden',
       orderStatus: input.orderStatus,
       productionStatus: input.productionStatus,
+      processKey: input.processKey,
+      nota: input.nota,
     })
   },
 
@@ -73,6 +77,8 @@ export const productionTraceRecorder = {
     userId: string
     unidades: number
     orderStatus?: OrderStatus
+    productionStatus?: ProductionOrderStatus
+    processKey?: string
     nota?: string
   }) {
     const trace = container.getProductionTraceUseCases()
@@ -86,12 +92,29 @@ export const productionTraceRecorder = {
     userId: string
     unidades: number
     orderStatus?: OrderStatus
+    processKey?: string
     nota?: string
   }) {
     const trace = container.getProductionTraceUseCases()
     await trace.recordEvent({
       ...input,
       type: 'avance_unidades',
+    })
+  },
+
+  async recordPhaseEnd(input: {
+    orderId: string
+    workName: string
+    phase: ProductionTracePhaseId
+    userId: string
+    orderStatus?: OrderStatus
+    processKey?: string
+    nota?: string
+  }) {
+    const trace = container.getProductionTraceUseCases()
+    await trace.recordEvent({
+      ...input,
+      type: 'fin_fase',
     })
   },
 
@@ -102,6 +125,7 @@ export const productionTraceRecorder = {
     userId: string
     pauseReason: ProductionTracePauseReasonId
     orderStatus?: OrderStatus
+    processKey?: string
     nota?: string
   }) {
     const trace = container.getProductionTraceUseCases()
@@ -114,6 +138,7 @@ export const productionTraceRecorder = {
     phase: ProductionTracePhaseId
     userId: string
     orderStatus?: OrderStatus
+    processKey?: string
     nota?: string
   }) {
     const trace = container.getProductionTraceUseCases()

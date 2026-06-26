@@ -29,9 +29,9 @@ function prefetchClients(): void {
 }
 
 function prefetchAuthSession(): void {
-  if (useAuthStore.getState().session) return
+  if (useAuthStore.getState().session !== null) return
   void dedupedFetch('auth:session', () => container.getAuthUseCases().getSession()).then(fetched => {
-    if (!useAuthStore.getState().session) {
+    if (useAuthStore.getState().session === null) {
       useAuthStore.getState().setSession(fetched)
     }
   })

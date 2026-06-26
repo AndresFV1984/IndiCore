@@ -2,9 +2,9 @@ import type { ImpresionTintasRegistro, ImpresionTipoBifronte } from '../../../..
 import type { TarifaMillar } from '../../../../core/domain/entities/TarifaMillar'
 import { isImpresionConVolteo } from '../constants/impresionTipoBifronte'
 import {
-  entradaUsesPantoneInks,
-  entradaUsesPrimaryOrSecondaryInks,
-  resolveTintasMillarPatchForDraft,
+  resolveTintasMillarPatchForEntrada,
+  shouldApplyColorBasicoTarifa,
+  shouldApplyPantoneTarifa,
   type ImpresionTintasRegistroTarifasPatch,
 } from './impresionColorBasicoTarifaUtils'
 import type { ImpresionLadoTintas } from '../../../../core/domain/entities/Order'
@@ -61,18 +61,20 @@ export const syncImpresionTintasDraftTarifa = (
   prev: ImpresionTintasDraftTarifa,
   tarifas: TarifaMillar[],
   tiro: ImpresionLadoTintas,
-  retiro: ImpresionLadoTintas
+  retiro: ImpresionLadoTintas,
+  maxColores: number
 ): ImpresionTintasDraftTarifa => {
-  const usesColorBasico = entradaUsesPrimaryOrSecondaryInks(tiro, retiro)
-  const usesPantone = entradaUsesPantoneInks(tiro, retiro)
-  const basePatch: ImpresionTintasRegistroTarifasPatch = usesColorBasico || usesPantone
-    ? resolveTintasMillarPatchForDraft(tarifas, tiro, retiro)
-    : {
-        tarifaColorBasicoMillarId: '',
-        precioColorBasicoMillar: 0,
-        tarifaPantoneMillarId: '',
-        precioPantoneMillar: 0,
-      }
+  const usesColorBasico = shouldApplyColorBasicoTarifa(tiro, retiro, maxColores)
+  const usesPantone = shouldApplyPantoneTarifa(tiro, retiro, maxColores)
+  const basePatch: ImpresionTintasRegistroTarifasPatch =
+    usesColorBasico || usesPantone
+      ? resolveTintasMillarPatchForEntrada(tarifas, tiro, retiro, maxColores)
+      : {
+          tarifaColorBasicoMillarId: '',
+          precioColorBasicoMillar: 0,
+          tarifaPantoneMillarId: '',
+          precioPantoneMillar: 0,
+        }
 
   const tipoCb = usesColorBasico ? prev.tipoBifronteColorBasico : 'diferente-plancha'
   const tipoPt = usesPantone ? prev.tipoBifrontePantone : 'diferente-plancha'

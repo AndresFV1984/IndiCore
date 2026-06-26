@@ -7,14 +7,15 @@ import type {
 } from '../../../core/domain/entities/Order'
 import type { DisenoColorPlanchaItem } from '../../../core/domain/entities/PreprensaDiseno'
 import { useTarifaMillarHook } from '../../hooks/useTarifaMillar'
-import ProductionWorkspaceSection from './ProductionWorkspaceSection'
 import { IMPRESION_COPY as copy } from './constants/impresionCopy'
 import ImpresionTiroRetiroDiagram from './ImpresionTiroRetiroDiagram'
 import ImpresionTintasVolteoSection from './ImpresionTintasVolteoSection'
-import ImpresionLadoTintasFields from './ImpresionLadoTintasFields'
+import ImpresionLadoTintasFields, {
+  type ImpresionLadoTintasChangeMeta,
+} from './ImpresionLadoTintasFields'
 import ImpresionPlanchaDetalleFields from './ImpresionPlanchaDetalleFields'
 import ImpresionPruebaContratoSection from './ImpresionPruebaContratoSection'
-import ImpresionPlanchaSelect from './ImpresionPlanchaSelect'
+import ProductionPreprensaRegistroPickerSection from './ProductionPreprensaRegistroPickerSection'
 import ImpresionTintasEntradasList from './ImpresionTintasEntradasList'
 import ProductionImpresionTintasResumen from './ProductionImpresionTintasResumen'
 import {
@@ -38,6 +39,9 @@ import {
   isImpresionEntradaDraftValid,
   resolveCompletedPlanchaIds,
   resolvePlanchaColoresMax,
+  replicateNewRetiroSlotsFromTiro,
+  replicateTiroSlotInkToRetiro,
+  replicateTiroTintasChangesToRetiro,
 } from './utils/impresionTintasUtils'
 import { isImpresionConVolteo, canUseImpresionVolteoForGrupo, resolveImpresionVolteoBloqueadoHint, sanitizeImpresionTipoBifronteForVolteo } from './constants/impresionTipoBifronte'
 import {
@@ -45,6 +49,8 @@ import {
   entradaUsesPrimaryOrSecondaryInks,
   resolveTarifaColorBasicoMillar,
   resolveTarifaPantoneMillar,
+  shouldApplyColorBasicoTarifa,
+  shouldApplyPantoneTarifa,
 } from './utils/impresionColorBasicoTarifaUtils'
 import { getImpresionVolteoMillarRulesFromTarifa } from './utils/impresionVolteoTarifaUtils'
 import { resolveTarifaMillarPrecioConVolteoDefault } from './constants/impresionTarifaMillar'
@@ -90,11 +96,14 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   onActiveColorPlanchaIdChange,
   onRegistroChange,
 }) => {
-  const planchaLabelId = useId()
   const composerLabelId = useId()
   const registrosLabelId = useId()
   const skipResetOnPlanchaChangeRef = useRef(false)
   const skipReloadAfterSaveRef = useRef(false)
+  const draftSidesRef = useRef({
+    tiro: emptyImpresionLadoTintas(),
+    retiro: emptyImpresionLadoTintas(),
+  })
   const [draftTiro, setDraftTiro] = useState<ImpresionLadoTintas>(emptyImpresionLadoTintas())
   const [draftRetiro, setDraftRetiro] = useState<ImpresionLadoTintas>(emptyImpresionLadoTintas())
   const [draftTarifa, setDraftTarifa] = useState<ImpresionTintasDraftTarifa>(
@@ -161,8 +170,16 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
     draftTiro.tintas.some(t => t.trim()) ||
     draftRetiro.tintas.some(t => t.trim())
   const canSaveDraft = isImpresionEntradaDraftValid(draftTiro, draftRetiro, maxColoresPlancha)
-  const showColorBasicoTarifa = entradaUsesPrimaryOrSecondaryInks(draftTiro, draftRetiro)
-  const showPantoneTarifa = entradaUsesPantoneInks(draftTiro, draftRetiro)
+  const showColorBasicoTarifa = shouldApplyColorBasicoTarifa(
+    draftTiro,
+    draftRetiro,
+    maxColoresPlancha
+  )
+  const showPantoneTarifa = shouldApplyPantoneTarifa(draftTiro, draftRetiro, maxColoresPlancha)
+  const hasPartialInkSelection =
+    (entradaUsesPrimaryOrSecondaryInks(draftTiro, draftRetiro) ||
+      entradaUsesPantoneInks(draftTiro, draftRetiro)) &&
+    !canSaveDraft
   const tarifaColorBasico = resolveTarifaColorBasicoMillar(tarifasMillar)
   const tarifaPantone = resolveTarifaPantoneMillar(tarifasMillar)
   const volteoMillarRulesColorBasico = getImpresionVolteoMillarRulesFromTarifa(tarifaColorBasico)
@@ -170,7 +187,9 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   const defaultVolteoPrecioColorBasico = resolveTarifaMillarPrecioConVolteoDefault(tarifaColorBasico)
   const defaultVolteoPrecioPantone = resolveTarifaMillarPrecioConVolteoDefault(tarifaPantone)
   const showComposerForm = !hasActiveEntrada || Boolean(editingEntradaId)
-  const showTiroRetiroDiagram = !hasActiveEntrada || Boolean(editingEntradaId)
+  const isDraftColorCountComplete =
+    maxColoresPlancha > 0 && draftTotal === maxColoresPlancha
+  const showTiroRetiroDiagram = showComposerForm && isDraftColorCountComplete
   const conVolteoColorBasico = isImpresionConVolteo(draftTarifa.tipoBifronteColorBasico)
   const conVolteoPantone = isImpresionConVolteo(draftTarifa.tipoBifrontePantone)
 
@@ -303,8 +322,10 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
   const showRegistrosSection = tableRows.length > 0
 
   const clearDraft = () => {
-    setDraftTiro(emptyImpresionLadoTintas())
-    setDraftRetiro(emptyImpresionLadoTintas())
+    const empty = emptyImpresionLadoTintas()
+    draftSidesRef.current = { tiro: empty, retiro: empty }
+    setDraftTiro(empty)
+    setDraftRetiro(empty)
     setDraftTarifa(emptyImpresionTintasDraftTarifa())
     setDraftClienteSuministraTintaPantone('si')
     setDraftPrecioCobroTintaPantone(0)
@@ -319,14 +340,17 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   const loadDraftFromEntrada = (entrada: ImpresionTiroRetiroEntrada, registro: ImpresionTintasRegistro) => {
     setEditingEntradaId(entrada.id)
-    setDraftTiro({
+    const tiro = {
       cantidad: entrada.tiro.cantidad,
       tintas: [...entrada.tiro.tintas],
-    })
-    setDraftRetiro({
+    }
+    const retiro = {
       cantidad: entrada.retiro.cantidad,
       tintas: [...entrada.retiro.tintas],
-    })
+    }
+    draftSidesRef.current = { tiro, retiro }
+    setDraftTiro(tiro)
+    setDraftRetiro(retiro)
     const tarifa = readImpresionTintasDraftTarifa(registro)
     const plancha =
       coloresPlanchas.find(item => item.id === registro.colorPlanchaId) ?? activePlancha
@@ -372,8 +396,10 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   useEffect(() => {
     if (tarifasMillarLoading || !showComposerForm) return
-    setDraftTarifa(prev => syncImpresionTintasDraftTarifa(prev, tarifasMillar, draftTiro, draftRetiro))
-  }, [draftTiro, draftRetiro, showComposerForm, tarifasMillar, tarifasMillarLoading])
+    setDraftTarifa(prev =>
+      syncImpresionTintasDraftTarifa(prev, tarifasMillar, draftTiro, draftRetiro, maxColoresPlancha)
+    )
+  }, [draftTiro, draftRetiro, maxColoresPlancha, showComposerForm, tarifasMillar, tarifasMillarLoading])
 
   useEffect(() => {
     setDraftTarifa(prev => {
@@ -410,9 +436,40 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
 
   const applyDraftSides = (tiro: ImpresionLadoTintas, retiro: ImpresionLadoTintas) => {
     const clamped = clampImpresionEntradaDraftSides(tiro, retiro, maxColoresPlancha)
+    draftSidesRef.current = clamped
     setDraftTiro(clamped.tiro)
     setDraftRetiro(clamped.retiro)
   }
+
+  const handleTiroDraftChange = (
+    nextTiro: ImpresionLadoTintas,
+    meta?: ImpresionLadoTintasChangeMeta
+  ) => {
+    const { tiro: prevTiro, retiro: prevRetiro } = draftSidesRef.current
+    const nextRetiro =
+      meta?.type === 'tinta'
+        ? replicateTiroSlotInkToRetiro(nextTiro, prevRetiro, meta.slotIndex, maxColoresPlancha)
+        : replicateTiroTintasChangesToRetiro(prevTiro, nextTiro, prevRetiro, maxColoresPlancha)
+    applyDraftSides(nextTiro, nextRetiro)
+    if (draftError) setDraftError(null)
+  }
+
+  const handleRetiroDraftChange = (
+    nextRetiro: ImpresionLadoTintas,
+    meta?: ImpresionLadoTintasChangeMeta
+  ) => {
+    const { tiro: prevTiro } = draftSidesRef.current
+    const cantidadChanged = meta?.type === 'cantidad'
+    const resolvedRetiro = cantidadChanged
+      ? replicateNewRetiroSlotsFromTiro(draftSidesRef.current.retiro, nextRetiro, prevTiro)
+      : nextRetiro
+    applyDraftSides(prevTiro, resolvedRetiro)
+    if (draftError) setDraftError(null)
+  }
+
+  useEffect(() => {
+    draftSidesRef.current = { tiro: draftTiro, retiro: draftRetiro }
+  }, [draftTiro, draftRetiro])
 
   const handleSaveDraft = () => {
     if (!activeRegistro || !activePlancha) return
@@ -584,56 +641,32 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
       <p className="production-workspace-panel-desc">{tintasCopy.panelDesc}</p>
 
       <div className="production-ws-sections-stack">
-        <ProductionWorkspaceSection
-          tag={registroCopy.tag}
-          title={registroCopy.title}
-          tone={0}
+        <ProductionPreprensaRegistroPickerSection
+          copy={registroCopy}
+          selectId="prod-impresion-plancha-select"
+          coloresPlanchas={coloresPlanchas}
+          selectedId={activeColorPlanchaId}
+          onChange={onActiveColorPlanchaIdChange}
+          completedPlanchaIds={completedPlanchaIds}
         >
-          {coloresPlanchas.length === 0 ? (
-            <p className="production-diseno-cliente-hint">{registroCopy.emptySinRegistros}</p>
-          ) : (
-            <div className="production-plancha-workspace production-impresion-tintas-workspace">
-              <section
-                className="production-plancha-workspace__picker-zone production-plancha-workspace__picker-zone--selected"
-                aria-labelledby={planchaLabelId}
-              >
-                <label
-                  className="production-form-label"
-                  id={planchaLabelId}
-                  htmlFor="prod-impresion-plancha-select"
-                >
-                  {registroCopy.label}
-                </label>
-                <ImpresionPlanchaSelect
-                  id="prod-impresion-plancha-select"
-                  labelId={planchaLabelId}
-                  coloresPlanchas={coloresPlanchas}
-                  value={activeColorPlanchaId}
-                  completedPlanchaIds={completedPlanchaIds}
-                  onChange={onActiveColorPlanchaIdChange}
-                  placeholder={registroCopy.placeholder}
-                />
-                <span className="production-plancha-workspace__hint">{registroCopy.hint}</span>
-              </section>
+          {activePlancha && activeRegistro ? (
+            <>
+              <ImpresionPlanchaDetalleFields
+                cantidad={activePlancha.cantidad}
+                numeroCavidades={activePlancha.numeroCavidades}
+                tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
+                tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
+              />
+              <ImpresionPruebaContratoSection
+                clienteSuministraPruebaSherpa={resolveClienteSuministraPruebaSherpa(activeRegistro)}
+                precioPruebaSherpa={Math.max(0, activeRegistro.precioPruebaSherpa ?? 0)}
+                onSuministroChange={handlePruebaSherpaSuministroChange}
+                onPrecioChange={handlePruebaSherpaPrecioChange}
+              />
+            </>
+          ) : null}
 
-              {activePlancha && activeRegistro ? (
-                <>
-                  <ImpresionPlanchaDetalleFields
-                    cantidad={activePlancha.cantidad}
-                    numeroCavidades={activePlancha.numeroCavidades}
-                    tipoBifronteColorBasico={draftTarifa.tipoBifronteColorBasico}
-                    tipoBifrontePantone={draftTarifa.tipoBifrontePantone}
-                  />
-                  <ImpresionPruebaContratoSection
-                    clienteSuministraPruebaSherpa={resolveClienteSuministraPruebaSherpa(activeRegistro)}
-                    precioPruebaSherpa={Math.max(0, activeRegistro.precioPruebaSherpa ?? 0)}
-                    onSuministroChange={handlePruebaSherpaSuministroChange}
-                    onPrecioChange={handlePruebaSherpaPrecioChange}
-                  />
-                </>
-              ) : null}
-
-              {activePlancha && activeRegistro ? (
+          {activePlancha && activeRegistro ? (
                 <section
                   className="production-plancha-workspace__composer"
                   aria-labelledby={composerLabelId}
@@ -688,10 +721,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                             lado={draftTiro}
                             maxColoresPlancha={maxColoresPlancha}
                             otherLadoCantidad={draftRetiro.cantidad}
-                            onChange={tiro => {
-                              applyDraftSides(tiro, draftRetiro)
-                              if (draftError) setDraftError(null)
-                            }}
+                            onChange={handleTiroDraftChange}
                           />
                           <ImpresionLadoTintasFields
                             idPrefix="prod-impresion-retiro"
@@ -700,12 +730,18 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                             lado={draftRetiro}
                             maxColoresPlancha={maxColoresPlancha}
                             otherLadoCantidad={draftTiro.cantidad}
-                            onChange={retiro => {
-                              applyDraftSides(draftTiro, retiro)
-                              if (draftError) setDraftError(null)
-                            }}
+                            onChange={handleRetiroDraftChange}
                           />
                         </div>
+
+                        {hasPartialInkSelection ? (
+                          <p
+                            className="production-diseno-cliente-hint production-impresion-tintas-tarifas-await"
+                            role="status"
+                          >
+                            {entradasCopy.tarifasAwaitPlanchaCompleta(maxColoresPlancha)}
+                          </p>
+                        ) : null}
 
                         {showColorBasicoTarifa || showPantoneTarifa ? (
                           <div className="production-impresion-tintas-tarifas-zone">
@@ -825,9 +861,7 @@ const ProductionImpresionTintasPanel: React.FC<ProductionImpresionTintasPanelPro
                   />
                 </section>
               ) : null}
-            </div>
-          )}
-        </ProductionWorkspaceSection>
+        </ProductionPreprensaRegistroPickerSection>
 
         {coloresPlanchas.length > 0 ? (
           <ProductionImpresionTintasResumen
